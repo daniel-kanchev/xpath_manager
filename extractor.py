@@ -131,6 +131,7 @@ title_button_brackets = tk.Button(
     width=3
 )
 
+
 def single_pubdate():
     current_pubdate = pubdate_textbox.get("1.0", tk.END)
     pubdate_textbox.delete("1.0", tk.END)
@@ -144,6 +145,7 @@ pubdate_button_brackets = tk.Button(
     height=2,
     width=3
 )
+
 
 def single_author():
     current_author = author_textbox.get("1.0", tk.END)
@@ -159,6 +161,7 @@ author_button_brackets = tk.Button(
     width=3
 )
 
+
 def single_body():
     current_body = body_textbox.get("1.0", tk.END)
     body_textbox.delete("1.0", tk.END)
@@ -173,9 +176,11 @@ body_button_brackets = tk.Button(
     width=3
 )
 
+
 def meta_command():
     pubdate_textbox.delete("1.0", tk.END)
     pubdate_textbox.insert("1.0", "//meta[@property='article:published_time']/@content")
+
 
 meta_button = tk.Button(
     master=frame,
@@ -185,8 +190,8 @@ meta_button = tk.Button(
     width=5
 )
 
+
 def clear_text():
-    json_variable = ""
     existing_code_textbox.delete("1.0", tk.END)
     start_url_textbox.delete("1.0", tk.END)
     menu_textbox.delete("1.0", tk.END)
@@ -271,31 +276,6 @@ generate_button = tk.Button(
     anchor='w'
 )
 
-
-
-#
-# single_button_pubdate = tk.Button(
-#     master=frame,
-#     text="()[1]",
-#     command=clear_text,
-#     anchor='w'
-# )
-#
-# single_button_author = tk.Button(
-#     master=frame,
-#     text="()[1]",
-#     command=clear_text,
-#     anchor='w'
-# )
-#
-# single_button_body = tk.Button(
-#     master=frame,
-#     text="()[1]",
-#     command=clear_text,
-#     anchor='w'
-# )
-
-
 row = 0
 
 
@@ -303,9 +283,9 @@ def pack_entries(entry_tuple, curr_row):
     entry_tuple[2].grid(row=curr_row, column=0, sticky='W', pady=2, padx=2)
     curr_row += 1
     entry_tuple[0].grid(row=curr_row, column=0, sticky='W', pady=2, padx=2)
-    if len(entry_tuple)>3: # if len = 4 or more
-        for i in range(3,len(entry_tuple)):
-            entry_tuple[i].grid(row=curr_row, column=i-2, sticky='W', pady=2, padx=5)
+    if len(entry_tuple) > 3:  # if len = 4 or more
+        for i in range(3, len(entry_tuple)):
+            entry_tuple[i].grid(row=curr_row, column=i - 2, sticky='W', pady=2, padx=5)
     curr_row += 1
     return curr_row
 
