@@ -1,0 +1,9 @@
+{
+  "scrapy_arguments": {
+    "body_xpath": "//div[@id='newss-inner']//text()",
+    "start_urls": "http://ngo.slant.ru/news/",
+    "title_xpath": "//h1",
+    "link_id_regex": null,
+    "articles_xpath": "//div/a[./b]"
+  }
+}

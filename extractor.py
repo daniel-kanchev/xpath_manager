@@ -1,12 +1,48 @@
 import tkinter as tk
-from tkinter.ttk import *
 import pyperclip
 import json
+import webbrowser
+import subprocess
 
 window = tk.Tk()
+window.geometry("800x1000")
 frame_width = 150
-frame_height = 200
+frame_height = 450
 frame = tk.Frame(master=window, width=frame_width, height=frame_width)
+
+chrome_path = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
+webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
+
+kraken_id_label = tk.Label(
+    master=frame,
+    text="Kraken Link:"
+)
+
+kraken_id_textbox = tk.Text(
+    master=frame,
+    bg="white",
+    height=2
+)
+
+
+def load_code():
+    link = kraken_id_textbox.get('1.0', tk.END)
+    kraken_id = link.split('/')[-2]
+    subprocess.call(f"scrapy runspider kraken_json.py -a kraken_id={kraken_id}")
+    webbrowser.get("chrome").open(link)
+    with open('json.txt', 'r') as f:
+        existing_code_textbox.delete('1.0', tk.END)
+        existing_code_textbox.insert('1.0', f.read())
+    generate()
+
+
+kraken_id_button = tk.Button(
+    master=frame,
+    text="Load",
+    command=load_code,
+    height=2,
+    width=5
+)
 
 existing_code_label = tk.Label(
     master=frame,
@@ -68,7 +104,7 @@ existing_code_textbox = tk.Text(
     master=frame,
     bg="white",
     width=80,
-    height=25
+    height=15
 )
 
 start_url_textbox = tk.Text(
@@ -150,7 +186,7 @@ pubdate_button_brackets = tk.Button(
 def single_author():
     current_author = author_textbox.get("1.0", tk.END)
     author_textbox.delete("1.0", tk.END)
-    title_textbox.insert("1.0", '(' + current_author.strip() + ')[1]')
+    author_textbox.insert("1.0", '(' + current_author.strip() + ')[1]')
 
 
 author_button_brackets = tk.Button(
@@ -191,6 +227,35 @@ meta_button = tk.Button(
 )
 
 
+def add_h1():
+    title_textbox.delete("1.0", tk.END)
+    title_textbox.insert("1.0", '//h1')
+
+
+h1_button = tk.Button(
+    master=frame,
+    text='h1',
+    command=add_h1,
+    height=2,
+    width=3
+)
+
+
+def open_link():
+    links = start_url_textbox.get("1.0", tk.END).split(';')
+    for link in links:
+        webbrowser.get("chrome").open(link)
+
+
+open_link_button = tk.Button(
+    master=frame,
+    text='Open Link',
+    command=open_link,
+    height=2,
+    width=10
+)
+
+
 def clear_text():
     existing_code_textbox.delete("1.0", tk.END)
     start_url_textbox.delete("1.0", tk.END)
@@ -206,31 +271,30 @@ clear_button = tk.Button(
     master=frame,
     text="Clear",
     command=clear_text,
-    anchor='w'
+    height=2,
+    width=10
 )
 
 with open('settings.json') as f1:
     settings_json = json.load(f1)
 
-json_variable = ""
-
-entry_tuples = [(start_url_textbox, "start_urls", start_url_label),
+entry_tuples = [(start_url_textbox, "start_urls", start_url_label, open_link_button),
                 (menu_textbox, "menu_xpath", menu_label),
                 (articles_textbox, "articles_xpath", articles_label),
-                (title_textbox, "title_xpath", title_label, title_button_brackets),
+                (title_textbox, "title_xpath", title_label, h1_button, title_button_brackets),
                 (pubdate_textbox, "pubdate_xpath", pubdate_label, meta_button, pubdate_button_brackets),
                 (author_textbox, "author_xpath", author_label, author_button_brackets),
                 (body_textbox, "body_xpath", body_label, body_button_brackets)]
 
 
-def copy_to_clipboard():
+def generate():
     def not_empty():
-        return bool(start_url_textbox.get("1.0", tk.END).strip() or \
-                    menu_textbox.get("1.0", tk.END).strip() or \
-                    articles_textbox.get("1.0", tk.END).strip() or \
-                    title_textbox.get("1.0", tk.END).strip() or \
-                    pubdate_textbox.get("1.0", tk.END).strip() or \
-                    author_textbox.get("1.0", tk.END).strip() or \
+        return bool(start_url_textbox.get("1.0", tk.END).strip() or
+                    menu_textbox.get("1.0", tk.END).strip() or
+                    articles_textbox.get("1.0", tk.END).strip() or
+                    title_textbox.get("1.0", tk.END).strip() or
+                    pubdate_textbox.get("1.0", tk.END).strip() or
+                    author_textbox.get("1.0", tk.END).strip() or
                     body_textbox.get("1.0", tk.END).strip())
 
     def get_text_from_textbox(textbox, xpath_name):
@@ -252,8 +316,8 @@ def copy_to_clipboard():
         with open('temp.json') as f2:
             json_variable = json.load(f2)
 
-    for t in entry_tuples:
-        get_text_from_textbox(t[0], t[1])
+    for tup in entry_tuples:
+        get_text_from_textbox(tup[0], tup[1])
 
     json_variable["scrapy_settings"] = settings_json
     json_variable["scrapy_arguments"]["link_id_regex"] = None
@@ -263,8 +327,8 @@ def copy_to_clipboard():
     existing_code_textbox.delete("1.0", tk.END)
     existing_code_textbox.insert('1.0', final_text)
 
-    for t in entry_tuples:
-        edit_textbox(t[0], t[1])
+    for tup in entry_tuples:
+        edit_textbox(tup[0], tup[1])
 
     print(final_text)
 
@@ -272,20 +336,26 @@ def copy_to_clipboard():
 generate_button = tk.Button(
     master=frame,
     text="Generate JSON!",
-    command=copy_to_clipboard,
-    anchor='w'
+    command=generate,
+    height=2,
+    width=15
 )
 
 row = 0
 
+kraken_id_label.grid(row=row, column=0, sticky='W', pady=2, padx=2)
+kraken_id_textbox.grid(row=row, column=1, sticky='W', pady=2, padx=2)
+kraken_id_button.grid(row=row, column=2, sticky='W', pady=2, padx=2)
+row += 1
+
 
 def pack_entries(entry_tuple, curr_row):
-    entry_tuple[2].grid(row=curr_row, column=0, sticky='W', pady=2, padx=2)
+    entry_tuple[2].grid(row=curr_row, column=1, sticky='W', pady=2, padx=2)
     curr_row += 1
-    entry_tuple[0].grid(row=curr_row, column=0, sticky='W', pady=2, padx=2)
+    entry_tuple[0].grid(row=curr_row, column=1, sticky='W', pady=2, padx=2)
     if len(entry_tuple) > 3:  # if len = 4 or more
         for i in range(3, len(entry_tuple)):
-            entry_tuple[i].grid(row=curr_row, column=i - 2, sticky='W', pady=2, padx=5)
+            entry_tuple[i].grid(row=curr_row, column=i - 1, sticky='W', pady=2, padx=5)
     curr_row += 1
     return curr_row
 
