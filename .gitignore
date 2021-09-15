@@ -1,5 +1,7 @@
+
 venv/
 .idea/
+*.xml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
