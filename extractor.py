@@ -4,8 +4,26 @@ import json
 import webbrowser
 import subprocess
 
+
+def _onKeyRelease(event):
+    ctrl = (event.state & 0x4) != 0
+    if event.keycode == 88 and ctrl and event.keysym.lower() != "x":
+        event.widget.event_generate("<<Cut>>")
+
+    if event.keycode == 86 and ctrl and event.keysym.lower() != "v":
+        event.widget.event_generate("<<Paste>>")
+
+    if event.keycode == 67 and ctrl and event.keysym.lower() != "c":
+        event.widget.event_generate("<<Copy>>")
+
+    if event.keycode == 65 and ctrl and event.keysym.lower() != "а":
+        event.widget.event_generate("<<SelectAll>>")
+
+
 window = tk.Tk()
-window.geometry("800x1000")
+window.geometry("800x1000+1+1")
+window.bind_all("<Key>", _onKeyRelease, "+")
+
 frame_width = 150
 frame_height = 450
 frame = tk.Frame(master=window, width=frame_width, height=frame_width)
@@ -151,7 +169,6 @@ body_textbox = tk.Text(
     width=80,
     height=4
 )
-
 
 def single_title():
     current_title = title_textbox.get("1.0", tk.END)
@@ -365,8 +382,8 @@ row = pack_entries((existing_code_textbox, "", existing_code_label), row)
 for t in entry_tuples:
     row = pack_entries(t, row)
 
-generate_button.grid(row=row, column=0, sticky='W', padx=2, pady=2)
-clear_button.grid(row=row, column=1, sticky="E", padx=2, pady=2)
+generate_button.grid(row=row, column=1, sticky='W', padx=2, pady=2)
+clear_button.grid(row=row, column=2, sticky="E", padx=2, pady=2)
 row += 1
 
 window.mainloop()
