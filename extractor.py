@@ -1,11 +1,14 @@
 import tkinter as tk
-import pyperclip
 import json
-import webbrowser
 import subprocess
+import webbrowser
+from tkinter.font import Font
+import pyperclip
+import time
 
 
-def _onKeyRelease(event):
+# Code to allow CTRL commands in all languages
+def on_key_release(event):
     ctrl = (event.state & 0x4) != 0
     if event.keycode == 88 and ctrl and event.keysym.lower() != "x":
         event.widget.event_generate("<<Cut>>")
@@ -20,155 +23,239 @@ def _onKeyRelease(event):
         event.widget.event_generate("<<SelectAll>>")
 
 
+# window definition
 window = tk.Tk()
 window.geometry("800x1000+1+1")
-window.bind_all("<Key>", _onKeyRelease, "+")
+window.bind_all("<Key>", on_key_release, "+")
 
-frame_width = 150
-frame_height = 450
-frame = tk.Frame(master=window, width=frame_width, height=frame_width)
+# font definition
+font = Font(family="Roboto", size=10)
 
-chrome_path = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
-webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
-
+# define all Labels
 kraken_id_label = tk.Label(
-    master=frame,
-    text="Kraken Link:"
+    text="Kraken Link:",
+    font=font
+)
+
+existing_code_label = tk.Label(
+    text="Code:",
+    height=1,
+    font=font
+)
+
+start_url_label = tk.Label(
+    text="Start URL:",
+    height=1,
+    font=font
+)
+
+menu_label = tk.Label(
+    text="Menu XPATH:",
+    height=1,
+    font=font
+)
+
+articles_label = tk.Label(
+    text="Articles XPATH:",
+    height=1,
+    font=font
+)
+
+title_label = tk.Label(
+    text="Title XPATH:",
+    height=1,
+    font=font
+)
+
+pubdate_label = tk.Label(
+    text="Pubdate XPATH:",
+    height=1,
+    font=font
+)
+
+author_label = tk.Label(
+    text="Author XPATH:",
+    height=1,
+    font=font
+)
+
+body_label = tk.Label(
+    text="Body XPATH:",
+    height=1,
+    font=font
+)
+
+# textbox definition
+existing_code_textbox = tk.Text(
+    bg="white",
+    width=80,
+    height=15,
+    undo=True,
+    font=font
+)
+
+start_url_textbox = tk.Text(
+    # master=,
+    bg="white",
+    width=80,
+    height=2,
+    undo=True,
+    font=font
+)
+
+menu_textbox = tk.Text(
+    bg="white",
+    width=80,
+    height=2,
+    undo=True,
+    font=font
+)
+
+articles_textbox = tk.Text(
+    # master=,
+    bg="white",
+    width=80,
+    height=2,
+    undo=True,
+    font=font
+)
+title_textbox = tk.Text(
+    bg="white",
+    width=80,
+    height=2,
+    undo=True,
+    font=font
+)
+pubdate_textbox = tk.Text(
+    # master=,
+    bg="white",
+    width=80,
+    height=2,
+    undo=True,
+    font=font
+)
+author_textbox = tk.Text(
+    bg="white",
+    width=80,
+    height=2,
+    undo=True,
+    font=font
+)
+body_textbox = tk.Text(
+    bg="white",
+    width=80,
+    height=4,
+    undo=True,
+    font=font
 )
 
 kraken_id_textbox = tk.Text(
-    master=frame,
     bg="white",
-    height=2
+    height=2,
+    undo=True,
+    font=font
+)
+
+# browser setup
+chrome_path = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
+webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
+
+
+def copy_code(textbox):
+    pyperclip.copy(textbox.get("1.0", tk.END).strip())
+
+
+code_copy_button = tk.Button(
+    text="Copy",
+    command=lambda: copy_code(existing_code_textbox),
+    height=2,
+    width=5,
+    font=font
+)
+
+copy_start_button = tk.Button(
+    text="Copy",
+    command=lambda: copy_code(start_url_textbox),
+    height=2,
+    width=5,
+    font=font
+)
+
+copy_menu_button = tk.Button(
+    text="Copy",
+    command=lambda: copy_code(menu_textbox),
+    height=2,
+    width=5,
+    font=font
+)
+
+copy_articles_button = tk.Button(
+    text="Copy",
+    command=lambda: copy_code(articles_textbox),
+    height=2,
+    width=5,
+    font=font
+)
+
+copy_title_button = tk.Button(
+    text="Copy",
+    command=lambda: copy_code(title_textbox),
+    height=2,
+    width=5,
+    font=font
+)
+
+copy_pubdate_button = tk.Button(
+    text="Copy",
+    command=lambda: copy_code(pubdate_textbox),
+    height=2,
+    width=5,
+    font=font
+)
+
+copy_author_button = tk.Button(
+    text="Copy",
+    command=lambda: copy_code(author_textbox),
+    height=2,
+    width=5,
+    font=font
+)
+
+copy_body_button = tk.Button(
+    text="Copy",
+    command=lambda: copy_code(body_textbox),
+    height=2,
+    width=5,
+    font=font
 )
 
 
+# Button to load code into extractor
 def load_code():
+    clear_text(kraken_id=False)
     link = kraken_id_textbox.get('1.0', tk.END)
     kraken_id = link.split('/')[-2]
     subprocess.call(f"scrapy runspider kraken_json.py -a kraken_id={kraken_id}")
-    webbrowser.get("chrome").open(link)
     with open('json.txt', 'r') as f:
         existing_code_textbox.delete('1.0', tk.END)
         existing_code_textbox.insert('1.0', f.read())
+    if 'edit' not in link:
+        new_link = link.split('items/')
+        new_link.insert(1, 'items/edit/')
+        link = ''.join(new_link)
+    webbrowser.get("chrome").open(link)
     generate()
 
 
 kraken_id_button = tk.Button(
-    master=frame,
+    # master=,
     text="Load",
     command=load_code,
     height=2,
-    width=5
+    width=5,
+    font=font
 )
 
-existing_code_label = tk.Label(
-    master=frame,
-    text="Code:",
-    width=80,
-    height=1
-)
-
-start_url_label = tk.Label(
-    master=frame,
-    text="Start URL:",
-    width=80,
-    height=1
-)
-
-menu_label = tk.Label(
-    master=frame,
-    text="Menu XPATH:",
-    width=80,
-    height=1
-)
-
-articles_label = tk.Label(
-    master=frame,
-    text="Articles XPATH:",
-    width=80,
-    height=1
-)
-
-title_label = tk.Label(
-    master=frame,
-    text="Title XPATH:",
-    width=80,
-    height=1
-)
-
-pubdate_label = tk.Label(
-    master=frame,
-    text="Pubdate XPATH:",
-    width=80,
-    height=1
-)
-
-author_label = tk.Label(
-    master=frame,
-    text="Author XPATH:",
-    width=80,
-    height=1
-)
-
-body_label = tk.Label(
-    master=frame,
-    text="Body XPATH:",
-    width=80,
-    height=1
-)
-
-existing_code_textbox = tk.Text(
-    master=frame,
-    bg="white",
-    width=80,
-    height=15
-)
-
-start_url_textbox = tk.Text(
-    master=frame,
-    bg="white",
-    width=80,
-    height=2,
-)
-
-menu_textbox = tk.Text(
-    master=frame,
-    bg="white",
-    width=80,
-    height=2
-)
-
-articles_textbox = tk.Text(
-    master=frame,
-    bg="white",
-    width=80,
-    height=2
-)
-title_textbox = tk.Text(
-    master=frame,
-    bg="white",
-    width=80,
-    height=2
-)
-pubdate_textbox = tk.Text(
-    master=frame,
-    bg="white",
-    width=80,
-    height=2
-)
-author_textbox = tk.Text(
-    master=frame,
-    bg="white",
-    width=80,
-    height=2
-)
-body_textbox = tk.Text(
-    master=frame,
-    bg="white",
-    width=80,
-    height=4
-)
 
 def single_title():
     current_title = title_textbox.get("1.0", tk.END)
@@ -177,11 +264,11 @@ def single_title():
 
 
 title_button_brackets = tk.Button(
-    master=frame,
     text="[1]",
     command=single_title,
     height=2,
-    width=3
+    width=3,
+    font=font
 )
 
 
@@ -192,11 +279,12 @@ def single_pubdate():
 
 
 pubdate_button_brackets = tk.Button(
-    master=frame,
+    # master=,
     text="[1]",
     command=single_pubdate,
     height=2,
-    width=3
+    width=3,
+    font=font
 )
 
 
@@ -207,11 +295,11 @@ def single_author():
 
 
 author_button_brackets = tk.Button(
-    master=frame,
     text="[1]",
     command=single_author,
     height=2,
-    width=3
+    width=3,
+    font=font
 )
 
 
@@ -222,11 +310,12 @@ def single_body():
 
 
 body_button_brackets = tk.Button(
-    master=frame,
+    # master=,
     text="[1]",
     command=single_body,
     height=2,
-    width=3
+    width=3,
+    font=font
 )
 
 
@@ -236,11 +325,11 @@ def meta_command():
 
 
 meta_button = tk.Button(
-    master=frame,
     text="Meta",
     command=meta_command,
     height=2,
-    width=5
+    width=5,
+    font=font
 )
 
 
@@ -250,30 +339,49 @@ def add_h1():
 
 
 h1_button = tk.Button(
-    master=frame,
+    # master=,
     text='h1',
     command=add_h1,
     height=2,
-    width=3
+    width=3,
+    font=font
 )
 
 
 def open_link():
     links = start_url_textbox.get("1.0", tk.END).split(';')
     for link in links:
+        print(link)
         webbrowser.get("chrome").open(link)
 
 
 open_link_button = tk.Button(
-    master=frame,
     text='Open Link',
     command=open_link,
     height=2,
-    width=10
+    width=10,
+    font=font
 )
 
 
-def clear_text():
+def open_domain():
+    domain = "".join(start_url_textbox.get("1.0", tk.END).split('/')[:3])
+    webbrowser.get("chrome").open(domain)
+    print(domain)
+
+
+open_domain_button = tk.Button(
+    text='Open Domain',
+    command=open_domain,
+    height=2,
+    width=10,
+    font=font
+)
+
+
+def clear_text(kraken_id=True):
+    if kraken_id:
+        kraken_id_textbox.delete("1.0", tk.END)
     existing_code_textbox.delete("1.0", tk.END)
     start_url_textbox.delete("1.0", tk.END)
     menu_textbox.delete("1.0", tk.END)
@@ -285,23 +393,15 @@ def clear_text():
 
 
 clear_button = tk.Button(
-    master=frame,
     text="Clear",
     command=clear_text,
     height=2,
-    width=10
+    width=10,
+    font=font
 )
 
 with open('settings.json') as f1:
     settings_json = json.load(f1)
-
-entry_tuples = [(start_url_textbox, "start_urls", start_url_label, open_link_button),
-                (menu_textbox, "menu_xpath", menu_label),
-                (articles_textbox, "articles_xpath", articles_label),
-                (title_textbox, "title_xpath", title_label, h1_button, title_button_brackets),
-                (pubdate_textbox, "pubdate_xpath", pubdate_label, meta_button, pubdate_button_brackets),
-                (author_textbox, "author_xpath", author_label, author_button_brackets),
-                (body_textbox, "body_xpath", body_label, body_button_brackets)]
 
 
 def generate():
@@ -351,12 +451,20 @@ def generate():
 
 
 generate_button = tk.Button(
-    master=frame,
     text="Generate JSON!",
     command=generate,
     height=2,
-    width=15
+    width=15,
+    master=window,
+    font=font
 )
+entry_tuples = [(start_url_textbox, "start_urls", start_url_label, copy_start_button, open_link_button, open_domain_button),
+                (menu_textbox, "menu_xpath", menu_label, copy_menu_button),
+                (articles_textbox, "articles_xpath", articles_label, copy_articles_button),
+                (title_textbox, "title_xpath", title_label,copy_title_button,  h1_button, title_button_brackets),
+                (pubdate_textbox, "pubdate_xpath", pubdate_label, copy_pubdate_button, meta_button, pubdate_button_brackets),
+                (author_textbox, "author_xpath", author_label,copy_author_button, author_button_brackets),
+                (body_textbox, "body_xpath", body_label,copy_body_button, body_button_brackets)]
 
 row = 0
 
@@ -377,8 +485,7 @@ def pack_entries(entry_tuple, curr_row):
     return curr_row
 
 
-frame.pack()
-row = pack_entries((existing_code_textbox, "", existing_code_label), row)
+row = pack_entries((existing_code_textbox, "", existing_code_label, code_copy_button), row)
 for t in entry_tuples:
     row = pack_entries(t, row)
 
