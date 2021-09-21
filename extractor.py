@@ -458,13 +458,14 @@ generate_button = tk.Button(
     master=window,
     font=font
 )
-entry_tuples = [(start_url_textbox, "start_urls", start_url_label, copy_start_button, open_link_button, open_domain_button),
-                (menu_textbox, "menu_xpath", menu_label, copy_menu_button),
-                (articles_textbox, "articles_xpath", articles_label, copy_articles_button),
-                (title_textbox, "title_xpath", title_label,copy_title_button,  h1_button, title_button_brackets),
-                (pubdate_textbox, "pubdate_xpath", pubdate_label, copy_pubdate_button, meta_button, pubdate_button_brackets),
-                (author_textbox, "author_xpath", author_label,copy_author_button, author_button_brackets),
-                (body_textbox, "body_xpath", body_label,copy_body_button, body_button_brackets)]
+entry_tuples = [
+    (start_url_textbox, "start_urls", start_url_label, copy_start_button, open_link_button, open_domain_button),
+    (menu_textbox, "menu_xpath", menu_label, copy_menu_button),
+    (articles_textbox, "articles_xpath", articles_label, copy_articles_button),
+    (title_textbox, "title_xpath", title_label, copy_title_button, h1_button, title_button_brackets),
+    (pubdate_textbox, "pubdate_xpath", pubdate_label, copy_pubdate_button, meta_button, pubdate_button_brackets),
+    (author_textbox, "author_xpath", author_label, copy_author_button, author_button_brackets),
+    (body_textbox, "body_xpath", body_label, copy_body_button, body_button_brackets)]
 
 row = 0
 

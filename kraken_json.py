@@ -7,7 +7,8 @@ class KrakenJsonSpider(scrapy.Spider):
 
     custom_settings = {
         "LOG_LEVEL": "DEBUG",
-        "USER_AGENT": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0"
+        "USER_AGENT": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0",
+        "FEED_EXPORT_ENCODING": 'utf-8'
     }
 
     def start_requests(self):
@@ -21,5 +22,5 @@ class KrakenJsonSpider(scrapy.Spider):
 
     def after_login(self, response):
         code = response.xpath("//input[@name='feed_properties']/@value").get()
-        with open('json.txt', 'w') as f:
+        with open('json.txt', 'w', encoding='utf-8') as f:
             f.write(code)
