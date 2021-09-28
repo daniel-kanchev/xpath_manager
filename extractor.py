@@ -1,10 +1,10 @@
+import re
 import tkinter as tk
 import json
 import subprocess
 import webbrowser
 from tkinter.font import Font
 import pyperclip
-import time
 
 
 # Code to allow CTRL commands in all languages
@@ -231,9 +231,10 @@ copy_body_button = tk.Button(
 
 
 # Button to load code into extractor
-def load_code():
+def load_code(link):
     clear_text(kraken_id=False)
-    link = kraken_id_textbox.get('1.0', tk.END)
+    kraken_id_textbox.delete('1.0', tk.END)
+    kraken_id_textbox.insert('1.0', link)
     kraken_id = link.split('/')[-2]
     subprocess.call(f"scrapy runspider kraken_json.py -a kraken_id={kraken_id}")
     with open('json.txt', 'r') as f:
@@ -250,9 +251,31 @@ def load_code():
 kraken_id_button = tk.Button(
     # master=,
     text="Load",
-    command=load_code,
+    command=lambda: load_code(kraken_id_textbox.get('1.0', tk.END)),
     height=2,
     width=5,
+    font=font
+)
+
+kraken_id_button_clipboard = tk.Button(
+    # master=,
+    text="Load from Clip",
+    command=lambda: load_code(window.clipboard_get()),
+    height=2,
+    width=10,
+    font=font
+)
+
+
+def open_source(link):
+    webbrowser.get("chrome").open(link)
+
+
+open_source_button = tk.Button(
+    text="Open Source",
+    command=lambda: open_source(kraken_id_textbox.get('1.0', tk.END)),
+    height=2,
+    width=10,
     font=font
 )
 
@@ -333,25 +356,9 @@ meta_button = tk.Button(
 )
 
 
-def add_h1():
-    title_textbox.delete("1.0", tk.END)
-    title_textbox.insert("1.0", '//h1')
-
-
-h1_button = tk.Button(
-    # master=,
-    text='h1',
-    command=add_h1,
-    height=2,
-    width=3,
-    font=font
-)
-
-
 def open_link():
     links = start_url_textbox.get("1.0", tk.END).split(';')
     for link in links:
-        print(link)
         webbrowser.get("chrome").open(link)
 
 
@@ -367,7 +374,6 @@ open_link_button = tk.Button(
 def open_domain():
     domain = "".join(start_url_textbox.get("1.0", tk.END).split('/')[:3])
     webbrowser.get("chrome").open(domain)
-    print(domain)
 
 
 open_domain_button = tk.Button(
@@ -416,7 +422,9 @@ def generate():
 
     def get_text_from_textbox(textbox, xpath_name):
         if textbox.get("1.0", tk.END).strip():
-            json_variable["scrapy_arguments"][xpath_name] = textbox.get("1.0", tk.END).strip().replace('"', "'")
+            # .replace(re.sub(r'\S\|\S'), ' | ')
+            json_variable["scrapy_arguments"][xpath_name] = re.sub(r'(\S)\|(\S)', r'\1 | \2',
+                                                                   textbox.get("1.0", tk.END).strip().replace('"', "'"))
         elif xpath_name in json_variable["scrapy_arguments"].keys() and not_empty():
             json_variable["scrapy_arguments"].pop(xpath_name)
 
@@ -426,7 +434,6 @@ def generate():
             textbox.insert('1.0', json_variable["scrapy_arguments"][xpath_name])
 
     existing_code = existing_code_textbox.get("1.0", tk.END)
-    print(existing_code)
     if existing_code.strip():
         json_variable = json.loads(existing_code)
     else:
@@ -447,7 +454,11 @@ def generate():
     for tup in entry_tuples:
         edit_textbox(tup[0], tup[1])
 
-    print(final_text)
+    log_json = True
+    if log_json and kraken_id_textbox.get('1.0', tk.END):
+        kraken_id = kraken_id_textbox.get('1.0', tk.END).split('/')[-2]
+        with open(f'./logs/{kraken_id}.txt', 'w', encoding='utf-8') as f:
+            f.write(final_text)
 
 
 generate_button = tk.Button(
@@ -462,7 +473,7 @@ entry_tuples = [
     (start_url_textbox, "start_urls", start_url_label, copy_start_button, open_link_button, open_domain_button),
     (menu_textbox, "menu_xpath", menu_label, copy_menu_button),
     (articles_textbox, "articles_xpath", articles_label, copy_articles_button),
-    (title_textbox, "title_xpath", title_label, copy_title_button, h1_button, title_button_brackets),
+    (title_textbox, "title_xpath", title_label, copy_title_button, title_button_brackets),
     (pubdate_textbox, "pubdate_xpath", pubdate_label, copy_pubdate_button, meta_button, pubdate_button_brackets),
     (author_textbox, "author_xpath", author_label, copy_author_button, author_button_brackets),
     (body_textbox, "body_xpath", body_label, copy_body_button, body_button_brackets)]
@@ -472,6 +483,8 @@ row = 0
 kraken_id_label.grid(row=row, column=0, sticky='W', pady=2, padx=2)
 kraken_id_textbox.grid(row=row, column=1, sticky='W', pady=2, padx=2)
 kraken_id_button.grid(row=row, column=2, sticky='W', pady=2, padx=2)
+kraken_id_button_clipboard.grid(row=row, column=3, sticky='W', pady=2, padx=2)
+open_source_button.grid(row=row, column=4, sticky='W', pady=2, padx=2)
 row += 1
 
 
