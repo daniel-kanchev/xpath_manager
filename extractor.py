@@ -455,7 +455,7 @@ def generate():
         edit_textbox(tup[0], tup[1])
 
     log_json = True
-    if log_json and kraken_id_textbox.get('1.0', tk.END):
+    if log_json and kraken_id_textbox.get('1.0', tk.END).strip():
         kraken_id = kraken_id_textbox.get('1.0', tk.END).split('/')[-2]
         with open(f'./logs/{kraken_id}.txt', 'w', encoding='utf-8') as f:
             f.write(final_text)
