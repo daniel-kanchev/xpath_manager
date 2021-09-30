@@ -232,6 +232,11 @@ copy_body_button = tk.Button(
 
 # Button to load code into extractor
 def load_code(link):
+    if 'edit' not in link:
+        new_link = link.split('items/')
+        new_link.insert(1, 'items/edit/')
+        link = ''.join(new_link).replace('https', 'http')
+    webbrowser.get("chrome").open(link)
     clear_text(kraken_id=False)
     kraken_id_textbox.delete('1.0', tk.END)
     kraken_id_textbox.insert('1.0', link)
@@ -240,11 +245,6 @@ def load_code(link):
     with open('json.txt', 'r') as f:
         existing_code_textbox.delete('1.0', tk.END)
         existing_code_textbox.insert('1.0', f.read())
-    if 'edit' not in link:
-        new_link = link.split('items/')
-        new_link.insert(1, 'items/edit/')
-        link = ''.join(new_link)
-    webbrowser.get("chrome").open(link)
     generate()
 
 
