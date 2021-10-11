@@ -27,7 +27,7 @@ def on_key_release(event):
 
 # window definition
 window = tk.Tk()
-window.geometry("800x1000+1+1")
+window.geometry("960x1080+1+1")
 window.bind_all("<Key>", on_key_release, "+")
 
 # font definition
