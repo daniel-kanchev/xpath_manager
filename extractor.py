@@ -91,13 +91,12 @@ body_label = tk.Label(
 existing_code_textbox = tk.Text(
     bg="white",
     width=80,
-    height=15,
+    height=12,
     undo=True,
     font=font
 )
 
 start_url_textbox = tk.Text(
-    # master=,
     bg="white",
     width=80,
     height=2,
@@ -114,7 +113,6 @@ menu_textbox = tk.Text(
 )
 
 articles_textbox = tk.Text(
-    # master=,
     bg="white",
     width=80,
     height=2,
@@ -129,7 +127,6 @@ title_textbox = tk.Text(
     font=font
 )
 pubdate_textbox = tk.Text(
-    # master=,
     bg="white",
     width=80,
     height=2,
@@ -146,14 +143,14 @@ author_textbox = tk.Text(
 body_textbox = tk.Text(
     bg="white",
     width=80,
-    height=4,
+    height=3,
     undo=True,
     font=font
 )
 
 kraken_id_textbox = tk.Text(
     bg="white",
-    height=2,
+    height=1,
     undo=True,
     font=font
 )
@@ -259,7 +256,6 @@ def load_code(link, open_source_bool=True):
 
 
 kraken_id_button = tk.Button(
-    # master=,
     text="Load",
     command=lambda: load_code(kraken_id_textbox.get('1.0', tk.END), open_source_bool=False),
     height=2,
@@ -268,7 +264,6 @@ kraken_id_button = tk.Button(
 )
 
 kraken_id_button_clipboard = tk.Button(
-    # master=,
     text="Load from Clip",
     command=lambda: load_code(window.clipboard_get()),
     height=2,
@@ -290,76 +285,72 @@ open_source_button = tk.Button(
 )
 
 
-def single_title():
-    current_title = title_textbox.get("1.0", tk.END)
-    title_textbox.delete("1.0", tk.END)
-    title_textbox.insert("1.0", '(' + current_title.strip() + ')[1]')
+def get_only_first_value(textbox):
+    current_value = textbox.get("1.0", tk.END)
+    textbox.delete("1.0", tk.END)
+    textbox.insert("1.0", '(' + current_value.strip() + ')[1]')
 
 
 title_button_brackets = tk.Button(
     text="[1]",
-    command=single_title,
+    command=lambda: get_only_first_value(title_textbox),
     height=2,
     width=3,
     font=font
 )
-
-
-def single_pubdate():
-    current_pubdate = pubdate_textbox.get("1.0", tk.END)
-    pubdate_textbox.delete("1.0", tk.END)
-    pubdate_textbox.insert("1.0", '(' + current_pubdate.strip() + ')[1]')
-
 
 pubdate_button_brackets = tk.Button(
-    # master=,
     text="[1]",
-    command=single_pubdate,
+    command=lambda: get_only_first_value(pubdate_textbox),
     height=2,
     width=3,
     font=font
 )
-
-
-def single_author():
-    current_author = author_textbox.get("1.0", tk.END)
-    author_textbox.delete("1.0", tk.END)
-    author_textbox.insert("1.0", '(' + current_author.strip() + ')[1]')
-
 
 author_button_brackets = tk.Button(
     text="[1]",
-    command=single_author,
+    command=lambda: get_only_first_value(author_textbox),
     height=2,
     width=3,
     font=font
 )
-
-
-def single_body():
-    current_body = body_textbox.get("1.0", tk.END)
-    body_textbox.delete("1.0", tk.END)
-    body_textbox.insert("1.0", '(' + current_body.strip() + ')[1]')
-
 
 body_button_brackets = tk.Button(
-    # master=,
     text="[1]",
-    command=single_body,
+    command=lambda: get_only_first_value(body_textbox),
     height=2,
     width=3,
+
     font=font
 )
 
 
-def meta_command():
-    pubdate_textbox.delete("1.0", tk.END)
-    pubdate_textbox.insert("1.0", "//meta[@property='article:published_time']/@content")
+def replace_textbox_value(textbox, value):
+    textbox.delete("1.0", tk.END)
+    textbox.insert("1.0", value)
 
 
 meta_button = tk.Button(
     text="Meta",
-    command=meta_command,
+    command=lambda: replace_textbox_value(pubdate_textbox, "(//meta[contains(@property, 'date')]/@content |"
+                                                           " //meta[contains(@property, 'time')]/@content | "
+                                                           "//*[contains(@itemprop, 'datePublished')]/@content)[1]"),
+    height=2,
+    width=5,
+    font=font
+)
+
+author_button = tk.Button(
+    text="Meta",
+    command=lambda: replace_textbox_value(author_textbox, "//meta[contains(@*,'uthor')]/@content"),
+    height=2,
+    width=5,
+    font=font
+)
+
+body_button = tk.Button(
+    text="Content",
+    command=lambda: replace_textbox_value(body_textbox, "//div[contains(@class, ‘content')]"),
     height=2,
     width=5,
     font=font
@@ -367,17 +358,17 @@ meta_button = tk.Button(
 
 
 def open_link():
-    def find_sitemap(link):
-        xpath = "//*[contains(@href, 'site') and contains(@href, 'map')]/@href"
-        response = requests.get(link, headers={'Connection': 'close'})
-        tree = html.fromstring(response.text)
-        sitemap = tree.xpath(xpath)
-        return sitemap
+    # def find_sitemap(link):
+    #     xpath = "//*[contains(@href, 'site') and contains(@href, 'map')]/@href"
+    #     response = requests.get(link, headers={'Connection': 'close'})
+    #     tree = html.fromstring(response.text)
+    #     sitemap = tree.xpath(xpath)
+    #     return sitemap
 
     links = start_url_textbox.get("1.0", tk.END).split(';')
     for link in links:
         webbrowser.get("chrome").open(link)
-        print(find_sitemap(link))
+        # print(find_sitemap(link))
 
 
 open_link_button = tk.Button(
@@ -428,7 +419,7 @@ with open('settings.json') as f1:
     settings_json = json.load(f1)
 
 
-def generate():
+def generate(event=None):
     def not_empty():
         return bool(start_url_textbox.get("1.0", tk.END).strip() or
                     menu_textbox.get("1.0", tk.END).strip() or
@@ -461,7 +452,11 @@ def generate():
     for tup in entry_tuples:
         get_text_from_textbox(tup[0], tup[1])
 
-    json_variable["scrapy_settings"] = settings_json
+    if "scrapy_settings" in json_variable.keys():
+        json_variable["scrapy_settings"].update(settings_json)
+    else:
+        json_variable["scrapy_settings"] = settings_json
+
     json_variable["scrapy_arguments"]["link_id_regex"] = None
     final_text = json.dumps(json_variable, indent=2)
     pyperclip.copy(final_text)
@@ -479,6 +474,8 @@ def generate():
             f.write(final_text)
 
 
+window.bind('<Return>', generate)
+
 generate_button = tk.Button(
     text="Generate JSON!",
     command=generate,
@@ -493,8 +490,8 @@ entry_tuples = [
     (articles_textbox, "articles_xpath", articles_label, copy_articles_button),
     (title_textbox, "title_xpath", title_label, copy_title_button, title_button_brackets),
     (pubdate_textbox, "pubdate_xpath", pubdate_label, copy_pubdate_button, meta_button, pubdate_button_brackets),
-    (author_textbox, "author_xpath", author_label, copy_author_button, author_button_brackets),
-    (body_textbox, "body_xpath", body_label, copy_body_button, body_button_brackets)]
+    (author_textbox, "author_xpath", author_label, copy_author_button, author_button, author_button_brackets),
+    (body_textbox, "body_xpath", body_label, copy_body_button, body_button, body_button_brackets)]
 
 row = 0
 
