@@ -446,7 +446,7 @@ def generate(event=None):
     if existing_code.strip():
         json_variable = json.loads(existing_code)
     else:
-        with open('temp.json') as f2:
+        with open('template.json') as f2:
             json_variable = json.load(f2)
 
     for tup in entry_tuples:
