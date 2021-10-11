@@ -52,37 +52,37 @@ start_url_label = tk.Label(
 )
 
 menu_label = tk.Label(
-    text="Menu XPATH:",
+    text="Menu XPath:",
     height=1,
     font=font
 )
 
 articles_label = tk.Label(
-    text="Articles XPATH:",
+    text="Articles XPath:",
     height=1,
     font=font
 )
 
 title_label = tk.Label(
-    text="Title XPATH:",
+    text="Title XPath:",
     height=1,
     font=font
 )
 
 pubdate_label = tk.Label(
-    text="Pubdate XPATH:",
+    text="Pubdate XPath:",
     height=1,
     font=font
 )
 
 author_label = tk.Label(
-    text="Author XPATH:",
+    text="Author XPath:",
     height=1,
     font=font
 )
 
 body_label = tk.Label(
-    text="Body XPATH:",
+    text="Body XPath:",
     height=1,
     font=font
 )
