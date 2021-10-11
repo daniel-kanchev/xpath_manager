@@ -5,6 +5,8 @@ import subprocess
 import webbrowser
 from tkinter.font import Font
 import pyperclip
+import requests
+from lxml import html
 
 
 # Code to allow CTRL commands in all languages
@@ -231,17 +233,25 @@ copy_body_button = tk.Button(
 
 
 # Button to load code into extractor
-def load_code(link):
+def load_code(link, open_source_bool=True):
     if 'edit' not in link:
         new_link = link.split('items/')
         new_link.insert(1, 'items/edit/')
         link = ''.join(new_link).replace('https', 'http')
-    webbrowser.get("chrome").open(link)
+    if open_source_bool:
+        webbrowser.get("chrome").open(link)
     clear_text(kraken_id=False)
     kraken_id_textbox.delete('1.0', tk.END)
     kraken_id_textbox.insert('1.0', link)
     kraken_id = link.split('/')[-2]
     subprocess.call(f"scrapy runspider kraken_json.py -a kraken_id={kraken_id}")
+
+    # xpath = "//input[@name='feed_properties']/@value"
+    # response = requests.get(link, headers={'Connection': 'close'})
+    # tree = html.fromstring(response.text)
+    # code = tree.xpath(xpath)
+    # print(code)
+
     with open('json.txt', 'r') as f:
         existing_code_textbox.delete('1.0', tk.END)
         existing_code_textbox.insert('1.0', f.read())
@@ -251,7 +261,7 @@ def load_code(link):
 kraken_id_button = tk.Button(
     # master=,
     text="Load",
-    command=lambda: load_code(kraken_id_textbox.get('1.0', tk.END)),
+    command=lambda: load_code(kraken_id_textbox.get('1.0', tk.END), open_source_bool=False),
     height=2,
     width=5,
     font=font
@@ -357,9 +367,17 @@ meta_button = tk.Button(
 
 
 def open_link():
+    def find_sitemap(link):
+        xpath = "//*[contains(@href, 'site') and contains(@href, 'map')]/@href"
+        response = requests.get(link, headers={'Connection': 'close'})
+        tree = html.fromstring(response.text)
+        sitemap = tree.xpath(xpath)
+        return sitemap
+
     links = start_url_textbox.get("1.0", tk.END).split(';')
     for link in links:
         webbrowser.get("chrome").open(link)
+        print(find_sitemap(link))
 
 
 open_link_button = tk.Button(
