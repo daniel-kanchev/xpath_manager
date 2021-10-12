@@ -350,7 +350,7 @@ author_button = tk.Button(
 
 body_button = tk.Button(
     text="Content",
-    command=lambda: replace_textbox_value(body_textbox, "//div[contains(@class, ‘content')]"),
+    command=lambda: replace_textbox_value(body_textbox, "//div[contains(@class, 'content')]"),
     height=2,
     width=5,
     font=font
