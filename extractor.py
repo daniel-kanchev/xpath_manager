@@ -230,7 +230,7 @@ copy_body_button = tk.Button(
 
 
 # Button to load code into extractor
-def load_code(link, open_source_bool=True):
+def load_code(link, open_source_bool=True, copy_to_clip=True):
     if 'edit' not in link:
         new_link = link.split('items/')
         new_link.insert(1, 'items/edit/')
@@ -252,12 +252,12 @@ def load_code(link, open_source_bool=True):
     with open('json.txt', 'r') as f:
         existing_code_textbox.delete('1.0', tk.END)
         existing_code_textbox.insert('1.0', f.read())
-    generate()
+    generate(copy_to_clip=copy_to_clip)
 
 
 kraken_id_button = tk.Button(
     text="Load",
-    command=lambda: load_code(kraken_id_textbox.get('1.0', tk.END), open_source_bool=False),
+    command=lambda: load_code(kraken_id_textbox.get('1.0', tk.END), open_source_bool=False, copy_to_clip=False),
     height=2,
     width=5,
     font=font
@@ -332,9 +332,9 @@ def replace_textbox_value(textbox, value):
 
 meta_button = tk.Button(
     text="Meta",
-    command=lambda: replace_textbox_value(pubdate_textbox, "(//meta[contains(@property, 'date')]/@content |"
-                                                           " //meta[contains(@property, 'time')]/@content | "
-                                                           "//*[contains(@itemprop, 'datePublished')]/@content)[1]"),
+    command=lambda: replace_textbox_value(pubdate_textbox, "(//meta[contains(@property, 'date')] |"
+                                                           " //meta[contains(@property, 'time')] | "
+                                                           "//*[contains(@itemprop, 'datePublished')])[1]/@content"),
     height=2,
     width=5,
     font=font
@@ -419,7 +419,7 @@ with open('settings.json') as f1:
     settings_json = json.load(f1)
 
 
-def generate(event=None):
+def generate(event=None, copy_to_clip=True):
     def not_empty():
         return bool(start_url_textbox.get("1.0", tk.END).strip() or
                     menu_textbox.get("1.0", tk.END).strip() or
@@ -459,7 +459,8 @@ def generate(event=None):
 
     json_variable["scrapy_arguments"]["link_id_regex"] = None
     final_text = json.dumps(json_variable, indent=2)
-    pyperclip.copy(final_text)
+    if copy_to_clip:
+        pyperclip.copy(final_text)
 
     existing_code_textbox.delete("1.0", tk.END)
     existing_code_textbox.insert('1.0', final_text)
