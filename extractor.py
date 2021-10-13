@@ -8,7 +8,8 @@ from tkinter.font import Font
 import pyperclip
 import requests
 from lxml import html
-
+from pprint import pprint
+import time
 
 # Code to allow CTRL commands in all languages
 def on_key_release(event):
@@ -249,7 +250,6 @@ def load_code(link, open_source_bool=True, initial=False):
         new_link = link.split('items/')
         new_link.insert(1, 'items/edit/')
         link = ''.join(new_link).replace('https', 'http')
-    print(link)
     if open_source_bool:
         webbrowser.get("chrome").open(link)
     clear_text(kraken_id=False)
@@ -258,16 +258,45 @@ def load_code(link, open_source_bool=True, initial=False):
     kraken_id = link.split('/')[-2]
     subprocess.call(f"scrapy runspider kraken_json.py -a kraken_id={kraken_id}")
 
+    # t1 = time.time()
+    # login_link = "https://dashbeta.aiidatapro.net/"
+    # link = link.strip()
+    # headers = {
+    #     'accept': 'text/html,application/xhtml+xml,application/xml',
+    #     'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) '
+    #                   'Chrome/67.0.3396.99 Safari/537.36'
+    # }
+    # s = requests.Session()
+    # s.get(login_link, headers=headers)
+    # if 'csrftoken' in s.cookies:
+    #     # Django 1.6 and up
+    #     csrftoken = s.cookies['csrftoken']
+    # else:
+    #     # older versions
+    #     csrftoken = s.cookies['csrf']
+    # headers['cookie'] = '; '.join([x.name + '=' + x.value for x in s.cookies])
+    # headers['content-type'] = 'application/x-www-form-urlencoded'
+    # payload = {
+    #     'username': 'danielk',
+    #     'password': 'Zi7dei',
+    #     'csrfmiddlewaretoken': csrftoken
+    # }
+    # response = s.post(login_link, data=payload, headers=headers)
+    # headers['cookie'] = '; '.join([x.name + '=' + x.value for x in response.cookies])
+    #
     # xpath = "//input[@name='feed_properties']/@value"
-    # response = requests.get(link, headers={'Connection': 'close'})
+    # response = s.get(link)
+    #
     # tree = html.fromstring(response.text)
     # code = tree.xpath(xpath)
     # print(code)
-
-    with open('json.txt', 'r') as f:
-        existing_code_textbox.delete('1.0', tk.END)
-        existing_code_textbox.insert('1.0', f.read())
-    generate(initial=initial)
+    # t2=time.time()
+    # print(t2-t1)
+    #
+    # with open('json.txt', 'r') as f:
+    #     existing_code_textbox.delete('1.0', tk.END)
+    #     existing_code_textbox.insert('1.0', f.read())
+    # generate(initial=initial)
 
 
 kraken_id_button = tk.Button(
