@@ -1,7 +1,6 @@
 import re
 import tkinter as tk
 import json
-import subprocess
 import webbrowser
 from json import JSONDecodeError
 from tkinter.font import Font
@@ -9,7 +8,8 @@ import pyperclip
 import requests
 from lxml import html
 from pprint import pprint
-import time
+# import time
+
 
 # Code to allow CTRL commands in all languages
 def on_key_release(event):
@@ -243,7 +243,7 @@ copy_body_button = tk.Button(
 
 
 # Button to load code into extractor
-def load_code(link, open_source_bool=True, initial=False):
+def load_code(link, open_source_bool=True):
     if link.strip().isnumeric():
         link = f"http://kraken.aiidatapro.net/items/edit/{link}/"
     elif 'edit' not in link:
@@ -255,53 +255,50 @@ def load_code(link, open_source_bool=True, initial=False):
     clear_text(kraken_id=False)
     kraken_id_textbox.delete('1.0', tk.END)
     kraken_id_textbox.insert('1.0', link)
-    kraken_id = link.split('/')[-2]
-    subprocess.call(f"scrapy runspider kraken_json.py -a kraken_id={kraken_id}")
+    # kraken_id = link.split('/')[-2]
+    # # subprocess.call(f"scrapy runspider kraken_json.py -a kraken_id={kraken_id}")
 
     # t1 = time.time()
-    # login_link = "https://dashbeta.aiidatapro.net/"
-    # link = link.strip()
-    # headers = {
-    #     'accept': 'text/html,application/xhtml+xml,application/xml',
-    #     'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) '
-    #                   'Chrome/67.0.3396.99 Safari/537.36'
-    # }
-    # s = requests.Session()
-    # s.get(login_link, headers=headers)
-    # if 'csrftoken' in s.cookies:
-    #     # Django 1.6 and up
-    #     csrftoken = s.cookies['csrftoken']
-    # else:
-    #     # older versions
-    #     csrftoken = s.cookies['csrf']
-    # headers['cookie'] = '; '.join([x.name + '=' + x.value for x in s.cookies])
-    # headers['content-type'] = 'application/x-www-form-urlencoded'
-    # payload = {
-    #     'username': 'danielk',
-    #     'password': 'Zi7dei',
-    #     'csrfmiddlewaretoken': csrftoken
-    # }
-    # response = s.post(login_link, data=payload, headers=headers)
-    # headers['cookie'] = '; '.join([x.name + '=' + x.value for x in response.cookies])
-    #
-    # xpath = "//input[@name='feed_properties']/@value"
-    # response = s.get(link)
-    #
-    # tree = html.fromstring(response.text)
-    # code = tree.xpath(xpath)
-    # print(code)
+    login_link = "https://dashbeta.aiidatapro.net/"
+    link = link.strip()
+    headers = {
+        'accept': 'text/html,application/xhtml+xml,application/xml',
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                      'Chrome/67.0.3396.99 Safari/537.36'
+    }
+    s = requests.Session()
+    s.get(login_link, headers=headers)
+    if 'csrftoken' in s.cookies:
+        # Django 1.6 and up
+        csrftoken = s.cookies['csrftoken']
+    else:
+        # older versions
+        csrftoken = s.cookies['csrf']
+    headers['cookie'] = '; '.join([x.name + '=' + x.value for x in s.cookies])
+    headers['content-type'] = 'application/x-www-form-urlencoded'
+    payload = {
+        'username': 'danielk',
+        'password': 'Zi7dei',
+        'csrfmiddlewaretoken': csrftoken
+    }
+    response = s.post(login_link, data=payload, headers=headers)
+    headers['cookie'] = '; '.join([x.name + '=' + x.value for x in response.cookies])
+
+    xpath = "//input[@name='feed_properties']/@value"
+    response = s.get(link)
+
+    tree = html.fromstring(response.text)
+    code = tree.xpath(xpath)
+    code = ''.join(code).replace('\r', '').replace('\n', '')
     # t2=time.time()
     # print(t2-t1)
-    #
-    # with open('json.txt', 'r') as f:
-    #     existing_code_textbox.delete('1.0', tk.END)
-    #     existing_code_textbox.insert('1.0', f.read())
-    # generate(initial=initial)
+    generated_json = json.loads(code)
+    generate(initial_json=generated_json)
 
 
 kraken_id_button = tk.Button(
     text="Load",
-    command=lambda: load_code(kraken_id_textbox.get('1.0', tk.END), open_source_bool=False, initial=True),
+    command=lambda: load_code(kraken_id_textbox.get('1.0', tk.END), open_source_bool=False),
     height=2,
     width=5,
     font=font
@@ -309,7 +306,7 @@ kraken_id_button = tk.Button(
 
 kraken_id_button_clipboard = tk.Button(
     text="Clip",
-    command=lambda: load_code(window.clipboard_get(), initial=True),
+    command=lambda: load_code(window.clipboard_get()),
     height=2,
     font=font
 )
@@ -386,7 +383,7 @@ body_button_brackets = tk.Button(
 def add_regex_for_date():
     current_value = pubdate_textbox.get("1.0", tk.END)
     pubdate_textbox.delete("1.0", tk.END)
-    pubdate_textbox.insert("1.0", "re:match(" + current_value.strip() + ", '\\d{2}-\\d{2}-\\d{2,4}', 'g')")
+    pubdate_textbox.insert("1.0", "re:match(" + current_value.strip() + ", '\\d{1,2,4}-\\d{1,2}-\\d{2,4}', 'g')")
 
 
 regex_date_button = tk.Button(
@@ -525,7 +522,7 @@ with open('settings.json') as f1:
     settings_json = json.load(f1)
 
 
-def generate(event=None, initial=False):
+def generate(event=None, initial_json=None):
     def not_empty():
         return bool(start_url_textbox.get("1.0", tk.END).strip() or
                     menu_textbox.get("1.0", tk.END).strip() or
@@ -548,47 +545,57 @@ def generate(event=None, initial=False):
         if xpath_name in json_variable["scrapy_arguments"].keys():
             textbox.insert('1.0', json_variable["scrapy_arguments"][xpath_name])
 
-    existing_code = existing_code_textbox.get("1.0", tk.END)
-    if existing_code.strip():
+    def default_changes():
+        if 'extractor' in json_variable["scrapy_arguments"]:
+            del json_variable["scrapy_arguments"]['extractor']
+
+        json_variable["scrapy_arguments"]["link_id_regex"] = None
+        for tup in entry_tuples:
+            edit_textbox(tup[0], tup[1])
+
+        if "scrapy_settings" in json_variable.keys():
+            json_variable["scrapy_settings"].update(settings_json)
+        else:
+            json_variable["scrapy_settings"] = settings_json
+
+    def fill_code_textbox():
+        final_text = json.dumps(json_variable, indent=2)
+        existing_code_textbox.delete("1.0", tk.END)
+        existing_code_textbox.insert('1.0', final_text)
+        return final_text
+
+    existing_code = existing_code_textbox.get("1.0", tk.END).strip()
+    if initial_json:
+        json_variable = initial_json
+        default_changes()
+        fill_code_textbox()
+        for tup in entry_tuples:
+            edit_textbox(tup[0], tup[1])
+
+    elif not_empty():
         try:
             json_variable = json.loads(existing_code)
         except JSONDecodeError:
             print("Invalid JSON")
             return
+
+        for tup in entry_tuples:
+            get_text_from_textbox(tup[0], tup[1])
+        default_changes()
+        final_json = fill_code_textbox()
+        pyperclip.copy(final_json)
+        for tup in entry_tuples:
+            edit_textbox(tup[0], tup[1])
+
+        log_json = True
+        if log_json and not initial_json and kraken_id_textbox.get('1.0', tk.END).strip():
+            kraken_id = kraken_id_textbox.get('1.0', tk.END).split('/')[-2]
+            with open(f'./logs/{kraken_id}.txt', 'w', encoding='utf-8') as f:
+                f.write(final_json)
+
     else:
-        with open('template.json') as f2:
-            json_variable = json.load(f2)
+        return
 
-    for tup in entry_tuples:
-        get_text_from_textbox(tup[0], tup[1])
-
-    if "scrapy_settings" in json_variable.keys():
-        json_variable["scrapy_settings"].update(settings_json)
-    else:
-        json_variable["scrapy_settings"] = settings_json
-
-    if 'extractor' in json_variable["scrapy_arguments"]:
-        del json_variable["scrapy_arguments"]['extractor']
-
-    json_variable["scrapy_arguments"]["link_id_regex"] = None
-    final_text = json.dumps(json_variable, indent=2)
-    if not initial:
-        pyperclip.copy(final_text)
-
-    existing_code_textbox.delete("1.0", tk.END)
-    existing_code_textbox.insert('1.0', final_text)
-
-    for tup in entry_tuples:
-        edit_textbox(tup[0], tup[1])
-
-    log_json = True
-    if log_json and not initial and kraken_id_textbox.get('1.0', tk.END).strip():
-        kraken_id = kraken_id_textbox.get('1.0', tk.END).split('/')[-2]
-        with open(f'./logs/{kraken_id}.txt', 'w', encoding='utf-8') as f:
-            f.write(final_text)
-
-
-# window.bind('<Return>', generate)
 
 generate_button = tk.Button(
     text="Generate JSON!",
