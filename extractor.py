@@ -377,17 +377,23 @@ body_button_brackets = tk.Button(
 )
 
 
-def add_regex_for_date():
+def add_regex_for_date(regex):
     current_value = pubdate_textbox.get("1.0", tk.END)
     pubdate_textbox.delete("1.0", tk.END)
-    pubdate_textbox.insert("1.0", "re:match(" + current_value.strip() + ", '\d{1,2}\.\d{1,2}\.\d{2,4}', 'g')")
+    pubdate_textbox.insert("1.0", f"re:match({current_value.strip()}, '{regex}', 'g')")
 
 
-regex_date_button = tk.Button(
-    text="Regex",
-    command=add_regex_for_date,
+regex_dmy_button = tk.Button(
+    text="Regex.",
+    command=lambda: add_regex_for_date('\\d{1,2}\\.\\d{1,2}\\.\\d{2,4}'),
     height=2,
-    width=5,
+    font=font
+)
+
+regex_ymd_button = tk.Button(
+    text="Regex-",
+    command=lambda: add_regex_for_date('\\d{4}-\\d{2}-\\d{2}'),
+    height=2,
     font=font
 )
 
@@ -633,8 +639,8 @@ entry_tuples = [
     (menu_textbox, "menu_xpath", menu_label, copy_menu_button),
     (articles_textbox, "articles_xpath", articles_label, copy_articles_button),
     (title_textbox, "title_xpath", title_label, copy_title_button, title_button_brackets),
-    (pubdate_textbox, "pubdate_xpath", pubdate_label, copy_pubdate_button, meta_button, regex_date_button,
-     pubdate_button_brackets),
+    (pubdate_textbox, "pubdate_xpath", pubdate_label, copy_pubdate_button, meta_button, regex_dmy_button,
+     regex_ymd_button, pubdate_button_brackets),
     (date_order_textbox, "date_order", date_order_label, date_order_DMY, date_order_YMD, date_order_MDY),
     (author_textbox, "author_xpath", author_label, copy_author_button, author_button, author_button_brackets),
     (body_textbox, "body_xpath", body_label, copy_body_button, body_button, body_button_brackets)]
