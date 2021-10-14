@@ -272,7 +272,6 @@ def load_code(link, open_source_bool=True):
         # Django 1.6 and up
         csrftoken = s.cookies['csrftoken']
     else:
-        # older versions
         csrftoken = s.cookies['csrf']
     headers['cookie'] = '; '.join([x.name + '=' + x.value for x in s.cookies])
     headers['content-type'] = 'application/x-www-form-urlencoded'
