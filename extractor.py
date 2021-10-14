@@ -8,6 +8,8 @@ import pyperclip
 import requests
 from lxml import html
 from pprint import pprint
+
+
 # import time
 
 
@@ -572,21 +574,46 @@ def generate(event=None, initial_json=None):
         for tup in entry_tuples:
             edit_textbox(tup[0], tup[1])
 
-    elif not_empty():
+    elif existing_code:
         try:
             json_variable = json.loads(existing_code)
         except JSONDecodeError:
             print("Invalid JSON")
             return
-
-        for tup in entry_tuples:
-            get_text_from_textbox(tup[0], tup[1])
+        if not_empty():
+            for tup in entry_tuples:
+                get_text_from_textbox(tup[0], tup[1])
         default_changes()
         final_json = fill_code_textbox()
         pyperclip.copy(final_json)
         for tup in entry_tuples:
             edit_textbox(tup[0], tup[1])
 
+        log_json = True
+        if log_json and not initial_json and kraken_id_textbox.get('1.0', tk.END).strip():
+            kraken_id = kraken_id_textbox.get('1.0', tk.END).split('/')[-2]
+            with open(f'./logs/{kraken_id}.txt', 'w', encoding='utf-8') as f:
+                f.write(final_json)
+
+    elif not_empty():
+        json_variable = {
+            "scrapy_arguments": {
+                "start_urls": "",
+                "articles_xpath": "",
+                "title_xpath": "",
+                "body_xpath": ""
+            },
+            "scrapy_settings": {
+                "LOG_LEVEL": "DEBUG",
+                "COOKIES_ENABLED": False,
+                "USER_AGENT": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0"
+            }
+        }
+        for tup in entry_tuples:
+            get_text_from_textbox(tup[0], tup[1])
+        default_changes()
+        final_json = fill_code_textbox()
+        pyperclip.copy(final_json)
         log_json = True
         if log_json and not initial_json and kraken_id_textbox.get('1.0', tk.END).strip():
             kraken_id = kraken_id_textbox.get('1.0', tk.END).split('/')[-2]
