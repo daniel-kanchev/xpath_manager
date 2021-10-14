@@ -380,7 +380,7 @@ body_button_brackets = tk.Button(
 def add_regex_for_date():
     current_value = pubdate_textbox.get("1.0", tk.END)
     pubdate_textbox.delete("1.0", tk.END)
-    pubdate_textbox.insert("1.0", "re:match(" + current_value.strip() + ", '\\d{1,2,4}-\\d{1,2}-\\d{2,4}', 'g')")
+    pubdate_textbox.insert("1.0", "re:match(" + current_value.strip() + ", '\d{1,2}\.\d{1,2}\.\d{2,4}', 'g')")
 
 
 regex_date_button = tk.Button(
