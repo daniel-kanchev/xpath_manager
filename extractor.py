@@ -7,6 +7,7 @@ from tkinter.font import Font
 import pyperclip
 import requests
 from lxml import html
+import login_data
 from pprint import pprint
 
 
@@ -257,10 +258,7 @@ def load_code(link, open_source_bool=True):
     clear_text(kraken_id=False)
     kraken_id_textbox.delete('1.0', tk.END)
     kraken_id_textbox.insert('1.0', link)
-    # kraken_id = link.split('/')[-2]
-    # # subprocess.call(f"scrapy runspider kraken_json.py -a kraken_id={kraken_id}")
 
-    # t1 = time.time()
     login_link = "https://dashbeta.aiidatapro.net/"
     link = link.strip()
     headers = {
@@ -279,8 +277,8 @@ def load_code(link, open_source_bool=True):
     headers['cookie'] = '; '.join([x.name + '=' + x.value for x in s.cookies])
     headers['content-type'] = 'application/x-www-form-urlencoded'
     payload = {
-        'username': 'danielk',
-        'password': 'Zi7dei',
+        'username': login_data.username,
+        'password': login_data.password,
         'csrfmiddlewaretoken': csrftoken
     }
     response = s.post(login_link, data=payload, headers=headers)
@@ -292,8 +290,6 @@ def load_code(link, open_source_bool=True):
     tree = html.fromstring(response.text)
     code = tree.xpath(xpath)
     code = ''.join(code).replace('\r', '').replace('\n', '')
-    # t2=time.time()
-    # print(t2-t1)
     generated_json = json.loads(code)
     generate(initial_json=generated_json)
 
