@@ -8,10 +8,6 @@ import pyperclip
 import requests
 from lxml import html
 import login_data
-from pprint import pprint
-
-
-# import time
 
 
 # Code to allow CTRL commands in all languages
@@ -259,31 +255,8 @@ def load_code(link, open_source_bool=True):
     kraken_id_textbox.delete('1.0', tk.END)
     kraken_id_textbox.insert('1.0', link)
 
-    login_link = "https://dashbeta.aiidatapro.net/"
-    link = link.strip()
-    headers = {
-        'accept': 'text/html,application/xhtml+xml,application/xml',
-        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                      'Chrome/67.0.3396.99 Safari/537.36'
-    }
-    s = requests.Session()
-    s.get(login_link, headers=headers)
-    if 'csrftoken' in s.cookies:
-        # Django 1.6 and up
-        csrftoken = s.cookies['csrftoken']
-    else:
-        csrftoken = s.cookies['csrf']
-    headers['cookie'] = '; '.join([x.name + '=' + x.value for x in s.cookies])
-    headers['content-type'] = 'application/x-www-form-urlencoded'
-    payload = {
-        'username': login_data.username,
-        'password': login_data.password,
-        'csrfmiddlewaretoken': csrftoken
-    }
-    response = s.post(login_link, data=payload, headers=headers)
-    headers['cookie'] = '; '.join([x.name + '=' + x.value for x in response.cookies])
-
     xpath = "//input[@name='feed_properties']/@value"
+    link = link.strip()
     response = s.get(link)
 
     tree = html.fromstring(response.text)
@@ -674,4 +647,29 @@ generate_button.grid(row=row, column=1, sticky='W', padx=2, pady=2)
 clear_button.grid(row=row, column=2, sticky="E", padx=2, pady=2)
 row += 1
 
-window.mainloop()
+login_link = "https://dashbeta.aiidatapro.net/"
+
+headers = {
+    'accept': 'text/html,application/xhtml+xml,application/xml',
+    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                  'Chrome/67.0.3396.99 Safari/537.36'
+}
+
+if __name__ == '__main__':
+    s = requests.Session()
+    s.get(login_link, headers=headers)
+    if 'csrftoken' in s.cookies:
+        # Django 1.6 and up
+        csrftoken = s.cookies['csrftoken']
+    else:
+        csrftoken = s.cookies['csrf']
+    headers['cookie'] = '; '.join([x.name + '=' + x.value for x in s.cookies])
+    headers['content-type'] = 'application/x-www-form-urlencoded'
+    payload = {
+        'username': login_data.username,
+        'password': login_data.password,
+        'csrfmiddlewaretoken': csrftoken
+    }
+    response = s.post(login_link, data=payload, headers=headers)
+    headers['cookie'] = '; '.join([x.name + '=' + x.value for x in response.cookies])
+    window.mainloop()
