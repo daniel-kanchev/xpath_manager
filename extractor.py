@@ -242,14 +242,19 @@ copy_body_button = tk.Button(
 )
 
 
-# Button to load code into extractor
-def load_code(link, open_source_bool=True):
+def get_link(link):
+    # Function to format the link, either from the source_id, the items page, or the correct link
     if link.strip().isnumeric():
         link = f"http://kraken.aiidatapro.net/items/edit/{link}/"
     elif 'edit' not in link:
         new_link = link.split('items/')
         new_link.insert(1, 'items/edit/')
         link = ''.join(new_link).replace('https', 'http')
+    return link
+
+
+def load_code(link, open_source_bool=True):
+    link = get_link(link)
     if open_source_bool:
         webbrowser.get("chrome").open(link)
     clear_text(kraken_id=False)
@@ -258,9 +263,9 @@ def load_code(link, open_source_bool=True):
 
     xpath = "//input[@name='feed_properties']/@value"
     link = link.strip()
-    response = s.get(link)
+    kraken_response = s.get(link)
 
-    tree = html.fromstring(response.text)
+    tree = html.fromstring(kraken_response.text)
     code = tree.xpath(xpath)
     code = ''.join(code).replace('\r', '').replace('\n', '')
     try:
@@ -287,13 +292,27 @@ kraken_id_button_clipboard = tk.Button(
 )
 
 
-def open_source(link):
+def open_link(link):
     webbrowser.get("chrome").open(link)
 
 
 open_source_button = tk.Button(
     text="Source",
-    command=lambda: open_source(kraken_id_textbox.get('1.0', tk.END)),
+    command=lambda: open_link(kraken_id_textbox.get('1.0', tk.END)),
+    height=2,
+    font=font
+)
+
+
+def open_items_page():
+    # Function to open the "View Item" page of the source in Kraken
+    link = get_link(kraken_id_textbox.get('1.0', tk.END).strip()).replace('/edit', '')
+    webbrowser.get("chrome").open(link)
+
+
+open_items_button = tk.Button(
+    text="items",
+    command=open_items_page,
     height=2,
     font=font
 )
@@ -456,7 +475,7 @@ body_not_contains_button = tk.Button(
 )
 
 
-def open_link():
+def open_start_url_link():
     links = start_url_textbox.get("1.0", tk.END).split(';')
     for link in links:
         webbrowser.get("chrome").open(link)
@@ -464,7 +483,7 @@ def open_link():
 
 open_link_button = tk.Button(
     text='Link',
-    command=open_link,
+    command=open_start_url_link,
     height=2,
     font=font
 )
@@ -693,6 +712,7 @@ kraken_id_textbox.grid(row=row, column=1, sticky='W', pady=2, padx=2)
 kraken_id_button.grid(row=row, column=2, sticky='W', pady=2, padx=2)
 kraken_id_button_clipboard.grid(row=row, column=3, sticky='W', pady=2, padx=2)
 open_source_button.grid(row=row, column=4, sticky='W', pady=2, padx=2)
+open_items_button.grid(row=row, column=5, sticky='W', pady=2, padx=2)
 row += 1
 
 
@@ -725,8 +745,8 @@ headers = {
 
 if __name__ == '__main__':
     if not os.path.exists('./login_data.py'):
-        with open('login_data.py', 'w') as f:
-            f.write('username = "USERNAME_HERE"\npassword = "PASSWORD_HERE"')
+        with open('login_data.py', 'w') as login_file:
+            login_file.write('username = "USERNAME_HERE"\npassword = "PASSWORD_HERE"')
             print("Fill in your login details in login_data.py!")
     else:
         s = requests.Session()
