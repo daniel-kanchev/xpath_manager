@@ -371,7 +371,7 @@ regex_dmy_button = tk.Button(
 
 regex_ymd_button = tk.Button(
     text="Rgx Txt",
-    command=lambda: add_regex_for_date(r'(\d{1,2})\.(\s\w+\s\d{2,4}))'),
+    command=lambda: add_regex_for_date(r'(\d{1,2})\.(\s\w+\s\d{2,4})'),
     height=2,
     font=font
 )
@@ -472,7 +472,7 @@ open_link_button = tk.Button(
 
 
 def open_domain():
-    domain = "".join(start_url_textbox.get("1.0", tk.END).split('/')[:3])
+    domain = "/".join(start_url_textbox.get("1.0", tk.END).split('/')[:3]) + '/'
     find_sitemap()
     webbrowser.get("chrome").open(domain)
 
@@ -487,15 +487,17 @@ open_domain_button = tk.Button(
 
 def find_sitemap():
     xpath = "(//*[contains(@href, 'site') and contains(@href, 'map')]/@href)[1]"
-    link = start_url_textbox.get("1.0", tk.END).strip()
-    response = requests.get(link, headers={'Connection': 'close'})
-    tree = html.fromstring(response.text)
+    link = "/".join(start_url_textbox.get("1.0", tk.END).split('/')[:3]) + '/'
+    sitemap_response = requests.get(link, headers={'Connection': 'close'})
+    tree = html.fromstring(sitemap_response.text)
     sitemap = tree.xpath(xpath)
     if sitemap:
         sitemap_link = sitemap[0]
         if link not in sitemap[0]:
             sitemap_link = link[:-1] + sitemap[0]
         webbrowser.get("chrome").open(sitemap_link)
+    else:
+        print("No sitemap")
     return
 
 
