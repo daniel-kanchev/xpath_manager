@@ -3,11 +3,13 @@ import tkinter as tk
 import json
 import webbrowser
 from json import JSONDecodeError
+from pprint import pprint
 from tkinter.font import Font
 import pyperclip
 import requests
 from lxml import html
 import login_data
+import os
 
 
 # Code to allow CTRL commands in all languages
@@ -262,7 +264,11 @@ def load_code(link, open_source_bool=True):
     tree = html.fromstring(response.text)
     code = tree.xpath(xpath)
     code = ''.join(code).replace('\r', '').replace('\n', '')
-    generated_json = json.loads(code)
+    try:
+        generated_json = json.loads(code)
+    except JSONDecodeError:
+        print("Incorrect Login Details")
+        return
     generate(initial_json=generated_json)
 
 
@@ -357,15 +363,15 @@ def add_regex_for_date(regex):
 
 
 regex_dmy_button = tk.Button(
-    text="Regex.",
-    command=lambda: add_regex_for_date('\\d{1,2}\\.\\d{1,2}\\.\\d{2,4}'),
+    text="Rgx.",
+    command=lambda: add_regex_for_date(r'\d{1,2}\.\d{1,2}\.\d{2,4}'),
     height=2,
     font=font
 )
 
 regex_ymd_button = tk.Button(
-    text="Regex-",
-    command=lambda: add_regex_for_date('\\d{4}-\\d{2}-\\d{2}'),
+    text="Rgx Txt",
+    command=lambda: add_regex_for_date(r'(\d{1,2})\.(\s\w+\s\d{2,4}))'),
     height=2,
     font=font
 )
@@ -406,7 +412,20 @@ date_order_MDY = tk.Button(
     font=font
 )
 
-author_button = tk.Button(
+
+def author_substring():
+    author = author_textbox.get("1.0", tk.END).strip()
+    author_textbox.delete("1.0", tk.END)
+    author_textbox.insert('1.0', f"substring-after({author},':')")
+
+
+author_substring_button = tk.Button(
+    text="Substr",
+    command=author_substring,
+    height=2,
+    font=font
+)
+author_meta_button = tk.Button(
     text="Meta",
     command=lambda: replace_textbox_value(author_textbox, "//meta[contains(@*,'uthor')]/@content"),
     height=2,
@@ -414,9 +433,24 @@ author_button = tk.Button(
     font=font
 )
 
-body_button = tk.Button(
+body_contains_class_button = tk.Button(
     text="Content",
     command=lambda: replace_textbox_value(body_textbox, "//div[contains(@class, 'content')]"),
+    height=2,
+    width=5,
+    font=font
+)
+
+
+def not_contains(current_value):
+    textbox = body_textbox.get("1.0", tk.END).strip()
+    body_textbox.delete("1.0", tk.END)
+    body_textbox.insert("1.0", f"{textbox.strip()}[not(contains(@class, '{current_value}'))]")
+
+
+body_not_contains_button = tk.Button(
+    text="Not",
+    command=lambda: not_contains(window.clipboard_get()),
     height=2,
     width=5,
     font=font
@@ -439,6 +473,7 @@ open_link_button = tk.Button(
 
 def open_domain():
     domain = "".join(start_url_textbox.get("1.0", tk.END).split('/')[:3])
+    find_sitemap()
     webbrowser.get("chrome").open(domain)
 
 
@@ -494,6 +529,22 @@ clear_button = tk.Button(
     font=font
 )
 
+
+def sort_json(json_object):
+    keyorder_arguments = ["start_urls", "menu_xpath", "articles_xpath", "title_xpath", "pubdate_xpath", "date_order",
+                          "author_xpath", "body_xpath"]
+    existing_keys = []
+    for entry in keyorder_arguments:
+        if entry in json_object["scrapy_arguments"].keys():
+            existing_keys.append(entry)
+
+    new_dict = {"scrapy_arguments": {}, "scrapy_settings": {}}
+    for entry in existing_keys:
+        new_dict["scrapy_arguments"][entry] = json_object["scrapy_arguments"][entry]
+    new_dict["scrapy_settings"] = json_object["scrapy_settings"]
+    return new_dict
+
+
 with open('settings.json') as f1:
     settings_json = json.load(f1)
 
@@ -509,30 +560,32 @@ def generate(event=None, initial_json=None):
                     author_textbox.get("1.0", tk.END).strip() or
                     body_textbox.get("1.0", tk.END).strip())
 
-    def get_text_from_textbox(textbox, xpath_name):
+    def get_text_from_textbox(textbox, xpath_name, json_var):
         if textbox.get("1.0", tk.END).strip():
-            json_variable["scrapy_arguments"][xpath_name] = re.sub(r'(\S)\|(\S)', r'\1 | \2',
-                                                                   textbox.get("1.0", tk.END).strip().replace('"', "'"))
-        elif xpath_name in json_variable["scrapy_arguments"].keys() and not_empty():
-            json_variable["scrapy_arguments"].pop(xpath_name)
+            json_var["scrapy_arguments"][xpath_name] = re.sub(r'(\S)\|(\S)', r'\1 | \2',
+                                                              textbox.get("1.0", tk.END).strip().replace('"', "'"))
+        elif xpath_name in json_var["scrapy_arguments"].keys() and not_empty():
+            json_var["scrapy_arguments"].pop(xpath_name)
+        return json_var
 
-    def edit_textbox(textbox, xpath_name):
+    def edit_textbox(textbox, xpath_name, json_var):
         textbox.delete("1.0", tk.END)
-        if xpath_name in json_variable["scrapy_arguments"].keys():
-            textbox.insert('1.0', json_variable["scrapy_arguments"][xpath_name])
+        if xpath_name in json_var["scrapy_arguments"].keys():
+            textbox.insert('1.0', json_var["scrapy_arguments"][xpath_name])
 
-    def default_changes():
-        if 'extractor' in json_variable["scrapy_arguments"]:
-            del json_variable["scrapy_arguments"]['extractor']
+    def default_changes(json_var):
+        if 'extractor' in json_var["scrapy_arguments"]:
+            del json_var["scrapy_arguments"]['extractor']
 
-        json_variable["scrapy_arguments"]["link_id_regex"] = None
+        json_var["scrapy_arguments"]["link_id_regex"] = None
         for tup in entry_tuples:
-            edit_textbox(tup[0], tup[1])
+            edit_textbox(tup[0], tup[1], json_var)
 
-        if "scrapy_settings" in json_variable.keys():
-            json_variable["scrapy_settings"].update(settings_json)
+        if "scrapy_settings" in json_var.keys():
+            json_var["scrapy_settings"].update(settings_json)
         else:
-            json_variable["scrapy_settings"] = settings_json
+            json_var["scrapy_settings"] = settings_json
+        return sort_json(json_var)
 
     def fill_code_textbox():
         final_text = json.dumps(json_variable, indent=2)
@@ -542,11 +595,10 @@ def generate(event=None, initial_json=None):
 
     existing_code = existing_code_textbox.get("1.0", tk.END).strip()
     if initial_json:
-        json_variable = initial_json
-        default_changes()
+        json_variable = default_changes(initial_json)
         fill_code_textbox()
         for tup in entry_tuples:
-            edit_textbox(tup[0], tup[1])
+            edit_textbox(tup[0], tup[1], json_variable)
 
     elif existing_code:
         try:
@@ -556,15 +608,17 @@ def generate(event=None, initial_json=None):
             return
         if not_empty():
             for tup in entry_tuples:
-                get_text_from_textbox(tup[0], tup[1])
-        default_changes()
+                json_variable = get_text_from_textbox(tup[0], tup[1], json_variable)
+        json_variable = default_changes(json_variable)
         final_json = fill_code_textbox()
         pyperclip.copy(final_json)
         for tup in entry_tuples:
-            edit_textbox(tup[0], tup[1])
+            edit_textbox(tup[0], tup[1], json_variable)
 
         log_json = True
         if log_json and not initial_json and kraken_id_textbox.get('1.0', tk.END).strip():
+            if not os.path.isdir('./logs'):
+                os.mkdir('./logs')
             kraken_id = kraken_id_textbox.get('1.0', tk.END).split('/')[-2]
             with open(f'./logs/{kraken_id}.txt', 'w', encoding='utf-8') as f:
                 f.write(final_json)
@@ -584,8 +638,8 @@ def generate(event=None, initial_json=None):
             }
         }
         for tup in entry_tuples:
-            get_text_from_textbox(tup[0], tup[1])
-        default_changes()
+            json_variable = get_text_from_textbox(tup[0], tup[1], json_variable)
+        json_variable = default_changes(json_variable)
         final_json = fill_code_textbox()
         pyperclip.copy(final_json)
         log_json = True
@@ -615,8 +669,10 @@ entry_tuples = [
     (pubdate_textbox, "pubdate_xpath", pubdate_label, copy_pubdate_button, meta_button, regex_dmy_button,
      regex_ymd_button, pubdate_button_brackets),
     (date_order_textbox, "date_order", date_order_label, date_order_DMY, date_order_YMD, date_order_MDY),
-    (author_textbox, "author_xpath", author_label, copy_author_button, author_button, author_button_brackets),
-    (body_textbox, "body_xpath", body_label, copy_body_button, body_button, body_button_brackets)]
+    (author_textbox, "author_xpath", author_label, copy_author_button, author_meta_button, author_substring_button,
+     author_button_brackets),
+    (body_textbox, "body_xpath", body_label, copy_body_button, body_contains_class_button, body_not_contains_button,
+     body_button_brackets)]
 
 row = 0
 
