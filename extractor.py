@@ -712,20 +712,26 @@ headers = {
 }
 
 if __name__ == '__main__':
-    s = requests.Session()
-    s.get(login_link, headers=headers)
-    if 'csrftoken' in s.cookies:
-        # Django 1.6 and up
-        csrftoken = s.cookies['csrftoken']
+    if not os.path.exists('./login_data.py'):
+        with open('login_data.py', 'w') as f:
+            f.write('username = "USERNAME_HERE"\npassword = "PASSWORD_HERE"')
+            print("Fill in your login details in login_data.py!")
     else:
-        csrftoken = s.cookies['csrf']
-    headers['cookie'] = '; '.join([x.name + '=' + x.value for x in s.cookies])
-    headers['content-type'] = 'application/x-www-form-urlencoded'
-    payload = {
-        'username': login_data.username,
-        'password': login_data.password,
-        'csrfmiddlewaretoken': csrftoken
-    }
-    response = s.post(login_link, data=payload, headers=headers)
-    headers['cookie'] = '; '.join([x.name + '=' + x.value for x in response.cookies])
+        s = requests.Session()
+        s.get(login_link, headers=headers)
+        if 'csrftoken' in s.cookies:
+            # Django 1.6 and up
+            csrftoken = s.cookies['csrftoken']
+        else:
+            csrftoken = s.cookies['csrf']
+        headers['cookie'] = '; '.join([x.name + '=' + x.value for x in s.cookies])
+        headers['content-type'] = 'application/x-www-form-urlencoded'
+        payload = {
+            'username': login_data.username,
+            'password': login_data.password,
+            'csrfmiddlewaretoken': csrftoken
+        }
+        response = s.post(login_link, data=payload, headers=headers)
+        headers['cookie'] = '; '.join([x.name + '=' + x.value for x in response.cookies])
+        print("Logged in!")
     window.mainloop()
