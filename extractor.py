@@ -544,7 +544,7 @@ clear_button = tk.Button(
 
 def sort_json(json_object):
     keyorder_arguments = ["start_urls", "menu_xpath", "articles_xpath", "title_xpath", "pubdate_xpath", "date_order",
-                          "author_xpath", "body_xpath"]
+                          "author_xpath", "body_xpath", "link_id_regex"]
     existing_keys = []
     for entry in keyorder_arguments:
         if entry in json_object["scrapy_arguments"].keys():
