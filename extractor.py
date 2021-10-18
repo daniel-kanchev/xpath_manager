@@ -3,7 +3,6 @@ import tkinter as tk
 import json
 import webbrowser
 from json import JSONDecodeError
-from pprint import pprint
 from tkinter.font import Font
 import pyperclip
 import requests
@@ -471,8 +470,36 @@ open_link_button = tk.Button(
 )
 
 
+def get_domain():
+    link = start_url_textbox.get("1.0", tk.END).strip()
+    if link[-1] != '/':
+        link += '/'
+    domain = "/".join(link.split('/')[:3]) + '/'
+    return domain
+
+
+def find_sitemap():
+    xpath = "(//*[contains(@href, 'site') and contains(@href, 'map')]/@href)[1]"
+    domain = get_domain()
+    sitemap_response = requests.get(domain, headers={'Connection': 'close'})
+    tree = html.fromstring(sitemap_response.text)
+    sitemap = tree.xpath(xpath)
+    if sitemap:
+        sitemap_link = sitemap[0]
+        if domain not in sitemap[0]:
+            sitemap_link = domain[:-1] + sitemap[0]
+        webbrowser.get("chrome").open(sitemap_link)
+    else:
+        print("No sitemap")
+    return
+
+
 def open_domain():
-    domain = "/".join(start_url_textbox.get("1.0", tk.END).split('/')[:3]) + '/'
+    try:
+        domain = get_domain()
+    except IndexError:
+        print("Invalid URL")
+        return
     find_sitemap()
     webbrowser.get("chrome").open(domain)
 
@@ -483,23 +510,6 @@ open_domain_button = tk.Button(
     height=2,
     font=font
 )
-
-
-def find_sitemap():
-    xpath = "(//*[contains(@href, 'site') and contains(@href, 'map')]/@href)[1]"
-    link = "/".join(start_url_textbox.get("1.0", tk.END).split('/')[:3]) + '/'
-    sitemap_response = requests.get(link, headers={'Connection': 'close'})
-    tree = html.fromstring(sitemap_response.text)
-    sitemap = tree.xpath(xpath)
-    if sitemap:
-        sitemap_link = sitemap[0]
-        if link not in sitemap[0]:
-            sitemap_link = link[:-1] + sitemap[0]
-        webbrowser.get("chrome").open(sitemap_link)
-    else:
-        print("No sitemap")
-    return
-
 
 sitemap_button = tk.Button(
     text='Sitemap',
