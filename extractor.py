@@ -29,6 +29,8 @@ def on_key_release(event):
 
 # window definition
 window = tk.Tk()
+last_change = "19/10 17:45"
+window.title(f"Xpath Extractor ({last_change})")
 window.geometry("960x1080+1+1")
 window.bind_all("<Key>", on_key_release, "+")
 
@@ -500,7 +502,11 @@ def get_domain():
 def find_sitemap():
     xpath = "(//*[contains(@href, 'site') and contains(@href, 'map')]/@href)[1]"
     domain = get_domain()
-    sitemap_response = requests.get(domain, headers={'Connection': 'close'})
+    try:
+        sitemap_response = requests.get(domain, headers={'Connection': 'close'})
+    except Exception:
+        print(f"Site does not load - {domain}")
+        return
     tree = html.fromstring(sitemap_response.text)
     sitemap = tree.xpath(xpath)
     if sitemap:
@@ -509,7 +515,7 @@ def find_sitemap():
             sitemap_link = domain[:-1] + sitemap[0]
         webbrowser.get("chrome").open(sitemap_link)
     else:
-        print("No sitemap")
+        print(f"No sitemap at {domain}")
     return
 
 
@@ -519,7 +525,11 @@ def open_domain():
     except IndexError:
         print("Invalid URL")
         return
-    find_sitemap()
+    try:
+        find_sitemap()
+    except Exception:
+        print("Bad site")
+        return
     webbrowser.get("chrome").open(domain)
 
 
