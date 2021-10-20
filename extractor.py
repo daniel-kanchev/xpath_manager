@@ -12,6 +12,7 @@ import os
 import sqlite3
 from datetime import datetime
 import atexit
+import config
 
 
 # Code to allow CTRL commands in all languages
@@ -817,8 +818,7 @@ def main():
     row += 1
 
     atexit.register(exit_handler)
-    last_change = "19/10 17:45"
-    window.title(f"Xpath Extractor ({last_change})")
+    window.title(f"Xpath Extractor ({config.last_change})")
     window.geometry("960x1080+1+1")
     window.bind_all("<Key>", on_key_release, "+")
     window.mainloop()
