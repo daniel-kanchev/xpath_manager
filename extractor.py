@@ -9,6 +9,9 @@ import requests
 from lxml import html
 import login_data
 import os
+import sqlite3
+from datetime import datetime
+import atexit
 
 
 # Code to allow CTRL commands in all languages
@@ -29,11 +32,6 @@ def on_key_release(event):
 
 # window definition
 window = tk.Tk()
-last_change = "19/10 17:45"
-window.title(f"Xpath Extractor ({last_change})")
-window.geometry("960x1080+1+1")
-window.bind_all("<Key>", on_key_release, "+")
-
 # font definition
 font = Font(family="Roboto", size=10)
 
@@ -49,7 +47,7 @@ existing_code_label = tk.Label(
     font=font
 )
 
-start_url_label = tk.Label(
+start_urls_label = tk.Label(
     text="Start URL:",
     height=1,
     font=font
@@ -104,7 +102,7 @@ existing_code_textbox = tk.Text(
     font=font
 )
 
-start_url_textbox = tk.Text(
+start_urls_textbox = tk.Text(
     bg="white",
     width=80,
     height=2,
@@ -170,10 +168,6 @@ kraken_id_textbox = tk.Text(
     font=font
 )
 
-# browser setup
-chrome_path = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
-webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
-
 
 def copy_code(textbox):
     pyperclip.copy(textbox.get("1.0", tk.END).strip())
@@ -189,7 +183,7 @@ code_copy_button = tk.Button(
 
 copy_start_button = tk.Button(
     text="Copy",
-    command=lambda: copy_code(start_url_textbox),
+    command=lambda: copy_code(start_urls_textbox),
     height=2,
     width=5,
     font=font
@@ -265,7 +259,7 @@ def load_code(link, open_source_bool=True):
 
     xpath = "//input[@name='feed_properties']/@value"
     link = link.strip()
-    kraken_response = s.get(link)
+    kraken_response = session.get(link)
 
     tree = html.fromstring(kraken_response.text)
     code = tree.xpath(xpath)
@@ -278,7 +272,7 @@ def load_code(link, open_source_bool=True):
     generate(initial_json=generated_json)
 
 
-kraken_id_button = tk.Button(
+kraken_id_load_button = tk.Button(
     text="Load",
     command=lambda: load_code(kraken_id_textbox.get('1.0', tk.END), open_source_bool=False),
     height=2,
@@ -286,7 +280,7 @@ kraken_id_button = tk.Button(
     font=font
 )
 
-kraken_id_button_clipboard = tk.Button(
+kraken_id_clipboard_button = tk.Button(
     text="Clip",
     command=lambda: load_code(window.clipboard_get()),
     height=2,
@@ -321,7 +315,7 @@ open_items_button = tk.Button(
 
 
 def get_source_name():
-    domain = start_url_textbox.get("1.0", tk.END).strip()
+    domain = start_urls_textbox.get("1.0", tk.END).strip()
     if domain and domain[-1] == '/':
         domain = domain[:-1]
     name = domain.split('/')[-1].replace('www.', '')
@@ -477,22 +471,22 @@ body_not_contains_button = tk.Button(
 )
 
 
-def open_start_url_link():
-    links = start_url_textbox.get("1.0", tk.END).split(';')
+def open_start_urls_link():
+    links = start_urls_textbox.get("1.0", tk.END).split(';')
     for link in links:
         webbrowser.get("chrome").open(link)
 
 
 open_link_button = tk.Button(
     text='Link',
-    command=open_start_url_link,
+    command=open_start_urls_link,
     height=2,
     font=font
 )
 
 
 def get_domain():
-    link = start_url_textbox.get("1.0", tk.END).strip()
+    link = start_urls_textbox.get("1.0", tk.END).strip()
     if link[-1] != '/':
         link += '/'
     domain = "/".join(link.split('/')[:3]) + '/'
@@ -552,7 +546,7 @@ def clear_text(kraken_id=True):
     if kraken_id:
         kraken_id_textbox.delete("1.0", tk.END)
     existing_code_textbox.delete("1.0", tk.END)
-    start_url_textbox.delete("1.0", tk.END)
+    start_urls_textbox.delete("1.0", tk.END)
     menu_textbox.delete("1.0", tk.END)
     articles_textbox.delete("1.0", tk.END)
     title_textbox.delete("1.0", tk.END)
@@ -586,13 +580,9 @@ def sort_json(json_object):
     return new_dict
 
 
-with open('settings.json') as f1:
-    settings_json = json.load(f1)
-
-
 def generate(event=None, initial_json=None):
     def not_empty():
-        return bool(start_url_textbox.get("1.0", tk.END).strip() or
+        return bool(start_urls_textbox.get("1.0", tk.END).strip() or
                     menu_textbox.get("1.0", tk.END).strip() or
                     articles_textbox.get("1.0", tk.END).strip() or
                     title_textbox.get("1.0", tk.END).strip() or
@@ -619,8 +609,8 @@ def generate(event=None, initial_json=None):
             del json_var["scrapy_arguments"]['extractor']
 
         json_var["scrapy_arguments"]["link_id_regex"] = None
-        for tup in entry_tuples:
-            edit_textbox(tup[0], tup[1], json_var)
+        for element in grid_element_container[2:]:
+            edit_textbox(element[0], element[1], json_var)
 
         if "scrapy_settings" in json_var.keys():
             json_var["scrapy_settings"].update(settings_json)
@@ -634,11 +624,45 @@ def generate(event=None, initial_json=None):
         existing_code_textbox.insert('1.0', final_text)
         return final_text
 
+    def log_to_db(kraken_id_db):
+        def rearrange(xpath):
+            xpath_list = xpath.split('|')
+            for i, entry in enumerate(xpath_list):
+                xpath_list[i] = entry.strip()
+            xpath_list = sorted(xpath_list)
+            xpath = " | ".join(xpath_list)
+            return xpath
+
+        current_time = datetime.now().strftime("%d-%b-%Y %H:%M:%S")
+        user = login_data.user if 'user' in dir(login_data) else "Default User"
+
+        start_urls = rearrange(json_variable['scrapy_arguments']['start_urls']) if 'start_urls' in json_variable['scrapy_arguments'].keys() else ""
+        menu_xpath = rearrange(json_variable['scrapy_arguments']['menu_xpath']) if 'menu_xpath' in json_variable['scrapy_arguments'].keys() else ""
+        articles_xpath = rearrange(json_variable['scrapy_arguments']['articles_xpath']) if 'articles_xpath' in json_variable['scrapy_arguments'].keys() else ""
+        title_xpath = rearrange(json_variable['scrapy_arguments']['title_xpath']) if 'title_xpath' in json_variable['scrapy_arguments'].keys() else ""
+        pubdate_xpath = rearrange(json_variable['scrapy_arguments']['pubdate_xpath']) if 'pubdate_xpath' in json_variable['scrapy_arguments'].keys() else ""
+        date_order = rearrange(json_variable['scrapy_arguments']['date_order']) if 'date_order' in json_variable['scrapy_arguments'].keys() else ""
+        author_xpath = rearrange(json_variable['scrapy_arguments']['author_xpath']) if 'author_xpath' in json_variable['scrapy_arguments'].keys() else ""
+        body_xpath = rearrange(json_variable['scrapy_arguments']['body_xpath']) if 'body_xpath' in json_variable['scrapy_arguments'].keys() else ""
+
+        cur.execute("SELECT id FROM log WHERE id=?", (kraken_id_db,))
+        if len(cur.fetchall()):
+            cur.execute("UPDATE log SET date=?, start_urls=?, menu_xpath=?, articles_xpath=?, title_xpath=?, pubdate_xpath=?, date_order=?, author_xpath=?, "
+                        "body_xpath=?, settings=?, full_json=?, user=? WHERE id=?",
+                        (current_time, start_urls, menu_xpath, articles_xpath, title_xpath, pubdate_xpath, date_order, author_xpath, body_xpath,
+                         str(json_variable['scrapy_settings']), str(json_variable), user, kraken_id_db))
+        else:
+            cur.execute("INSERT INTO log VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (kraken_id_db, current_time, start_urls, menu_xpath, articles_xpath, title_xpath, pubdate_xpath, date_order, author_xpath, body_xpath,
+                         str(json_variable['scrapy_settings']), str(json_variable), user))
+        con.commit()
+        # print(f"Entry {kraken_id_db} entered into database")
+
     existing_code = existing_code_textbox.get("1.0", tk.END).strip()
     if initial_json:
         json_variable = default_changes(initial_json)
         fill_code_textbox()
-        for tup in entry_tuples:
+        for tup in grid_element_container[2:]:
             edit_textbox(tup[0], tup[1], json_variable)
 
     elif existing_code:
@@ -648,19 +672,19 @@ def generate(event=None, initial_json=None):
             print("Invalid JSON")
             return
         if not_empty():
-            for tup in entry_tuples:
+            for tup in grid_element_container[2:]:
                 json_variable = get_text_from_textbox(tup[0], tup[1], json_variable)
         json_variable = default_changes(json_variable)
         final_json = fill_code_textbox()
         pyperclip.copy(final_json)
-        for tup in entry_tuples:
+        for tup in grid_element_container[2:]:
             edit_textbox(tup[0], tup[1], json_variable)
 
-        log_json = True
-        if log_json and not initial_json and kraken_id_textbox.get('1.0', tk.END).strip():
+        if kraken_id_textbox.get('1.0', tk.END).strip():
+            kraken_id = kraken_id_textbox.get('1.0', tk.END).split('/')[-2]
+            log_to_db(kraken_id)
             if not os.path.isdir('./logs'):
                 os.mkdir('./logs')
-            kraken_id = kraken_id_textbox.get('1.0', tk.END).split('/')[-2]
             with open(f'./logs/{kraken_id}.txt', 'w', encoding='utf-8') as f:
                 f.write(final_json)
 
@@ -678,14 +702,16 @@ def generate(event=None, initial_json=None):
                 "USER_AGENT": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0"
             }
         }
-        for tup in entry_tuples:
+        for tup in grid_element_container[2:]:
             json_variable = get_text_from_textbox(tup[0], tup[1], json_variable)
         json_variable = default_changes(json_variable)
         final_json = fill_code_textbox()
         pyperclip.copy(final_json)
-        log_json = True
-        if log_json and not initial_json and kraken_id_textbox.get('1.0', tk.END).strip():
+        if kraken_id_textbox.get('1.0', tk.END).strip():
             kraken_id = kraken_id_textbox.get('1.0', tk.END).split('/')[-2]
+            log_to_db(kraken_id)
+            if not os.path.isdir('./logs'):
+                os.mkdir('./logs')
             with open(f'./logs/{kraken_id}.txt', 'w', encoding='utf-8') as f:
                 f.write(final_json)
 
@@ -701,8 +727,12 @@ generate_button = tk.Button(
     master=window,
     font=font
 )
-entry_tuples = [
-    (start_url_textbox, "start_urls", start_url_label, copy_start_button, open_link_button, open_domain_button,
+
+grid_element_container = [
+    (kraken_id_textbox, "kraken_link", kraken_id_label, kraken_id_load_button, kraken_id_clipboard_button,
+     open_source_button, open_items_button),
+    (existing_code_textbox, "existing_code", existing_code_label, code_copy_button, source_name_button),
+    (start_urls_textbox, "start_urls", start_urls_label, copy_start_button, open_link_button, open_domain_button,
      sitemap_button),
     (menu_textbox, "menu_xpath", menu_label, copy_menu_button),
     (articles_textbox, "articles_xpath", articles_label, copy_articles_button),
@@ -715,65 +745,84 @@ entry_tuples = [
     (body_textbox, "body_xpath", body_label, copy_body_button, body_contains_class_button, body_not_contains_button,
      body_button_brackets)]
 
-row = 0
+session = requests.Session()
 
-kraken_id_label.grid(row=row, column=0, sticky='W', pady=2, padx=2)
-kraken_id_textbox.grid(row=row, column=1, sticky='W', pady=2, padx=2)
-kraken_id_button.grid(row=row, column=2, sticky='W', pady=2, padx=2)
-kraken_id_button_clipboard.grid(row=row, column=3, sticky='W', pady=2, padx=2)
-open_source_button.grid(row=row, column=4, sticky='W', pady=2, padx=2)
-open_items_button.grid(row=row, column=5, sticky='W', pady=2, padx=2)
-row += 1
+with open('settings.json') as f1:
+    settings_json = json.load(f1)
+
+con = sqlite3.connect('log.db')
+cur = con.cursor()
 
 
-def pack_entries(entry_tuple, curr_row):
-    entry_tuple[2].grid(row=curr_row, column=1, sticky='W', pady=2, padx=2)
-    curr_row += 1
-    entry_tuple[0].grid(row=curr_row, column=1, sticky='W', pady=2, padx=2)
-    if len(entry_tuple) > 3:  # if len = 4 or more
-        for i in range(3, len(entry_tuple)):
-            entry_tuple[i].grid(row=curr_row, column=i - 1, sticky='W', pady=2, padx=4)
-    curr_row += 1
-    return curr_row
+def exit_handler():
+    con.close()
 
 
-row = pack_entries((existing_code_textbox, "", existing_code_label, code_copy_button, source_name_button), row)
-for t in entry_tuples:
-    row = pack_entries(t, row)
+def main():
+    cur.execute('''CREATE TABLE IF NOT EXISTS log
+               (id text, date text, start_urls text, menu_xpath text, articles_xpath text, title_xpath text, 
+               pubdate_xpath text, date_order text, author_xpath text, body_xpath text, settings text, 
+               full_json text, user text)''')
 
-generate_button.grid(row=row, column=1, sticky='W', padx=2, pady=2)
-clear_button.grid(row=row, column=2, sticky="E", padx=2, pady=2)
-row += 1
+    login_link = "https://dashbeta.aiidatapro.net/"
 
-login_link = "https://dashbeta.aiidatapro.net/"
+    headers = {
+        'accept': 'text/html,application/xhtml+xml,application/xml',
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                      'Chrome/67.0.3396.99 Safari/537.36'
+    }
 
-headers = {
-    'accept': 'text/html,application/xhtml+xml,application/xml',
-    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                  'Chrome/67.0.3396.99 Safari/537.36'
-}
-
-if __name__ == '__main__':
     if not os.path.exists('./login_data.py'):
         with open('login_data.py', 'w') as login_file:
             login_file.write('username = "USERNAME_HERE"\npassword = "PASSWORD_HERE"')
             print("Fill in your login details in login_data.py!")
     else:
-        s = requests.Session()
-        s.get(login_link, headers=headers)
-        if 'csrftoken' in s.cookies:
+        session.get(login_link, headers=headers)
+        if 'csrftoken' in session.cookies:
             # Django 1.6 and up
-            csrftoken = s.cookies['csrftoken']
+            csrftoken = session.cookies['csrftoken']
         else:
-            csrftoken = s.cookies['csrf']
-        headers['cookie'] = '; '.join([x.name + '=' + x.value for x in s.cookies])
+            csrftoken = session.cookies['csrf']
+        headers['cookie'] = '; '.join([x.name + '=' + x.value for x in session.cookies])
         headers['content-type'] = 'application/x-www-form-urlencoded'
         payload = {
             'username': login_data.username,
             'password': login_data.password,
             'csrfmiddlewaretoken': csrftoken
         }
-        response = s.post(login_link, data=payload, headers=headers)
+        response = session.post(login_link, data=payload, headers=headers)
         headers['cookie'] = '; '.join([x.name + '=' + x.value for x in response.cookies])
         print("Logged in!")
+
+    chrome_path = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
+    webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
+
+    row = 0
+
+    def pack_entries(entry_tuple, curr_row):
+        entry_tuple[2].grid(row=curr_row, column=1, sticky='W', pady=2, padx=(20, 2))
+        curr_row += 1
+        entry_tuple[0].grid(row=curr_row, column=1, sticky='W', pady=2, padx=(20, 2))
+        if len(entry_tuple) > 3:  # if len = 4 or more
+            for i in range(3, len(entry_tuple)):
+                entry_tuple[i].grid(row=curr_row, column=i - 1, sticky='W', pady=2, padx=4)
+        curr_row += 1
+        return curr_row
+
+    for t in grid_element_container:
+        row = pack_entries(t, row)
+
+    generate_button.grid(row=row, column=1, sticky='W', pady=(5, 2), padx=(20, 2))
+    clear_button.grid(row=row, column=2, sticky="E", pady=2, padx=2)
+    row += 1
+
+    atexit.register(exit_handler)
+    last_change = "19/10 17:45"
+    window.title(f"Xpath Extractor ({last_change})")
+    window.geometry("960x1080+1+1")
+    window.bind_all("<Key>", on_key_release, "+")
     window.mainloop()
+
+
+if __name__ == '__main__':
+    main()
