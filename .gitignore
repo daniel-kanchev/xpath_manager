@@ -6,6 +6,7 @@ login_data.py
 fill.database.py
 .git/
 pre-commit.py
+stats.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

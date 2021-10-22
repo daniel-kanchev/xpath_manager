@@ -18,15 +18,14 @@ from tkinter.ttk import *
 
 # window definition
 window = tk.Tk()
+
+# define background colour
 background = 'dark grey'
 window.configure(background=background)
-# font definition
+
+# font definitions for labels and text fields
 label_font = Font(family="Arial", size=12)
 text_font = Font(family="Calibri", size=12)
-style = Style()
-style.configure('TButton', font=('calibri', 10, 'bold'), borderwidth='2')
-style.map('TButton', foreground=[('active', '!disabled', 'green')],
-          background=[('active', 'black')])
 
 # define all Labels
 kraken_id_label = tk.Label(
@@ -172,10 +171,17 @@ kraken_id_textbox = tk.Text(
 )
 
 
+
 def copy_code(textbox):
+    """
+    Desc: Function for the button to copy a text fields
+    :param textbox: Textbox whose text should be copied to clipboard
+    :return:
+    """
     pyperclip.copy(textbox.get("1.0", tk.END).strip())
 
 
+# Defining all copy buttons for each text field
 code_copy_button = Button(
     text="Copy",
     command=lambda: copy_code(existing_code_textbox)
@@ -218,32 +224,48 @@ copy_body_button = Button(
 
 
 def get_link(link):
-    kraken_id = re.search(r'\d+', link).group()
+    """
+    Function to correctly format the Kraken link by searching for the ID in the URL
+    :param link: Kraken link / ID
+    :return: The correctly formatted link
+    """
+    kraken_id = re.search(r'\d+', link).group() # Regex to extract number
     link = f"http://kraken.aiidatapro.net/items/edit/{kraken_id}/"
     return link
 
 
 def load_code(link, open_source_bool=True):
-    link = get_link(link)
+    """
+    Function to fill the extractor with the JSON from Kraken
+    :param link: Kraken link / ID
+    :param open_source_bool: Bool indicating whether the source link should be opened in a browser tab
+    :return:
+    """
+    link = get_link(link) # Format link
+
     if open_source_bool:
         webbrowser.get("chrome").open(link)
-    clear_text(kraken_id=False)
+
+    clear_all_textboxes(kraken_id=False)
+
+    # Show correctly formatted link in textbox
     kraken_id_textbox.delete('1.0', tk.END)
     kraken_id_textbox.insert('1.0', link)
 
+    # Extract Xpath from Kraken page
     xpath = "//input[@name='feed_properties']/@value"
     link = link.strip()
     kraken_response = session.get(link)
-
     tree = html.fromstring(kraken_response.text)
     code = tree.xpath(xpath)
     code = ''.join(code).replace('\r', '').replace('\n', '')
     try:
         generated_json = json.loads(code)
     except JSONDecodeError:
+        # This error indicates the login details are wrong
         print("Incorrect Login Details")
         return
-    generate(initial_json=generated_json)
+    generate(initial_json=generated_json) # Pass JSON to generate function
 
 
 kraken_id_load_button = Button(
@@ -258,6 +280,11 @@ kraken_id_clipboard_button = Button(
 
 
 def open_link(link):
+    """
+    Opens the link given in your browser
+    :param link: Link to be opened
+    :return:
+    """
     webbrowser.get("chrome").open(link)
 
 
@@ -268,11 +295,16 @@ open_source_button = Button(
 
 
 def load_from_db():
+    """
+    Extracts ID from Kraken Textbox and loads the source from the database
+    :return:
+    """
     kraken_id = re.search(r'\d+', kraken_id_textbox.get('1.0', tk.END)).group()
     cur.execute('SELECT * FROM log WHERE id=?', (kraken_id,))
     result = cur.fetchone()
     if result:
-        settings = result[10].replace("'", '"').replace("False", '"False"').replace("True", '"True"')
+        settings = result[10].replace("'", '"').replace("False", '"False"').replace("True", '"True"') # Format Bool Values to not crash JSON
+        # Create a new var and load database values into it
         json_var = {'scrapy_settings': json.loads(settings), 'scrapy_arguments': {}}
         json_var['scrapy_arguments']['start_urls'] = result[2]
         json_var['scrapy_arguments']['menu_xpath'] = result[3]
@@ -284,8 +316,7 @@ def load_from_db():
         json_var['scrapy_arguments']['body_xpath'] = result[9]
         generate(initial_json=json_var)
     else:
-        clear_text()
-
+        clear_all_textboxes() # Clear all textboxes to indicate entry doesn't exist
 
 load_from_db_button = Button(
     text="DB Load",
@@ -448,19 +479,18 @@ def find_sitemap():
     domain = get_domain()
     try:
         sitemap_response = requests.get(domain, headers={'Connection': 'close'})
+        tree = html.fromstring(sitemap_response.text)
+        sitemap = tree.xpath(xpath)
+        if sitemap:
+            sitemap_link = sitemap[0]
+            if domain not in sitemap[0]:
+                sitemap_link = domain[:-1] + sitemap[0]
+            webbrowser.get("chrome").open(sitemap_link)
+        else:
+            print(f"No sitemap at {domain}")
     except Exception:
         print(f"Site does not load - {domain}")
         return
-    tree = html.fromstring(sitemap_response.text)
-    sitemap = tree.xpath(xpath)
-    if sitemap:
-        sitemap_link = sitemap[0]
-        if domain not in sitemap[0]:
-            sitemap_link = domain[:-1] + sitemap[0]
-        webbrowser.get("chrome").open(sitemap_link)
-    else:
-        print(f"No sitemap at {domain}")
-    return
 
 
 def open_domain():
@@ -469,16 +499,17 @@ def open_domain():
     except IndexError:
         print("Invalid URL")
         return
+    find_sitemap()
     try:
-        find_sitemap()
+        webbrowser.get("chrome").open(domain)
+        req = session.get(domain)
+        new_url = req.url
+        if new_url[-1] != '/':
+            new_url += '/'
+        replace_textbox_value(start_urls_textbox, new_url)
     except Exception:
-        print("Bad site")
+        print(f"Domain could not load - {domain}")
         return
-    webbrowser.get("chrome").open(domain)
-    new_url = session.get(domain).url
-    if new_url[-1] != '/':
-        new_url += '/'
-    replace_textbox_value(start_urls_textbox, new_url)
 
 
 open_domain_button = Button(
@@ -492,7 +523,7 @@ sitemap_button = Button(
 )
 
 
-def clear_text(kraken_id=True):
+def clear_all_textboxes(kraken_id=True):
     if kraken_id:
         kraken_id_textbox.delete("1.0", tk.END)
     existing_code_textbox.delete("1.0", tk.END)
@@ -508,7 +539,7 @@ def clear_text(kraken_id=True):
 
 clear_button = Button(
     text="Clear",
-    command=clear_text
+    command=clear_all_textboxes
 )
 
 
@@ -736,6 +767,63 @@ def exit_handler():
 #     command=test_function
 # )
 
+def stats():
+    def join_tuple_string(values_tuple) -> str:
+        string_list = []
+        for element in values_tuple:
+            string_list.append(str(element))
+        return ', '.join(string_list)
+
+    with open('stats.txt', 'w') as f:
+        cur.execute("SELECT menu_xpath, count(menu_xpath) FROM log GROUP BY menu_xpath ORDER BY count(menu_xpath) DESC LIMIT 20")
+        results = cur.fetchall()
+        results = list(map(join_tuple_string, results))
+        f.write("menu_xpath:\n")
+        f.writelines(line + '\n' for line in results)
+        f.write('\n')
+
+        cur.execute("SELECT articles_xpath, count(articles_xpath) FROM log GROUP BY articles_xpath ORDER BY count(articles_xpath) DESC LIMIT 20")
+        results = cur.fetchall()
+        results = list(map(join_tuple_string, results))
+        f.write("articles_xpath:\n")
+        f.writelines(line + '\n' for line in results)
+        f.write('\n')
+
+        cur.execute("SELECT title_xpath, count(title_xpath) FROM log GROUP BY title_xpath ORDER BY count(title_xpath) DESC LIMIT 20")
+        results = cur.fetchall()
+        results = list(map(join_tuple_string, results))
+        f.write("title_xpath:\n")
+        f.writelines(line + '\n' for line in results)
+        f.write('\n')
+
+        cur.execute("SELECT pubdate_xpath, count(pubdate_xpath) FROM log GROUP BY pubdate_xpath ORDER BY count(pubdate_xpath) DESC LIMIT 20")
+        results = cur.fetchall()
+        results = list(map(join_tuple_string, results))
+        f.write("pubdate_xpath:\n")
+        f.writelines(line + '\n' for line in results)
+        f.write('\n')
+
+        cur.execute("SELECT author_xpath, count(author_xpath) FROM log GROUP BY author_xpath ORDER BY count(author_xpath) DESC LIMIT 20")
+        results = cur.fetchall()
+        results = list(map(join_tuple_string, results))
+        f.write("author_xpath:\n")
+        f.writelines(line + '\n' for line in results)
+        f.write('\n')
+
+        cur.execute("SELECT body_xpath, count(body_xpath) FROM log GROUP BY body_xpath ORDER BY count(body_xpath) DESC LIMIT 20")
+        results = cur.fetchall()
+        results = list(map(join_tuple_string, results))
+        f.write("body_xpath:\n")
+        f.writelines(line + '\n' for line in results)
+        f.write('\n')
+
+        cur.execute("SELECT settings, count(settings) FROM log GROUP BY settings ORDER BY count(settings) DESC LIMIT 20")
+        results = cur.fetchall()
+        results = list(map(join_tuple_string, results))
+        f.write("settings:\n")
+        f.writelines(line + '\n' for line in results)
+        f.write('\n')
+
 
 def pack_entries(entry_tuple, curr_row):
     entry_tuple[2].grid(row=curr_row, column=1, sticky='W', pady=2, padx=(20, 2))
@@ -749,6 +837,7 @@ def pack_entries(entry_tuple, curr_row):
 
 
 def main():
+    # stats()
     cur.execute('''CREATE TABLE IF NOT EXISTS log
                (id text, date text, start_urls text, menu_xpath text, articles_xpath text, title_xpath text, 
                pubdate_xpath text, date_order text, author_xpath text, body_xpath text, settings text, 
@@ -786,6 +875,12 @@ def main():
 
     chrome_path = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
     webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
+
+    # Style all buttons
+    style = Style()
+    style.configure('TButton', font=('calibri', 10, 'bold'), borderwidth='2')
+    style.map('TButton', foreground=[('active', '!disabled', 'green')],
+              background=[('active', 'black')])
 
     row = 0
     # test_button.grid(row=row, column=1, sticky='W', pady=10, padx=100)
