@@ -4,6 +4,8 @@ logs/
 login_data.py
 *.db
 fill.database.py
+.git/
+pre-commit.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -3,6 +3,7 @@ import tkinter as tk
 import json
 import webbrowser
 from json import JSONDecodeError
+from pprint import pprint
 from tkinter.font import Font
 import pyperclip
 import requests
@@ -13,160 +14,161 @@ import sqlite3
 from datetime import datetime
 import atexit
 import config
-
-
-# Code to allow CTRL commands in all languages
-def on_key_release(event):
-    ctrl = (event.state & 0x4) != 0
-    if event.keycode == 88 and ctrl and event.keysym.lower() != "x":
-        event.widget.event_generate("<<Cut>>")
-
-    if event.keycode == 86 and ctrl and event.keysym.lower() != "v":
-        event.widget.event_generate("<<Paste>>")
-
-    if event.keycode == 67 and ctrl and event.keysym.lower() != "c":
-        event.widget.event_generate("<<Copy>>")
-
-    if event.keycode == 65 and ctrl and event.keysym.lower() != "а":
-        event.widget.event_generate("<<SelectAll>>")
-
+from tkinter.ttk import *
 
 # window definition
 window = tk.Tk()
+background = 'dark grey'
+window.configure(background=background)
 # font definition
-font = Font(family="Roboto", size=10)
+label_font = Font(family="Arial", size=12)
+text_font = Font(family="Calibri", size=12)
+style = Style()
+style.configure('TButton', font=('calibri', 10, 'bold'), borderwidth='2')
+style.map('TButton', foreground=[('active', '!disabled', 'green')],
+          background=[('active', 'black')])
 
 # define all Labels
 kraken_id_label = tk.Label(
     text="Link:",
-    font=font
+    font=label_font,
+    bg=background
 )
 
 existing_code_label = tk.Label(
     text="Code:",
     height=1,
-    font=font
-)
+    font=label_font,
+    bg=background)
 
 start_urls_label = tk.Label(
     text="Start URL:",
     height=1,
-    font=font
+    font=label_font,
+    bg=background
 )
 
 menu_label = tk.Label(
     text="Menu XPath:",
     height=1,
-    font=font
+    font=label_font,
+    bg=background
 )
 
 articles_label = tk.Label(
     text="Articles XPath:",
     height=1,
-    font=font
+    font=label_font,
+    bg=background
 )
 
 title_label = tk.Label(
     text="Title XPath:",
     height=1,
-    font=font
+    font=label_font,
+    bg=background
 )
 
 pubdate_label = tk.Label(
     text="Pubdate XPath:",
     height=1,
-    font=font
+    font=label_font,
+    bg=background
 )
 date_order_label = tk.Label(
     text="Date Order XPath:",
     height=1,
-    font=font
+    font=label_font,
+    bg=background
 )
 author_label = tk.Label(
     text="Author XPath:",
     height=1,
-    font=font
+    font=label_font,
+    bg=background
 )
 
 body_label = tk.Label(
     text="Body XPath:",
     height=1,
-    font=font
+    font=label_font,
+    bg=background
 )
 
 # textbox definition
 existing_code_textbox = tk.Text(
     bg="white",
-    width=80,
+    width=60,
     height=12,
     undo=True,
-    font=font
+    font=text_font
 )
 
 start_urls_textbox = tk.Text(
     bg="white",
-    width=80,
+    width=60,
     height=2,
     undo=True,
-    font=font
+    font=text_font
 )
 
 menu_textbox = tk.Text(
     bg="white",
-    width=80,
+    width=60,
     height=2,
     undo=True,
-    font=font
+    font=text_font
 )
 
 articles_textbox = tk.Text(
     bg="white",
-    width=80,
+    width=60,
     height=2,
     undo=True,
-    font=font
+    font=text_font
 )
 title_textbox = tk.Text(
     bg="white",
-    width=80,
+    width=60,
     height=2,
     undo=True,
-    font=font
+    font=text_font
 )
 pubdate_textbox = tk.Text(
     bg="white",
-    width=80,
+    width=60,
     height=2,
     undo=True,
-    font=font
+    font=text_font
 )
 date_order_textbox = tk.Text(
     bg="white",
     width=20,
     height=2,
     undo=True,
-    font=font
+    font=text_font
 )
 author_textbox = tk.Text(
     bg="white",
-    width=80,
+    width=60,
     height=2,
     undo=True,
-    font=font
+    font=text_font
 )
 body_textbox = tk.Text(
     bg="white",
-    width=80,
+    width=60,
     height=3,
     undo=True,
-    font=font
+    font=text_font
 )
 
 kraken_id_textbox = tk.Text(
     bg="white",
-    height=1,
     undo=True,
-    font=font
+    font=text_font,
+    width=60,
+    height=1
 )
 
 
@@ -174,79 +176,50 @@ def copy_code(textbox):
     pyperclip.copy(textbox.get("1.0", tk.END).strip())
 
 
-code_copy_button = tk.Button(
+code_copy_button = Button(
     text="Copy",
-    command=lambda: copy_code(existing_code_textbox),
-    height=2,
-    width=5,
-    font=font
+    command=lambda: copy_code(existing_code_textbox)
 )
 
-copy_start_button = tk.Button(
+copy_start_button = Button(
     text="Copy",
-    command=lambda: copy_code(start_urls_textbox),
-    height=2,
-    width=5,
-    font=font
+    command=lambda: copy_code(start_urls_textbox)
 )
 
-copy_menu_button = tk.Button(
+copy_menu_button = Button(
     text="Copy",
-    command=lambda: copy_code(menu_textbox),
-    height=2,
-    width=5,
-    font=font
+    command=lambda: copy_code(menu_textbox)
 )
 
-copy_articles_button = tk.Button(
+copy_articles_button = Button(
     text="Copy",
-    command=lambda: copy_code(articles_textbox),
-    height=2,
-    width=5,
-    font=font
+    command=lambda: copy_code(articles_textbox)
 )
 
-copy_title_button = tk.Button(
+copy_title_button = Button(
     text="Copy",
-    command=lambda: copy_code(title_textbox),
-    height=2,
-    width=5,
-    font=font
+    command=lambda: copy_code(title_textbox)
 )
 
-copy_pubdate_button = tk.Button(
+copy_pubdate_button = Button(
     text="Copy",
-    command=lambda: copy_code(pubdate_textbox),
-    height=2,
-    width=5,
-    font=font
+    command=lambda: copy_code(pubdate_textbox)
 )
 
-copy_author_button = tk.Button(
+copy_author_button = Button(
     text="Copy",
-    command=lambda: copy_code(author_textbox),
-    height=2,
-    width=5,
-    font=font
+    command=lambda: copy_code(author_textbox)
 )
 
-copy_body_button = tk.Button(
+copy_body_button = Button(
     text="Copy",
-    command=lambda: copy_code(body_textbox),
-    height=2,
-    width=5,
-    font=font
+    command=lambda: copy_code(body_textbox)
 )
 
 
 def get_link(link):
-    # Function to format the link, either from the source_id, the items page, or the correct link
-    if link.strip().isnumeric():
-        link = f"http://kraken.aiidatapro.net/items/edit/{link}/"
-    elif 'edit' not in link:
-        new_link = link.split('items/')
-        new_link.insert(1, 'items/edit/')
-        link = ''.join(new_link).replace('https', 'http')
+    kraken_id = re.search(r'\d+', link).group()
+    link = f"http://kraken.aiidatapro.net/items/edit/{kraken_id}/"
     return link
 
 
@@ -273,19 +246,14 @@ def load_code(link, open_source_bool=True):
     generate(initial_json=generated_json)
 
 
-kraken_id_load_button = tk.Button(
+kraken_id_load_button = Button(
     text="Load",
-    command=lambda: load_code(kraken_id_textbox.get('1.0', tk.END), open_source_bool=False),
-    height=2,
-    width=5,
-    font=font
+    command=lambda: load_code(kraken_id_textbox.get('1.0', tk.END), open_source_bool=False)
 )
 
-kraken_id_clipboard_button = tk.Button(
+kraken_id_clipboard_button = Button(
     text="Clip",
-    command=lambda: load_code(window.clipboard_get()),
-    height=2,
-    font=font
+    command=lambda: load_code(window.clipboard_get())
 )
 
 
@@ -293,11 +261,35 @@ def open_link(link):
     webbrowser.get("chrome").open(link)
 
 
-open_source_button = tk.Button(
+open_source_button = Button(
     text="Source",
-    command=lambda: open_link(kraken_id_textbox.get('1.0', tk.END)),
-    height=2,
-    font=font
+    command=lambda: open_link(kraken_id_textbox.get('1.0', tk.END))
+)
+
+
+def load_from_db():
+    kraken_id = re.search(r'\d+', kraken_id_textbox.get('1.0', tk.END)).group()
+    cur.execute('SELECT * FROM log WHERE id=?', (kraken_id,))
+    result = cur.fetchone()
+    if result:
+        settings = result[10].replace("'", '"').replace("False", '"False"').replace("True", '"True"')
+        json_var = {'scrapy_settings': json.loads(settings), 'scrapy_arguments': {}}
+        json_var['scrapy_arguments']['start_urls'] = result[2]
+        json_var['scrapy_arguments']['menu_xpath'] = result[3]
+        json_var['scrapy_arguments']['articles_xpath'] = result[4]
+        json_var['scrapy_arguments']['title_xpath'] = result[5]
+        json_var['scrapy_arguments']['pubdate_xpath'] = result[6]
+        json_var['scrapy_arguments']['date_order'] = result[7]
+        json_var['scrapy_arguments']['author_xpath'] = result[8]
+        json_var['scrapy_arguments']['body_xpath'] = result[9]
+        generate(initial_json=json_var)
+    else:
+        clear_text()
+
+
+load_from_db_button = Button(
+    text="DB Load",
+    command=load_from_db
 )
 
 
@@ -307,11 +299,9 @@ def open_items_page():
     webbrowser.get("chrome").open(link)
 
 
-open_items_button = tk.Button(
+open_items_button = Button(
     text="items",
-    command=open_items_page,
-    height=2,
-    font=font
+    command=open_items_page
 )
 
 
@@ -323,11 +313,9 @@ def get_source_name():
     pyperclip.copy(name)
 
 
-source_name_button = tk.Button(
+source_name_button = Button(
     text="Name",
-    command=get_source_name,
-    height=2,
-    font=font
+    command=get_source_name
 )
 
 
@@ -337,37 +325,24 @@ def get_only_first_value(textbox):
     textbox.insert("1.0", '(' + current_value.strip() + ')[1]')
 
 
-title_button_brackets = tk.Button(
+title_button_brackets = Button(
     text="[1]",
-    command=lambda: get_only_first_value(title_textbox),
-    height=2,
-    width=3,
-    font=font
+    command=lambda: get_only_first_value(title_textbox)
 )
 
-pubdate_button_brackets = tk.Button(
+pubdate_button_brackets = Button(
     text="[1]",
-    command=lambda: get_only_first_value(pubdate_textbox),
-    height=2,
-    width=3,
-    font=font
+    command=lambda: get_only_first_value(pubdate_textbox)
 )
 
-author_button_brackets = tk.Button(
+author_button_brackets = Button(
     text="[1]",
-    command=lambda: get_only_first_value(author_textbox),
-    height=2,
-    width=3,
-    font=font
+    command=lambda: get_only_first_value(author_textbox)
 )
 
-body_button_brackets = tk.Button(
+body_button_brackets = Button(
     text="[1]",
     command=lambda: get_only_first_value(body_textbox),
-    height=2,
-    width=3,
-
-    font=font
 )
 
 
@@ -377,18 +352,14 @@ def add_regex_for_date(regex):
     pubdate_textbox.insert("1.0", f"re:match({current_value.strip()}, '{regex}', 'g')")
 
 
-regex_dmy_button = tk.Button(
+regex_dmy_button = Button(
     text="Rgx.",
-    command=lambda: add_regex_for_date(r'\d{1,2}\.\d{1,2}\.\d{2,4}'),
-    height=2,
-    font=font
+    command=lambda: add_regex_for_date(r'\d{1,2}\.\d{1,2}\.\d{2,4}')
 )
 
-regex_ymd_button = tk.Button(
+regex_ymd_button = Button(
     text="Rgx Txt",
-    command=lambda: add_regex_for_date(r'(\d{1,2})\.(\s\w+\s\d{2,4})'),
-    height=2,
-    font=font
+    command=lambda: add_regex_for_date(r'(\d{1,2})\.(\s\w+\s\d{2,4})')
 )
 
 
@@ -397,34 +368,25 @@ def replace_textbox_value(textbox, value):
     textbox.insert("1.0", value)
 
 
-meta_button = tk.Button(
+meta_button = Button(
     text="Meta",
-    command=lambda: replace_textbox_value(pubdate_textbox, "(//meta[contains(@property, 'date')] |"
-                                                           " //meta[contains(@property, 'time')] | "
-                                                           "//*[contains(@itemprop, 'datePublished')])[1]/@content"),
-    height=2,
-    width=5,
-    font=font
+    command=lambda: replace_textbox_value(pubdate_textbox, "(((//meta[contains(@*, 'date')] |"
+                                                           " //meta[contains(@*, 'time')] | "
+                                                           "//*[contains(@*, 'datePublished')])[1]/@content) | //time/@datetime)[1]")
 )
-date_order_DMY = tk.Button(
+date_order_DMY = Button(
     text="DMY",
-    command=lambda: replace_textbox_value(date_order_textbox, "DMY"),
-    height=2,
-    font=font
+    command=lambda: replace_textbox_value(date_order_textbox, "DMY")
 )
 
-date_order_YMD = tk.Button(
+date_order_YMD = Button(
     text="YMD",
-    command=lambda: replace_textbox_value(date_order_textbox, "YMD"),
-    height=2,
-    font=font
+    command=lambda: replace_textbox_value(date_order_textbox, "YMD")
 )
 
-date_order_MDY = tk.Button(
+date_order_MDY = Button(
     text="MDY",
-    command=lambda: replace_textbox_value(date_order_textbox, "MDY"),
-    height=2,
-    font=font
+    command=lambda: replace_textbox_value(date_order_textbox, "MDY")
 )
 
 
@@ -434,26 +396,18 @@ def author_substring():
     author_textbox.insert('1.0', f"substring-after({author},':')")
 
 
-author_substring_button = tk.Button(
+author_substring_button = Button(
     text="Substr",
-    command=author_substring,
-    height=2,
-    font=font
+    command=author_substring
 )
-author_meta_button = tk.Button(
+author_meta_button = Button(
     text="Meta",
-    command=lambda: replace_textbox_value(author_textbox, "//meta[contains(@*,'uthor')]/@content"),
-    height=2,
-    width=5,
-    font=font
+    command=lambda: replace_textbox_value(author_textbox, "//meta[contains(@*,'uthor')]/@content")
 )
 
-body_contains_class_button = tk.Button(
-    text="Content",
-    command=lambda: replace_textbox_value(body_textbox, "//div[contains(@class, 'content')]"),
-    height=2,
-    width=5,
-    font=font
+body_contains_class_button = Button(
+    text="Cnt",
+    command=lambda: replace_textbox_value(body_textbox, "//div[contains(@class, 'content')]")
 )
 
 
@@ -463,12 +417,9 @@ def not_contains(current_value):
     body_textbox.insert("1.0", f"{textbox.strip()}[not(contains(@class, '{current_value}'))]")
 
 
-body_not_contains_button = tk.Button(
+body_not_contains_button = Button(
     text="Not",
-    command=lambda: not_contains(window.clipboard_get()),
-    height=2,
-    width=5,
-    font=font
+    command=lambda: not_contains(window.clipboard_get())
 )
 
 
@@ -478,11 +429,9 @@ def open_start_urls_link():
         webbrowser.get("chrome").open(link)
 
 
-open_link_button = tk.Button(
+open_link_button = Button(
     text='Link',
-    command=open_start_urls_link,
-    height=2,
-    font=font
+    command=open_start_urls_link
 )
 
 
@@ -526,20 +475,20 @@ def open_domain():
         print("Bad site")
         return
     webbrowser.get("chrome").open(domain)
+    new_url = session.get(domain).url
+    if new_url[-1] != '/':
+        new_url += '/'
+    replace_textbox_value(start_urls_textbox, new_url)
 
 
-open_domain_button = tk.Button(
+open_domain_button = Button(
     text='Domain',
-    command=open_domain,
-    height=2,
-    font=font
+    command=open_domain
 )
 
-sitemap_button = tk.Button(
+sitemap_button = Button(
     text='Sitemap',
-    command=find_sitemap,
-    height=2,
-    font=font
+    command=find_sitemap
 )
 
 
@@ -557,12 +506,9 @@ def clear_text(kraken_id=True):
     body_textbox.delete("1.0", tk.END)
 
 
-clear_button = tk.Button(
+clear_button = Button(
     text="Clear",
-    command=clear_text,
-    height=2,
-    width=10,
-    font=font
+    command=clear_text
 )
 
 
@@ -581,7 +527,7 @@ def sort_json(json_object):
     return new_dict
 
 
-def generate(event=None, initial_json=None):
+def generate(_=None, initial_json=None):
     def not_empty():
         return bool(start_urls_textbox.get("1.0", tk.END).strip() or
                     menu_textbox.get("1.0", tk.END).strip() or
@@ -720,18 +666,15 @@ def generate(event=None, initial_json=None):
         return
 
 
-generate_button = tk.Button(
+generate_button = Button(
     text="Generate JSON!",
     command=generate,
-    height=2,
-    width=15,
     master=window,
-    font=font
 )
 
 grid_element_container = [
     (kraken_id_textbox, "kraken_link", kraken_id_label, kraken_id_load_button, kraken_id_clipboard_button,
-     open_source_button, open_items_button),
+     open_source_button, load_from_db_button, open_items_button),
     (existing_code_textbox, "existing_code", existing_code_label, code_copy_button, source_name_button),
     (start_urls_textbox, "start_urls", start_urls_label, copy_start_button, open_link_button, open_domain_button,
      sitemap_button),
@@ -755,8 +698,54 @@ con = sqlite3.connect('log.db')
 cur = con.cursor()
 
 
+# Code to allow CTRL commands in all languages
+def on_key_release(event):
+    ctrl = (event.state & 0x4) != 0
+    if event.keycode == 88 and ctrl and event.keysym.lower() != "x":
+        event.widget.event_generate("<<Cut>>")
+
+    if event.keycode == 86 and ctrl and event.keysym.lower() != "v":
+        event.widget.event_generate("<<Paste>>")
+
+    if event.keycode == 67 and ctrl and event.keysym.lower() != "c":
+        event.widget.event_generate("<<Copy>>")
+
+    if event.keycode == 65 and ctrl and event.keysym.lower() != "а":
+        event.widget.event_generate("<<SelectAll>>")
+
+
+# Code to run when exiting software
 def exit_handler():
     con.close()
+
+
+# def test_function():
+#     row = 1
+#     for element in grid_element_container:
+#         for widget in element:
+#             if type(widget) != type('str'):
+#                 if widget.winfo_ismapped():
+#                     widget.grid_forget()
+#                 else:
+#                     widget.grid(row=row, column=0)
+#                     row+=1
+#
+#
+# test_button = Button(
+#     text="Generate JSON!",
+#     command=test_function
+# )
+
+
+def pack_entries(entry_tuple, curr_row):
+    entry_tuple[2].grid(row=curr_row, column=1, sticky='W', pady=2, padx=(20, 2))
+    curr_row += 1
+    entry_tuple[0].grid(row=curr_row, column=1, sticky='W', pady=2, padx=(20, 2))
+    if len(entry_tuple) > 3:  # if len = 4 or more
+        for i in range(3, len(entry_tuple)):
+            entry_tuple[i].grid(row=curr_row, column=i - 1, sticky='W', pady=2, padx=2)
+    curr_row += 1
+    return curr_row
 
 
 def main():
@@ -799,25 +788,18 @@ def main():
     webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
 
     row = 0
-
-    def pack_entries(entry_tuple, curr_row):
-        entry_tuple[2].grid(row=curr_row, column=1, sticky='W', pady=2, padx=(20, 2))
-        curr_row += 1
-        entry_tuple[0].grid(row=curr_row, column=1, sticky='W', pady=2, padx=(20, 2))
-        if len(entry_tuple) > 3:  # if len = 4 or more
-            for i in range(3, len(entry_tuple)):
-                entry_tuple[i].grid(row=curr_row, column=i - 1, sticky='W', pady=2, padx=4)
-        curr_row += 1
-        return curr_row
+    # test_button.grid(row=row, column=1, sticky='W', pady=10, padx=100)
+    # row += 1
 
     for t in grid_element_container:
         row = pack_entries(t, row)
 
-    generate_button.grid(row=row, column=1, sticky='W', pady=(5, 2), padx=(20, 2))
-    clear_button.grid(row=row, column=2, sticky="E", pady=2, padx=2)
+    generate_button.grid(row=row, column=1, sticky='W', ipadx=0, ipady=0, pady=(5, 2), padx=(20, 2))
+    clear_button.grid(row=row, column=2, sticky="E", ipadx=0, ipady=0, pady=2, padx=2)
     row += 1
 
     atexit.register(exit_handler)
+
     window.title(f"Xpath Extractor ({config.last_change})")
     window.geometry("960x1080+1+1")
     window.bind_all("<Key>", on_key_release, "+")
