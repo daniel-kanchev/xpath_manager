@@ -573,8 +573,13 @@ def generate(_=None, initial_json=None):
 
     def get_text_from_textbox(textbox, xpath_name, json_var):
         if textbox.get("1.0", tk.END).strip():
-            json_var["scrapy_arguments"][xpath_name] = re.sub(r'(\S)\|(\S)', r'\1 | \2',
-                                                              textbox.get("1.0", tk.END).strip().replace('"', "'"))
+            # .replace(re.sub(r'\S\|\S'), ' | ')
+            xpath = textbox.get("1.0", tk.END).strip().replace('"', "'")
+            string_for_remove = ["concat( ' ', ", " ' ' ), concat( ' ', ", ", ' ' )"]
+            for s in string_for_remove:
+                xpath = xpath.replace(s, '')
+            json_var["scrapy_arguments"][xpath_name] = re.sub(r'(\S)\|(\S)', r'\1 | \2', xpath)
+
         elif xpath_name in json_var["scrapy_arguments"].keys() and not_empty():
             json_var["scrapy_arguments"].pop(xpath_name)
         return json_var
