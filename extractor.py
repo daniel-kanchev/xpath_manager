@@ -171,7 +171,6 @@ kraken_id_textbox = tk.Text(
 )
 
 
-
 def copy_code(textbox):
     """
     Desc: Function for the button to copy a text fields
@@ -229,7 +228,7 @@ def get_link(link):
     :param link: Kraken link / ID
     :return: The correctly formatted link
     """
-    kraken_id = re.search(r'\d+', link).group() # Regex to extract number
+    kraken_id = re.search(r'\d+', link).group()  # Regex to extract number
     link = f"http://kraken.aiidatapro.net/items/edit/{kraken_id}/"
     return link
 
@@ -241,7 +240,7 @@ def load_code(link, open_source_bool=True):
     :param open_source_bool: Bool indicating whether the source link should be opened in a browser tab
     :return:
     """
-    link = get_link(link) # Format link
+    link = get_link(link)  # Format link
 
     if open_source_bool:
         webbrowser.get("chrome").open(link)
@@ -265,7 +264,7 @@ def load_code(link, open_source_bool=True):
         # This error indicates the login details are wrong
         print("Incorrect Login Details")
         return
-    generate(initial_json=generated_json) # Pass JSON to generate function
+    generate(initial_json=generated_json)  # Pass JSON to generate function
 
 
 kraken_id_load_button = Button(
@@ -303,7 +302,7 @@ def load_from_db():
     cur.execute('SELECT * FROM log WHERE id=?', (kraken_id,))
     result = cur.fetchone()
     if result:
-        settings = result[10].replace("'", '"').replace("False", '"False"').replace("True", '"True"') # Format Bool Values to not crash JSON
+        settings = result[10].replace("'", '"').replace("False", '"False"').replace("True", '"True"')  # Format Bool Values to not crash JSON
         # Create a new var and load database values into it
         json_var = {'scrapy_settings': json.loads(settings), 'scrapy_arguments': {}}
         json_var['scrapy_arguments']['start_urls'] = result[2]
@@ -316,7 +315,8 @@ def load_from_db():
         json_var['scrapy_arguments']['body_xpath'] = result[9]
         generate(initial_json=json_var)
     else:
-        clear_all_textboxes() # Clear all textboxes to indicate entry doesn't exist
+        clear_all_textboxes()  # Clear all textboxes to indicate entry doesn't exist
+
 
 load_from_db_button = Button(
     text="DB Load",
@@ -475,7 +475,7 @@ def get_domain():
 
 
 def find_sitemap():
-    xpath = "(//*[contains(@href, 'site') and contains(@href, 'map')]/@href)[1]"
+    xpath = "(//*[contains(@href, 'site')][contains(@href, 'map')] | //*[contains(@href, 'map')][contains(@href, 'web')])[1]/@href"
     domain = get_domain()
     try:
         sitemap_response = requests.get(domain, headers={'Connection': 'close'})
@@ -486,9 +486,11 @@ def find_sitemap():
             if domain not in sitemap[0]:
                 sitemap_link = domain[:-1] + sitemap[0]
             webbrowser.get("chrome").open(sitemap_link)
+            print(f"Sitemap - {sitemap_link}")
         else:
             print(f"No sitemap at {domain}")
-    except Exception:
+    except Exception as e:
+        print(e.args)
         print(f"Site does not load - {domain}")
         return
 
