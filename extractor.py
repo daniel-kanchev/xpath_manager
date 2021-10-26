@@ -1,3 +1,4 @@
+import math
 import re
 import tkinter as tk
 import json
@@ -726,56 +727,129 @@ generate_button = Button(
 )
 
 # SECOND VIEW ELEMENTS START HERE
-url_of_article_label = tk.Label(
+article_url_label = tk.Label(
     text="Article URL:",
     font=label_font,
     bg=background
 )
 
+article_url_textbox = tk.Text(
+    font=text_font,
+    height=1,
+    undo=True,
+    width=40,
+    bg="white",
+)
 author_xpath_found_label = tk.Label(
     text="Article Xpath Found:",
     font=label_font,
     bg=background
 )
-
-url_of_article_textbox = tk.Text(
-    font=text_font,
+author_xpath_found_textbox_1 = tk.Text(
+    bg="white",
+    width=40,
     height=1,
     undo=True,
-    width=80,
-    bg="white",
+    font=text_font
 )
 
-author_xpath_found_textbox = tk.Text(
+author_xpath_found_textbox_2 = tk.Text(
     bg="white",
-    width=80,
-    height=5,
+    width=40,
+    height=1,
+    undo=True,
+    font=text_font
+)
+
+author_xpath_found_textbox_3 = tk.Text(
+    bg="white",
+    width=40,
+    height=1,
+    undo=True,
+    font=text_font
+)
+
+author_xpath_found_textbox_4 = tk.Text(
+    bg="white",
+    width=40,
+    height=1,
+    undo=True,
+    font=text_font
+)
+
+author_xpath_found_textbox_5 = tk.Text(
+    bg="white",
+    width=40,
+    height=1,
+    undo=True,
+    font=text_font
+)
+
+author_xpath_result_textbox_1 = tk.Text(
+    bg="white",
+    width=40,
+    height=1,
+    undo=True,
+    font=text_font
+)
+
+author_xpath_result_textbox_2 = tk.Text(
+    bg="white",
+    width=40,
+    height=1,
+    undo=True,
+    font=text_font
+)
+
+author_xpath_result_textbox_3 = tk.Text(
+    bg="white",
+    width=40,
+    height=1,
+    undo=True,
+    font=text_font
+)
+
+author_xpath_result_textbox_4 = tk.Text(
+    bg="white",
+    width=40,
+    height=1,
+    undo=True,
+    font=text_font
+)
+
+author_xpath_result_textbox_5 = tk.Text(
+    bg="white",
+    width=40,
+    height=1,
     undo=True,
     font=text_font
 )
 
 
 def find_xpath():
-    article_url = url_of_article_textbox.get("1.0", tk.END).strip()
+    for element in second_grid_elements_container:
+        for widget in element:
+            if isinstance(widget, tk.Text):
+                widget.delete('1.0', tk.END)
     cur.execute("SELECT author_xpath, count(author_xpath) FROM log GROUP BY author_xpath ORDER BY count(author_xpath) DESC LIMIT 20")
-    results = cur.fetchall()
+    element = second_grid_elements_container[0]
+    article_url = article_url_textbox.get("1.0", tk.END).strip()
+    query_results = cur.fetchall()
     xpath_list = []
-    for result in results:
-        if result[0]:
-            if not result[0].endswith('content'):
-                xpath_list.append(result[0] + '/text()')
-            else:
-                xpath_list.append(result[0])
+    for result in query_results:
+        xpath_list.append(result[0])
     website_response = requests.get(article_url, headers={'Connection': 'close'})
     tree = html.fromstring(website_response.text)
-    final_result = ""
+    final_result = []
     for xpath in xpath_list:
-        result = tree.xpath(xpath)
+        result = tree.xpath(xpath if xpath.endswith('content') else xpath + '/text()')
         if result:
-            print(xpath, result[0])
-            final_result += f"{xpath} - {result[0]}\n"
-    author_xpath_found_textbox.delete("1.0", tk.END)
-    author_xpath_found_textbox.insert("1.0", final_result)
+            final_result.append({'xpath': xpath, 'result': f"{len(result)}:{','.join(x.strip() for x in result if x.strip())}"})
+    for i, entry in enumerate(final_result):
+        element[i * 3 + 1].delete('1.0', tk.END)
+        element[i * 3 + 1].insert('1.0', entry['xpath'])
+        element[i * 3 + 3].delete('1.0', tk.END)
+        element[i * 3 + 3].insert('1.0', entry['result'])
 
 
 find_xpath_button = Button(
@@ -783,6 +857,45 @@ find_xpath_button = Button(
     command=find_xpath,
     master=window,
 )
+
+
+def from_textbox_to_textbox(textbox1, textbox2):
+    value = textbox1.get('1.0', tk.END).strip()
+    textbox2.delete('1.0', tk.END)
+    textbox2.insert('1.0', value)
+
+
+author_xpath_select_button_1 = Button(
+    text="Select",
+    command=lambda: from_textbox_to_textbox(author_xpath_found_textbox_1, author_textbox)
+)
+
+author_xpath_select_button_2 = Button(
+    text="Select",
+    command=lambda: from_textbox_to_textbox(author_xpath_found_textbox_2, author_textbox)
+)
+
+author_xpath_select_button_3 = Button(
+    text="Select",
+    command=lambda: from_textbox_to_textbox(author_xpath_found_textbox_3, author_textbox)
+)
+
+author_xpath_select_button_4 = Button(
+    text="Select",
+    command=lambda: from_textbox_to_textbox(author_xpath_found_textbox_4, author_textbox)
+)
+
+author_xpath_select_button_5 = Button(
+    text="Select",
+    command=lambda: from_textbox_to_textbox(author_xpath_found_textbox_5, author_textbox)
+)
+
+second_grid_elements_container = [
+    (author_xpath_found_label, author_xpath_found_textbox_1, author_xpath_select_button_1, author_xpath_result_textbox_1,
+     author_xpath_found_textbox_2, author_xpath_select_button_2, author_xpath_result_textbox_2,
+     author_xpath_found_textbox_3, author_xpath_select_button_3, author_xpath_result_textbox_3,
+     author_xpath_found_textbox_4, author_xpath_select_button_4, author_xpath_result_textbox_4,
+     author_xpath_found_textbox_5, author_xpath_select_button_5, author_xpath_result_textbox_5,)]
 
 # SECOND VIEW ELEMENTS END HERE
 first_grid_element_container = [
@@ -843,20 +956,25 @@ def toggle_view():
                     generate_button.grid_forget()
                     clear_button.grid_forget()
         # Load Second View
-        url_of_article_label.grid(row=row, column=1, sticky='W', padx=(50, 2), pady=(20, 2))
-        url_of_article_textbox.grid(row=row, column=2, sticky='W', padx=2, pady=(20, 2))
+        article_url_label.grid(row=row, column=1, sticky='W', padx=(50, 2), pady=2)
+        article_url_textbox.grid(row=row, column=2, sticky='W', padx=2, pady=2)
+        find_xpath_button.grid(row=row, column=3, sticky='W', padx=2, pady=2)
         row += 1
-        author_xpath_found_label.grid(row=row, column=1, sticky='W', padx=(50, 2), pady=(10, 2))
-        author_xpath_found_textbox.grid(row=row, column=2, sticky='W', padx=2, pady=(20, 2))
-        row += 1
-        find_xpath_button.grid(row=row, column=1, sticky='W', padx=(50, 2), pady=(10, 2))
+        for element in second_grid_elements_container:
+            element[0].grid(row=row, column=1, sticky='W', padx=(50, 2), pady=2)
+            start_row = row
+            for i, widget in enumerate(element[1:]):
+                curr_row = math.floor(i / 3) + start_row
+                curr_col = (i % 3) + 2
+                widget.grid(row=curr_row, column=curr_col, sticky='W', padx=2, pady=2)
     else:
         # Forget Second View
-        url_of_article_label.grid_forget()
-        url_of_article_textbox.grid_forget()
-        author_xpath_found_label.grid_forget()
-        author_xpath_found_textbox.grid_forget()
+        article_url_label.grid_forget()
+        article_url_textbox.grid_forget()
         find_xpath_button.grid_forget()
+        for element in second_grid_elements_container:
+            for widget in element:
+                widget.grid_forget()
         # Load First View
         for t in first_grid_element_container:
             row = pack_entries(t, row)
@@ -879,55 +997,35 @@ def stats():
             string_list.append(str(element))
         return ', '.join(string_list)
 
+    def write_to_txt(column):
+        if column == 'menu_xpath':
+            cur.execute("SELECT menu_xpath, count(menu_xpath) FROM log GROUP BY menu_xpath ORDER BY count(menu_xpath) DESC LIMIT 20")
+        elif column == 'articles_xpath':
+            cur.execute("SELECT articles_xpath, count(articles_xpath) FROM log GROUP BY articles_xpath ORDER BY count(articles_xpath) DESC LIMIT 20")
+        elif column == 'title_xpath':
+            cur.execute("SELECT title_xpath, count(title_xpath) FROM log GROUP BY title_xpath ORDER BY count(title_xpath) DESC LIMIT 20")
+        elif column == 'pubdate_xpath':
+            cur.execute("SELECT pubdate_xpath, count(pubdate_xpath) FROM log GROUP BY pubdate_xpath ORDER BY count(pubdate_xpath) DESC LIMIT 20")
+        elif column == 'author_xpath':
+            cur.execute("SELECT author_xpath, count(author_xpath) FROM log GROUP BY author_xpath ORDER BY count(author_xpath) DESC LIMIT 20")
+        elif column == 'body_xpath':
+            cur.execute("SELECT body_xpath, count(body_xpath) FROM log GROUP BY body_xpath ORDER BY count(body_xpath) DESC LIMIT 20")
+        elif column == 'settings':
+            cur.execute("SELECT settings, count(settings) FROM log GROUP BY settings ORDER BY count(settings) DESC LIMIT 20")
+        with open('stats.txt', 'a') as file:
+            results = cur.fetchall()
+            results = list(map(join_tuple_string, results))
+            file.write(f"{column}:\n")
+            file.writelines(line + '\n' for line in results)
+            file.write('\n')
+            file.close()
+
     with open('stats.txt', 'w') as f:
-        cur.execute("SELECT menu_xpath, count(menu_xpath) FROM log GROUP BY menu_xpath ORDER BY count(menu_xpath) DESC LIMIT 20")
-        results = cur.fetchall()
-        results = list(map(join_tuple_string, results))
-        f.write("menu_xpath:\n")
-        f.writelines(line + '\n' for line in results)
-        f.write('\n')
+        f.close()
 
-        cur.execute("SELECT articles_xpath, count(articles_xpath) FROM log GROUP BY articles_xpath ORDER BY count(articles_xpath) DESC LIMIT 20")
-        results = cur.fetchall()
-        results = list(map(join_tuple_string, results))
-        f.write("articles_xpath:\n")
-        f.writelines(line + '\n' for line in results)
-        f.write('\n')
-
-        cur.execute("SELECT title_xpath, count(title_xpath) FROM log GROUP BY title_xpath ORDER BY count(title_xpath) DESC LIMIT 20")
-        results = cur.fetchall()
-        results = list(map(join_tuple_string, results))
-        f.write("title_xpath:\n")
-        f.writelines(line + '\n' for line in results)
-        f.write('\n')
-
-        cur.execute("SELECT pubdate_xpath, count(pubdate_xpath) FROM log GROUP BY pubdate_xpath ORDER BY count(pubdate_xpath) DESC LIMIT 20")
-        results = cur.fetchall()
-        results = list(map(join_tuple_string, results))
-        f.write("pubdate_xpath:\n")
-        f.writelines(line + '\n' for line in results)
-        f.write('\n')
-
-        cur.execute("SELECT author_xpath, count(author_xpath) FROM log GROUP BY author_xpath ORDER BY count(author_xpath) DESC LIMIT 20")
-        results = cur.fetchall()
-        results = list(map(join_tuple_string, results))
-        f.write("author_xpath:\n")
-        f.writelines(line + '\n' for line in results)
-        f.write('\n')
-
-        cur.execute("SELECT body_xpath, count(body_xpath) FROM log GROUP BY body_xpath ORDER BY count(body_xpath) DESC LIMIT 20")
-        results = cur.fetchall()
-        results = list(map(join_tuple_string, results))
-        f.write("body_xpath:\n")
-        f.writelines(line + '\n' for line in results)
-        f.write('\n')
-
-        cur.execute("SELECT settings, count(settings) FROM log GROUP BY settings ORDER BY count(settings) DESC LIMIT 20")
-        results = cur.fetchall()
-        results = list(map(join_tuple_string, results))
-        f.write("settings:\n")
-        f.writelines(line + '\n' for line in results)
-        f.write('\n')
+    columns = ['menu_xpath', 'articles_xpath', 'title_xpath', 'pubdate_xpath', 'author_xpath', 'body_xpath', 'settings']
+    for col in columns:
+        write_to_txt(col)
 
 
 def pack_entries(entry_tuple, curr_row):
@@ -988,7 +1086,7 @@ def main():
               background=[('active', 'black')])
 
     row = 0
-    toggle_view_button.grid(row=row, column=1, sticky='W', pady=10, padx=100)
+    toggle_view_button.grid(row=row, column=1, sticky='W', pady=10, padx=(50, 2))
     row += 1
 
     for t in first_grid_element_container:
