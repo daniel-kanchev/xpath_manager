@@ -351,6 +351,11 @@ source_name_button = Button(
     command=get_source_name
 )
 
+load_from_existing_button = Button(
+    text="Load",
+    command=lambda: generate(load_from_existing_bool=True)
+)
+
 
 def get_only_first_value(textbox):
     current_value = textbox.get("1.0", tk.END)
@@ -574,7 +579,7 @@ def sort_json(json_object):
     return new_dict
 
 
-def generate(_=None, initial_json=None):
+def generate(_=None, initial_json=None, load_from_existing_bool=False):
     def not_empty():
         return bool(start_urls_textbox.get("1.0", tk.END).strip() or
                     menu_textbox.get("1.0", tk.END).strip() or
@@ -605,7 +610,7 @@ def generate(_=None, initial_json=None):
 
     def default_changes(json_var):
         json_var["scrapy_arguments"]["link_id_regex"] = None
-        for element in grid_element_container[2:]:
+        for element in first_grid_element_container[2:]:
             edit_textbox(element[0], element[1], json_var)
 
         if "scrapy_settings" in json_var.keys():
@@ -658,7 +663,7 @@ def generate(_=None, initial_json=None):
     if initial_json:
         json_variable = default_changes(initial_json)
         fill_code_textbox()
-        for tup in grid_element_container[2:]:
+        for tup in first_grid_element_container[2:]:
             edit_textbox(tup[0], tup[1], json_variable)
 
     elif existing_code:
@@ -667,13 +672,13 @@ def generate(_=None, initial_json=None):
         except JSONDecodeError:
             print("Invalid JSON")
             return
-        if not_empty():
-            for tup in grid_element_container[2:]:
+        if not load_from_existing_bool and not_empty():
+            for tup in first_grid_element_container[2:]:
                 json_variable = get_text_from_textbox(tup[0], tup[1], json_variable)
         json_variable = default_changes(json_variable)
         final_json = fill_code_textbox()
         pyperclip.copy(final_json)
-        for tup in grid_element_container[2:]:
+        for tup in first_grid_element_container[2:]:
             edit_textbox(tup[0], tup[1], json_variable)
 
         if kraken_id_textbox.get('1.0', tk.END).strip():
@@ -698,7 +703,7 @@ def generate(_=None, initial_json=None):
                 "USER_AGENT": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0"
             }
         }
-        for tup in grid_element_container[2:]:
+        for tup in first_grid_element_container[2:]:
             json_variable = get_text_from_textbox(tup[0], tup[1], json_variable)
         json_variable = default_changes(json_variable)
         final_json = fill_code_textbox()
@@ -721,10 +726,70 @@ generate_button = Button(
     master=window,
 )
 
-grid_element_container = [
+# SECOND VIEW ELEMENTS START HERE
+url_of_article_label = tk.Label(
+    text="Article URL:",
+    font=label_font,
+    bg=background
+)
+
+author_xpath_found_label = tk.Label(
+    text="Article Xpath Found:",
+    font=label_font,
+    bg=background
+)
+
+url_of_article_textbox = tk.Text(
+    font=text_font,
+    height=1,
+    undo=True,
+    width=80,
+    bg="white",
+)
+
+author_xpath_found_textbox = tk.Text(
+    bg="white",
+    width=80,
+    height=5,
+    undo=True,
+    font=text_font
+)
+
+
+def find_xpath():
+    article_url = url_of_article_textbox.get("1.0", tk.END).strip()
+    cur.execute("SELECT author_xpath, count(author_xpath) FROM log GROUP BY author_xpath ORDER BY count(author_xpath) DESC LIMIT 20")
+    results = cur.fetchall()
+    xpath_list = []
+    for result in results:
+        if result[0]:
+            if not result[0].endswith('content'):
+                xpath_list.append(result[0] + '/text()')
+            else:
+                xpath_list.append(result[0])
+    website_response = requests.get(article_url, headers={'Connection': 'close'})
+    tree = html.fromstring(website_response.text)
+    final_result = ""
+    for xpath in xpath_list:
+        result = tree.xpath(xpath)
+        if result:
+            print(xpath, result[0])
+            final_result += f"{xpath} - {result[0]}\n"
+    author_xpath_found_textbox.delete("1.0", tk.END)
+    author_xpath_found_textbox.insert("1.0", final_result)
+
+
+find_xpath_button = Button(
+    text="Find Xpath",
+    command=find_xpath,
+    master=window,
+)
+
+# SECOND VIEW ELEMENTS END HERE
+first_grid_element_container = [
     (kraken_id_textbox, "kraken_link", kraken_id_label, kraken_id_load_button, kraken_id_clipboard_button,
      open_source_button, load_from_db_button, open_items_button),
-    (existing_code_textbox, "existing_code", existing_code_label, code_copy_button, source_name_button),
+    (existing_code_textbox, "existing_code", existing_code_label, code_copy_button, source_name_button, load_from_existing_button),
     (start_urls_textbox, "start_urls", start_urls_label, copy_start_button, open_link_button, open_domain_button,
      sitemap_button),
     (menu_textbox, "menu_xpath", menu_label, copy_menu_button),
@@ -768,22 +833,45 @@ def exit_handler():
     con.close()
 
 
-# def test_function():
-#     row = 1
-#     for element in grid_element_container:
-#         for widget in element:
-#             if type(widget) != type('str'):
-#                 if widget.winfo_ismapped():
-#                     widget.grid_forget()
-#                 else:
-#                     widget.grid(row=row, column=0)
-#                     row+=1
-#
-#
-# test_button = Button(
-#     text="Generate JSON!",
-#     command=test_function
-# )
+def toggle_view():
+    row = 1
+    if generate_button.winfo_ismapped():
+        # Forget First View
+        for element in first_grid_element_container:
+            for widget in element:
+                if not isinstance(widget, str):
+                    widget.grid_forget()
+                    generate_button.grid_forget()
+                    clear_button.grid_forget()
+        # Load Second View
+        url_of_article_label.grid(row=row, column=1, sticky='W', padx=(50, 2), pady=(20, 2))
+        url_of_article_textbox.grid(row=row, column=2, sticky='W', padx=2, pady=(20, 2))
+        row += 1
+        author_xpath_found_label.grid(row=row, column=1, sticky='W', padx=(50, 2), pady=(10, 2))
+        author_xpath_found_textbox.grid(row=row, column=2, sticky='W', padx=2, pady=(20, 2))
+        row += 1
+        find_xpath_button.grid(row=row, column=1, sticky='W', padx=(50, 2), pady=(10, 2))
+    else:
+        # Forget Second View
+        url_of_article_label.grid_forget()
+        url_of_article_textbox.grid_forget()
+        author_xpath_found_label.grid_forget()
+        author_xpath_found_textbox.grid_forget()
+        find_xpath_button.grid_forget()
+        # Load First View
+        for t in first_grid_element_container:
+            row = pack_entries(t, row)
+
+        generate_button.grid(row=row, column=1, sticky='W', ipadx=0, ipady=0, pady=(5, 2), padx=(20, 2))
+        clear_button.grid(row=row, column=2, sticky="E", ipadx=0, ipady=0, pady=2, padx=2)
+        row += 1
+
+
+toggle_view_button = Button(
+    text="Switch Views",
+    command=toggle_view
+)
+
 
 def stats():
     def join_tuple_string(values_tuple) -> str:
@@ -901,10 +989,10 @@ def main():
               background=[('active', 'black')])
 
     row = 0
-    # test_button.grid(row=row, column=1, sticky='W', pady=10, padx=100)
-    # row += 1
+    toggle_view_button.grid(row=row, column=1, sticky='W', pady=10, padx=100)
+    row += 1
 
-    for t in grid_element_container:
+    for t in first_grid_element_container:
         row = pack_entries(t, row)
 
     generate_button.grid(row=row, column=1, sticky='W', ipadx=0, ipady=0, pady=(5, 2), padx=(20, 2))
