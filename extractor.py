@@ -100,7 +100,7 @@ body_label = tk.Label(
 existing_code_textbox = tk.Text(
     bg="white",
     width=60,
-    height=12,
+    height=10,
     undo=True,
     font=text_font
 )
@@ -741,7 +741,7 @@ article_url_textbox = tk.Text(
     bg="white",
 )
 author_xpath_found_label = tk.Label(
-    text="Article Xpath Found:",
+    text="Author XPath:",
     font=label_font,
     bg=background
 )
@@ -853,7 +853,7 @@ def find_xpath():
 
 
 find_xpath_button = Button(
-    text="Find Xpath",
+    text="Find XPath",
     command=find_xpath,
     master=window,
 )
@@ -861,6 +861,7 @@ find_xpath_button = Button(
 
 def from_textbox_to_textbox(textbox1, textbox2):
     value = textbox1.get('1.0', tk.END).strip()
+    pyperclip.copy(value)
     textbox2.delete('1.0', tk.END)
     textbox2.insert('1.0', value)
 
