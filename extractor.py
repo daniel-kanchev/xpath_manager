@@ -433,9 +433,15 @@ author_substring_button = Button(
     text="Substr",
     command=author_substring
 )
+
 author_meta_button = Button(
     text="Meta",
     command=lambda: replace_textbox_value(author_textbox, "//meta[contains(@*,'uthor')]/@content")
+)
+
+author_child_text_button = Button(
+    text="Child",
+    command=lambda: replace_textbox_value(author_textbox, '//*[child::text()[contains(.,"Autor")]]')
 )
 
 body_contains_class_button = Button(
@@ -444,15 +450,20 @@ body_contains_class_button = Button(
 )
 
 
-def not_contains(current_value):
+def not_contains(string_to_append):
     textbox = body_textbox.get("1.0", tk.END).strip()
     body_textbox.delete("1.0", tk.END)
-    body_textbox.insert("1.0", f"{textbox.strip()}[not(contains(@class, '{current_value}'))]")
+    body_textbox.insert("1.0", f"{textbox.strip()}{string_to_append}")
 
 
-body_not_contains_button = Button(
-    text="Not",
-    command=lambda: not_contains(window.clipboard_get())
+not_contains_class_button = Button(
+    text="Not Class",
+    command=lambda: not_contains(f"[not(contains(@class, '{window.clipboard_get()}'))]")
+)
+
+not_contains_text_button = Button(
+    text="Not Text",
+    command=lambda: not_contains(f"[not(descendant::text()[contains(.,'{window.clipboard_get()}')])]")
 )
 
 
@@ -593,9 +604,6 @@ def generate(_=None, initial_json=None):
             textbox.insert('1.0', json_var["scrapy_arguments"][xpath_name])
 
     def default_changes(json_var):
-        if 'extractor' in json_var["scrapy_arguments"]:
-            del json_var["scrapy_arguments"]['extractor']
-
         json_var["scrapy_arguments"]["link_id_regex"] = None
         for element in grid_element_container[2:]:
             edit_textbox(element[0], element[1], json_var)
@@ -726,9 +734,9 @@ grid_element_container = [
      regex_ymd_button, pubdate_button_brackets),
     (date_order_textbox, "date_order", date_order_label, date_order_DMY, date_order_YMD, date_order_MDY),
     (author_textbox, "author_xpath", author_label, copy_author_button, author_meta_button, author_substring_button,
-     author_button_brackets),
-    (body_textbox, "body_xpath", body_label, copy_body_button, body_contains_class_button, body_not_contains_button,
-     body_button_brackets)]
+     author_child_text_button, author_button_brackets),
+    (body_textbox, "body_xpath", body_label, copy_body_button, body_contains_class_button, not_contains_class_button,
+     not_contains_text_button, body_button_brackets)]
 
 session = requests.Session()
 
@@ -907,6 +915,7 @@ def main():
 
     window.geometry("960x1080+1+1")
     window.bind_all("<Key>", on_key_release, "+")
+    window.lift()
     window.mainloop()
 
 
