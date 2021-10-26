@@ -18,7 +18,8 @@ from tkinter.ttk import *
 
 # window definition
 window = tk.Tk()
-
+window_title = f"Xpath Extractor ({config.last_change})"
+window.title(window_title)
 # define background colour
 background = 'dark grey'
 window.configure(background=background)
@@ -229,6 +230,7 @@ def get_link(link):
     :return: The correctly formatted link
     """
     kraken_id = re.search(r'\d+', link).group()  # Regex to extract number
+    window.title(f"{kraken_id} - {window_title}")
     link = f"http://kraken.aiidatapro.net/items/edit/{kraken_id}/"
     return link
 
@@ -331,7 +333,7 @@ def open_items_page():
 
 
 open_items_button = Button(
-    text="items",
+    text="Items",
     command=open_items_page
 )
 
@@ -537,6 +539,7 @@ def clear_all_textboxes(kraken_id=True):
     date_order_textbox.delete("1.0", tk.END)
     author_textbox.delete("1.0", tk.END)
     body_textbox.delete("1.0", tk.END)
+    window.title(window_title)
 
 
 clear_button = Button(
@@ -885,7 +888,7 @@ def main():
 
     # Style all buttons
     style = Style()
-    style.configure('TButton', font=('calibri', 10, 'bold'), borderwidth='2')
+    style.configure('TButton', font=('Roboto Bold', 10))
     style.map('TButton', foreground=[('active', '!disabled', 'green')],
               background=[('active', 'black')])
 
@@ -902,7 +905,6 @@ def main():
 
     atexit.register(exit_handler)
 
-    window.title(f"Xpath Extractor ({config.last_change})")
     window.geometry("960x1080+1+1")
     window.bind_all("<Key>", on_key_release, "+")
     window.mainloop()
