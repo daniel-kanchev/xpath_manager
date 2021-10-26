@@ -555,7 +555,6 @@ def clear_all_textboxes(kraken_id=True):
     date_order_textbox.delete("1.0", tk.END)
     author_textbox.delete("1.0", tk.END)
     body_textbox.delete("1.0", tk.END)
-    window.title(window_title)
 
 
 clear_button = Button(
