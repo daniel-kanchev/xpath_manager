@@ -722,13 +722,13 @@ class MainApplication(tk.Tk):
             try:
                 number_of_results = len(tree.xpath(xpath))
                 text_results = tree.xpath(xpath_to_use)
-            except Exception as e:
+            except Exception:
                 continue
             if text_results:
                 try:
                     final_result.append({'xpath': xpath, 'result': f"({number_of_results}) - "
                                                                    f"{','.join(x.strip() for x in text_results if isinstance(x, str) and x.strip())}"})
-                except Exception as e:
+                except Exception:
                     continue
         for i, entry in enumerate(final_result[:5]):
             element[i * 3 + 1].delete('1.0', tk.END)
