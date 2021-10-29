@@ -217,14 +217,22 @@ class MainApplication(tk.Tk):
         self.menu_xpath_select_button_4 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.menu_xpath_found_textbox_4,
                                                                                                              self.menu_textbox))
 
-        self.articles_xpath_select_button_1 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.articles_xpath_found_textbox_1,
-                                                                                                                 self.articles_textbox))
-        self.articles_xpath_select_button_2 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.articles_xpath_found_textbox_2,
-                                                                                                                 self.articles_textbox))
-        self.articles_xpath_select_button_3 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.articles_xpath_found_textbox_3,
-                                                                                                                 self.articles_textbox))
-        self.articles_xpath_select_button_4 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.articles_xpath_found_textbox_4,
-                                                                                                                 self.articles_textbox))
+        self.articles_xpath_select_button_1 = Button(text="Add", command=lambda: self.from_textbox_to_textbox(
+            self.articles_xpath_found_textbox_1,
+            self.articles_textbox,
+            append_with_pipe=True))
+        self.articles_xpath_select_button_2 = Button(text="Add", command=lambda: self.from_textbox_to_textbox(
+            self.articles_xpath_found_textbox_2,
+            self.articles_textbox,
+            append_with_pipe=True))
+        self.articles_xpath_select_button_3 = Button(text="Add", command=lambda: self.from_textbox_to_textbox(
+            self.articles_xpath_found_textbox_3,
+            self.articles_textbox,
+            append_with_pipe=True))
+        self.articles_xpath_select_button_4 = Button(text="Add", command=lambda: self.from_textbox_to_textbox(
+            self.articles_xpath_found_textbox_4,
+            self.articles_textbox,
+            append_with_pipe=True))
 
         self.title_xpath_select_button_1 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.title_xpath_found_textbox_1,
                                                                                                               self.title_textbox))
@@ -500,11 +508,19 @@ class MainApplication(tk.Tk):
         textbox.insert("1.0", f"{current_value}{string_to_append}")
 
     @staticmethod
-    def from_textbox_to_textbox(textbox1, textbox2):
+    def from_textbox_to_textbox(textbox1, textbox2, append_with_pipe=False):
         value = textbox1.get('1.0', tk.END).strip()
         pyperclip.copy(value)
-        textbox2.delete('1.0', tk.END)
-        textbox2.insert('1.0', value)
+        if append_with_pipe:
+            initial_value = textbox2.get('1.0', tk.END).strip()
+            if initial_value:
+                textbox2.delete('1.0', tk.END)
+                textbox2.insert('1.0', f"{initial_value} | {value}")
+            else:
+                textbox2.insert('1.0', value)
+        else:
+            textbox2.delete('1.0', tk.END)
+            textbox2.insert('1.0', value)
 
     def author_substring(self):
         author = self.author_textbox.get("1.0", tk.END).strip()
@@ -866,6 +882,7 @@ class MainApplication(tk.Tk):
             self.article_url_label.grid_forget()
             self.article_url_textbox.grid_forget()
             self.find_content_button.grid_forget()
+            self.find_menu_articles_button.grid_forget()
             for element in self.second_grid_elements_container:
                 for widget in element:
                     widget.grid_forget()
