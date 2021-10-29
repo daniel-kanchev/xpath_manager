@@ -26,7 +26,10 @@ class MainApplication(tk.Tk):
         self.configure(background=self.background)
         self.label_font = Font(family="Arial", size=12)
         self.text_font = Font(family="Calibri", size=12)
-
+        self.date_meta = "(((//meta[contains(@*, 'date')] | //meta[contains(@*, 'time')] | //*[contains(@*, 'datePublished')])[1]/@content) | " \
+                         "//time/@datetime)[1]"
+        self.menu_meta = "(//ul[contains(@class, 'menu')] | //ul[contains(@id, 'menu')] | //nav//ul)[1]//a"
+        self.author_meta = "//meta[contains(@*,'uthor')]/@content"
         # Labels
         self.kraken_id_label = tk.Label(text="Link:")
         self.existing_code_label = tk.Label(text="Code:")
@@ -157,11 +160,7 @@ class MainApplication(tk.Tk):
                                                                                                      "(//ul[contains(@class, 'menu')] |"
                                                                                                      " //ul[contains(@id, 'menu')] | //nav//ul)[1]//a"))
         self.menu_category_button = Button(text="Cat", command=lambda: self.append_textbox_value(self.menu_textbox, "[contains(@href, 'ategor')]"))
-        self.meta_button = Button(text="Meta", command=lambda: self.replace_textbox_value(self.pubdate_textbox,
-                                                                                          "(((//meta[contains(@*, 'date')] | "
-                                                                                          "//meta[contains(@*, 'time')] | "
-                                                                                          "//*[contains(@*, 'datePublished')])[1]/@content) | "
-                                                                                          "//time/@datetime)[1]"))
+        self.meta_button = Button(text="Meta", command=lambda: self.replace_textbox_value(self.pubdate_textbox, self.date_meta))
         self.date_order_DMY = Button(text="DMY", command=lambda: self.replace_textbox_value(self.date_order_textbox, "DMY"))
         self.date_order_YMD = Button(text="YMD", command=lambda: self.replace_textbox_value(self.date_order_textbox, "YMD"))
         self.date_order_MDY = Button(text="MDY", command=lambda: self.replace_textbox_value(self.date_order_textbox, "MDY"))
@@ -280,9 +279,9 @@ class MainApplication(tk.Tk):
 
         # stats()
         self.cur.execute('''CREATE TABLE IF NOT EXISTS log
-                   (id text, date text, start_urls text, menu_xpath text, articles_xpath text, title_xpath text, 
-                   pubdate_xpath text, date_order text, author_xpath text, body_xpath text, settings text, 
-                   full_json text, user text)''')
+                       (id text, date text, start_urls text, menu_xpath text, articles_xpath text, title_xpath text, 
+                       pubdate_xpath text, date_order text, author_xpath text, body_xpath text, settings text, 
+                       full_json text, user text)''')
 
         login_link = "https://dashbeta.aiidatapro.net/"
 
@@ -616,7 +615,7 @@ class MainApplication(tk.Tk):
         articles_xpath = self.rearrange(json_var['scrapy_arguments']['articles_xpath']) if 'articles_xpath' in json_var[
             'scrapy_arguments'].keys() else ""
         title_xpath = self.rearrange(json_var['scrapy_arguments']['title_xpath']) if 'title_xpath' in json_var['scrapy_arguments'].keys() else ""
-        pubdate_xpath = self.rearrange(json_var['scrapy_arguments']['pubdate_xpath']) if 'pubdate_xpath' in json_var['scrapy_arguments'].keys() else ""
+        pubdate_xpath = json_var['scrapy_arguments']['pubdate_xpath'] if 'pubdate_xpath' in json_var['scrapy_arguments'].keys() else ""
         date_order = self.rearrange(json_var['scrapy_arguments']['date_order']) if 'date_order' in json_var['scrapy_arguments'].keys() else ""
         author_xpath = self.rearrange(json_var['scrapy_arguments']['author_xpath']) if 'author_xpath' in json_var['scrapy_arguments'].keys() else ""
         body_xpath = self.rearrange(json_var['scrapy_arguments']['body_xpath']) if 'body_xpath' in json_var['scrapy_arguments'].keys() else ""
@@ -716,9 +715,20 @@ class MainApplication(tk.Tk):
         for result in query_results:
             xpath_list.append(result[0])
         xpath_list = [x for x in xpath_list if 'substring' not in x and not x.startswith('re') and 're:' not in x and '//' in x]
+        if column == 'body_xpath':
+            xpath_list = [x for x in xpath_list if '//node()' not in x or '/text()' not in x or ']//p' not in x or "'row'" not in x]
         final_result = []
+        if column == 'pubdate_xpath':
+            xpath_list.insert(0, self.date_meta)
+            print(xpath_list)
+        elif column == 'author_xpath':
+            if self.author_meta in xpath_list: xpath_list.remove(self.author_meta)
+            xpath_list.insert(0, self.author_meta)
+        elif column == 'menu_xpath':
+            xpath_list.insert(0, self.menu_meta)
+
         for xpath in xpath_list:
-            xpath_to_use = xpath if xpath.endswith('content') or '/text()' in xpath else xpath + '//text()'
+            xpath_to_use = xpath if '@content' in xpath or '@datetime' in xpath or '/text()' in xpath else xpath + '//text()'
             try:
                 number_of_results = len(tree.xpath(xpath))
                 text_results = tree.xpath(xpath_to_use)
