@@ -32,9 +32,9 @@ class MainApplication(tk.Tk):
         self.menu_meta = "(//ul[contains(@class, 'menu')] | //ul[contains(@id, 'menu')] | //nav//ul)[1]//a"
         self.author_meta = "//meta[contains(@*,'uthor')]/@content"
         # Labels
-        self.kraken_id_label = tk.Label(text="Link:")
-        self.existing_code_label = tk.Label(text="Code:")
-        self.start_urls_label = tk.Label(text="Start URL:")
+        self.kraken_id_label = tk.Label(text="Kraken Link/ID:")
+        self.existing_code_label = tk.Label(text="JSON:")
+        self.start_urls_label = tk.Label(text="Start URLs:")
         self.menu_label = tk.Label(text="Menu XPath:")
         self.articles_label = tk.Label(text="Articles XPath:")
         self.title_label = tk.Label(text="Title XPath:")
@@ -42,7 +42,7 @@ class MainApplication(tk.Tk):
         self.date_order_label = tk.Label(text="Date Order XPath:")
         self.author_label = tk.Label(text="Author XPath:")
         self.body_label = tk.Label(text="Body XPath:")
-        self.article_url_label = tk.Label(text="Article URL:")
+        self.article_url_label = tk.Label(text="URL:")
 
         self.menu_xpath_found_label = tk.Label(text="Menu XPath:")
         self.articles_xpath_found_label = tk.Label(text="Articles XPath:")
@@ -133,7 +133,7 @@ class MainApplication(tk.Tk):
         self.body_xpath_result_textbox_3 = tk.Text(height=1, width=40)
         self.body_xpath_result_textbox_4 = tk.Text(height=1, width=40)
 
-        all_textboxes = [self.article_url_textbox, self.existing_code_textbox, self.start_urls_textbox, self.menu_textbox, self.articles_textbox,
+        self.all_textboxes = [self.article_url_textbox, self.existing_code_textbox, self.start_urls_textbox, self.menu_textbox, self.articles_textbox,
                          self.title_textbox, self.pubdate_textbox, self.date_order_textbox, self.author_textbox, self.body_textbox, self.kraken_id_textbox,
                          self.author_xpath_found_textbox_1, self.author_xpath_found_textbox_2, self.author_xpath_found_textbox_3,
                          self.author_xpath_found_textbox_4, self.author_xpath_result_textbox_1, self.author_xpath_result_textbox_2,
@@ -152,7 +152,7 @@ class MainApplication(tk.Tk):
                          self.articles_xpath_found_textbox_4, self.articles_xpath_result_textbox_1, self.articles_xpath_result_textbox_2,
                          self.articles_xpath_result_textbox_3, self.articles_xpath_result_textbox_4, self.articles_xpath_found_textbox_3]
 
-        for textbox in all_textboxes:
+        for textbox in self.all_textboxes:
             textbox['undo'] = True
             textbox['bg'] = 'white'
             textbox['font'] = self.text_font
@@ -343,22 +343,25 @@ class MainApplication(tk.Tk):
                 login_file.write('username = "USERNAME_HERE"\npassword = "PASSWORD_HERE"')
                 print("Fill in your login details in login_data.py!")
         else:
-            self.session.get(login_link, headers=session_headers)
-            if 'csrftoken' in self.session.cookies:
-                # Django 1.6 and up
-                csrftoken = self.session.cookies['csrftoken']
-            else:
-                csrftoken = self.session.cookies['csrf']
-            session_headers['cookie'] = '; '.join([x.name + '=' + x.value for x in self.session.cookies])
-            session_headers['content-type'] = 'application/x-www-form-urlencoded'
-            payload = {
-                'username': login_data.username,
-                'password': login_data.password,
-                'csrfmiddlewaretoken': csrftoken
-            }
-            response = self.session.post(login_link, data=payload, headers=session_headers)
-            session_headers['cookie'] = '; '.join([x.name + '=' + x.value for x in response.cookies])
-            print("Logged in!")
+            try:
+                self.session.get(login_link, headers=session_headers)
+                if 'csrftoken' in self.session.cookies:
+                    # Django 1.6 and up
+                    csrftoken = self.session.cookies['csrftoken']
+                else:
+                    csrftoken = self.session.cookies['csrf']
+                session_headers['cookie'] = '; '.join([x.name + '=' + x.value for x in self.session.cookies])
+                session_headers['content-type'] = 'application/x-www-form-urlencoded'
+                payload = {
+                    'username': login_data.username,
+                    'password': login_data.password,
+                    'csrfmiddlewaretoken': csrftoken
+                }
+                response = self.session.post(login_link, data=payload, headers=session_headers)
+                session_headers['cookie'] = '; '.join([x.name + '=' + x.value for x in response.cookies])
+                print("Logged in!")
+            except Exception:
+                print("Couldn't login")
 
         chrome_path = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
         webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
@@ -393,7 +396,9 @@ class MainApplication(tk.Tk):
         :param textbox: Textbox whose text should be copied to clipboard
         :return:
         """
-        pyperclip.copy(textbox.get("1.0", tk.END).strip())
+        value_to_copy = textbox.get("1.0", tk.END).strip()
+        if value_to_copy:
+            pyperclip.copy(value_to_copy)
 
     def get_link(self, link):
         """
@@ -401,10 +406,14 @@ class MainApplication(tk.Tk):
         :param link: Kraken link / ID
         :return: The correctly formatted link
         """
-        kraken_id = re.search(r'\d+', link).group()  # Regex to extract number
-        self.title(f"{kraken_id} - {self.window_title}")
-        link = f"http://kraken.aiidatapro.net/items/edit/{kraken_id}/"
-        return link
+        kraken_id = re.search(r'\d+', link)
+        if kraken_id:
+            kraken_id = kraken_id.group()
+            self.title(f"{kraken_id} - {self.window_title}")
+            link = f"http://kraken.aiidatapro.net/items/edit/{kraken_id}/"
+            return link
+        else:
+            return ""
 
     def load_code(self, link, open_source_bool=True):
         """
@@ -414,11 +423,13 @@ class MainApplication(tk.Tk):
         :return:
         """
         link = self.get_link(link)  # Format link
-
+        if not link:
+            print("No ID found")
+            return
         if open_source_bool:
             webbrowser.get("chrome").open(link)
 
-        self.clear_all_textboxes(kraken_id=False)
+        self.clear_all_textboxes()
 
         # Show correctly formatted link in textbox
         self.kraken_id_textbox.delete('1.0', tk.END)
@@ -427,7 +438,11 @@ class MainApplication(tk.Tk):
         # Extract Xpath from Kraken page
         xpath = "//input[@name='feed_properties']/@value"
         link = link.strip()
-        kraken_response = self.session.get(link)
+        try:
+            kraken_response = self.session.get(link)
+        except Exception:
+            print("Couldn't access Kraken")
+            return
         tree = html.fromstring(kraken_response.text)
         code = tree.xpath(xpath)
         code = ''.join(code).replace('\r', '').replace('\n', '')
@@ -446,19 +461,24 @@ class MainApplication(tk.Tk):
         :param link: Link to be opened
         :return:
         """
-        webbrowser.get("chrome").open(link)
+        if link.strip():
+            webbrowser.get("chrome").open(link)
 
     def load_from_db(self):
         """
         Extracts ID from Kraken Textbox and loads the source from the database
         :return:
         """
-        kraken_id = re.search(r'\d+', self.kraken_id_textbox.get('1.0', tk.END)).group()
+        if self.kraken_id_textbox.get('1.0', tk.END).strip():
+            kraken_id = re.search(r'\d+', self.kraken_id_textbox.get('1.0', tk.END)).group()
+        else:
+            return
         self.cur.execute('SELECT * FROM log WHERE id=?', (kraken_id,))
         result = self.cur.fetchone()
         if result:
             self.title(f"{kraken_id} - {self.window_title}")
-            settings = result[10].replace("'", '"').replace("False", '"False"').replace("True", '"True"')  # Format Bool Values to not crash JSON
+            settings = result[10].replace("'", '"').replace("False", '"False"').replace("True",
+                                                                                        '"True"')  # Format Bool Values to not crash JSON
             # Create a new var and load database values into it
             json_var = {'scrapy_settings': json.loads(settings), 'scrapy_arguments': {}}
             json_var['scrapy_arguments']['start_urls'] = result[2]
@@ -475,15 +495,19 @@ class MainApplication(tk.Tk):
 
     def open_items_page(self):
         # Function to open the "View Item" page of the source in Kraken
-        link = self.get_link(self.kraken_id_textbox.get('1.0', tk.END).strip()).replace('/edit', '')
-        webbrowser.get("chrome").open(link)
+        if self.kraken_id_textbox.get('1.0', tk.END).strip():
+            link = self.get_link(self.kraken_id_textbox.get('1.0', tk.END).strip()).replace('/edit', '')
+            webbrowser.get("chrome").open(link)
+        else:
+            return
 
     def get_source_name(self):
         domain = self.start_urls_textbox.get("1.0", tk.END).strip()
         if domain and domain[-1] == '/':
             domain = domain[:-1]
         name = domain.split('/')[-1].replace('www.', '')
-        pyperclip.copy(name)
+        if name:
+            pyperclip.copy(name)
 
     @staticmethod
     def get_only_first_value(textbox):
@@ -510,6 +534,8 @@ class MainApplication(tk.Tk):
     @staticmethod
     def from_textbox_to_textbox(textbox1, textbox2, append_with_pipe=False):
         value = textbox1.get('1.0', tk.END).strip()
+        if not value:
+            return
         pyperclip.copy(value)
         if append_with_pipe:
             initial_value = textbox2.get('1.0', tk.END).strip()
@@ -529,13 +555,16 @@ class MainApplication(tk.Tk):
 
     def open_start_urls_link(self):
         links = self.start_urls_textbox.get("1.0", tk.END).split(';')
-        for link in links:
-            webbrowser.get("chrome").open(link)
+        if links:
+            for link in links:
+                link = link.strip()
+                link = link if link.endswith('/') else link + '/'
+                webbrowser.get("chrome").open(link)
 
     def get_domain(self):
         link = self.start_urls_textbox.get("1.0", tk.END).strip()
-        if link[-1] != '/':
-            link += '/'
+        if not link.startswith('http'):
+            link = 'http://' + link
         domain = "/".join(link.split('/')[:3]) + '/'
         return domain
 
@@ -577,18 +606,9 @@ class MainApplication(tk.Tk):
             print(f"Domain could not load - {domain}")
             return
 
-    def clear_all_textboxes(self, kraken_id=True):
-        if kraken_id:
-            self.kraken_id_textbox.delete("1.0", tk.END)
-        self.existing_code_textbox.delete("1.0", tk.END)
-        self.start_urls_textbox.delete("1.0", tk.END)
-        self.menu_textbox.delete("1.0", tk.END)
-        self.articles_textbox.delete("1.0", tk.END)
-        self.title_textbox.delete("1.0", tk.END)
-        self.pubdate_textbox.delete("1.0", tk.END)
-        self.date_order_textbox.delete("1.0", tk.END)
-        self.author_textbox.delete("1.0", tk.END)
-        self.body_textbox.delete("1.0", tk.END)
+    def clear_all_textboxes(self):
+        for textbox in self.all_textboxes:
+            textbox.delete("1.0", tk.END)
 
     @staticmethod
     def sort_json(json_object):
@@ -660,6 +680,18 @@ class MainApplication(tk.Tk):
         xpath = " | ".join(xpath_list)
         return xpath
 
+    def log_code(self, json_dict, json_str):
+        try:
+            kraken_id = re.search(r'\d+', self.kraken_id_textbox.get('1.0', tk.END).strip()).group()
+        except AttributeError:
+            print('No ID found in Kraken ID Textbox, logging skipped')
+            return
+        self.log_to_db(kraken_id, json_dict)
+        if not os.path.isdir('./logs'):
+            os.mkdir('./logs')
+        with open(f'./logs/{kraken_id}.txt', 'w', encoding='utf-8') as f:
+            f.write(json_str)
+
     def log_to_db(self, kraken_id_db, json_var):
         current_time = datetime.now().strftime("%d-%b-%Y %H:%M:%S")
         user = login_data.user if 'user' in dir(login_data) else "Default User"
@@ -713,12 +745,7 @@ class MainApplication(tk.Tk):
                 self.edit_textbox(tup[0], tup[1], json_variable)
 
             if self.kraken_id_textbox.get('1.0', tk.END).strip():
-                kraken_id = re.search(r'\d+', self.kraken_id_textbox.get('1.0', tk.END).strip()).group()
-                self.log_to_db(kraken_id, json_variable)
-                if not os.path.isdir('./logs'):
-                    os.mkdir('./logs')
-                with open(f'./logs/{kraken_id}.txt', 'w', encoding='utf-8') as f:
-                    f.write(final_json)
+                self.log_code(json_variable, final_json)
 
         elif self.not_empty():
             json_variable = {
@@ -740,13 +767,7 @@ class MainApplication(tk.Tk):
             final_json = self.fill_code_textbox(json_variable)
             pyperclip.copy(final_json)
             if self.kraken_id_textbox.get('1.0', tk.END).strip():
-                kraken_id = re.search(r'\d+', self.kraken_id_textbox.get('1.0', tk.END).strip()).group()
-                self.log_to_db(kraken_id, json_variable)
-                if not os.path.isdir('./logs'):
-                    os.mkdir('./logs')
-                with open(f'./logs/{kraken_id}.txt', 'w', encoding='utf-8') as f:
-                    f.write(final_json)
-
+                self.log_code(json_variable, final_json)
         else:
             return
 
