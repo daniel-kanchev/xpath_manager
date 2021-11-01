@@ -134,23 +134,23 @@ class MainApplication(tk.Tk):
         self.body_xpath_result_textbox_4 = tk.Text(height=1, width=40)
 
         self.all_textboxes = [self.article_url_textbox, self.existing_code_textbox, self.start_urls_textbox, self.menu_textbox, self.articles_textbox,
-                         self.title_textbox, self.pubdate_textbox, self.date_order_textbox, self.author_textbox, self.body_textbox, self.kraken_id_textbox,
-                         self.author_xpath_found_textbox_1, self.author_xpath_found_textbox_2, self.author_xpath_found_textbox_3,
-                         self.author_xpath_found_textbox_4, self.author_xpath_result_textbox_1, self.author_xpath_result_textbox_2,
-                         self.author_xpath_result_textbox_3, self.author_xpath_result_textbox_4, self.pubdate_xpath_found_textbox_1,
-                         self.pubdate_xpath_found_textbox_2, self.pubdate_xpath_found_textbox_3, self.pubdate_xpath_found_textbox_4,
-                         self.pubdate_xpath_result_textbox_1, self.pubdate_xpath_result_textbox_2, self.pubdate_xpath_result_textbox_3,
-                         self.pubdate_xpath_result_textbox_4, self.title_xpath_found_textbox_1, self.title_xpath_found_textbox_2,
-                         self.title_xpath_found_textbox_3, self.title_xpath_found_textbox_4, self.title_xpath_result_textbox_1,
-                         self.title_xpath_result_textbox_2, self.title_xpath_result_textbox_3, self.title_xpath_result_textbox_4,
-                         self.body_xpath_found_textbox_1, self.body_xpath_found_textbox_2, self.body_xpath_found_textbox_3,
-                         self.body_xpath_found_textbox_4, self.body_xpath_result_textbox_1, self.body_xpath_result_textbox_2,
-                         self.body_xpath_result_textbox_3, self.body_xpath_result_textbox_4, self.menu_xpath_found_textbox_1,
-                         self.menu_xpath_found_textbox_2, self.menu_xpath_found_textbox_3, self.menu_xpath_found_textbox_4,
-                         self.menu_xpath_result_textbox_1, self.menu_xpath_result_textbox_2, self.menu_xpath_result_textbox_3,
-                         self.menu_xpath_result_textbox_4, self.articles_xpath_found_textbox_1, self.articles_xpath_found_textbox_2,
-                         self.articles_xpath_found_textbox_4, self.articles_xpath_result_textbox_1, self.articles_xpath_result_textbox_2,
-                         self.articles_xpath_result_textbox_3, self.articles_xpath_result_textbox_4, self.articles_xpath_found_textbox_3]
+                              self.title_textbox, self.pubdate_textbox, self.date_order_textbox, self.author_textbox, self.body_textbox, self.kraken_id_textbox,
+                              self.author_xpath_found_textbox_1, self.author_xpath_found_textbox_2, self.author_xpath_found_textbox_3,
+                              self.author_xpath_found_textbox_4, self.author_xpath_result_textbox_1, self.author_xpath_result_textbox_2,
+                              self.author_xpath_result_textbox_3, self.author_xpath_result_textbox_4, self.pubdate_xpath_found_textbox_1,
+                              self.pubdate_xpath_found_textbox_2, self.pubdate_xpath_found_textbox_3, self.pubdate_xpath_found_textbox_4,
+                              self.pubdate_xpath_result_textbox_1, self.pubdate_xpath_result_textbox_2, self.pubdate_xpath_result_textbox_3,
+                              self.pubdate_xpath_result_textbox_4, self.title_xpath_found_textbox_1, self.title_xpath_found_textbox_2,
+                              self.title_xpath_found_textbox_3, self.title_xpath_found_textbox_4, self.title_xpath_result_textbox_1,
+                              self.title_xpath_result_textbox_2, self.title_xpath_result_textbox_3, self.title_xpath_result_textbox_4,
+                              self.body_xpath_found_textbox_1, self.body_xpath_found_textbox_2, self.body_xpath_found_textbox_3,
+                              self.body_xpath_found_textbox_4, self.body_xpath_result_textbox_1, self.body_xpath_result_textbox_2,
+                              self.body_xpath_result_textbox_3, self.body_xpath_result_textbox_4, self.menu_xpath_found_textbox_1,
+                              self.menu_xpath_found_textbox_2, self.menu_xpath_found_textbox_3, self.menu_xpath_found_textbox_4,
+                              self.menu_xpath_result_textbox_1, self.menu_xpath_result_textbox_2, self.menu_xpath_result_textbox_3,
+                              self.menu_xpath_result_textbox_4, self.articles_xpath_found_textbox_1, self.articles_xpath_found_textbox_2,
+                              self.articles_xpath_found_textbox_4, self.articles_xpath_result_textbox_1, self.articles_xpath_result_textbox_2,
+                              self.articles_xpath_result_textbox_3, self.articles_xpath_result_textbox_4, self.articles_xpath_found_textbox_3]
 
         for textbox in self.all_textboxes:
             textbox['undo'] = True
@@ -173,32 +173,40 @@ class MainApplication(tk.Tk):
         self.open_items_button = Button(text="Items", command=self.open_items_page)
         self.source_name_button = Button(text="Name", command=self.get_source_name)
         self.load_from_existing_button = Button(text="Load", command=lambda: self.generate(load_from_existing_bool=True))
-        self.title_button_brackets = Button(text="[1]", command=lambda: self.get_only_first_value(self.title_textbox))
-        self.pubdate_button_brackets = Button(text="[1]", command=lambda: self.get_only_first_value(self.pubdate_textbox))
-        self.author_button_brackets = Button(text="[1]", command=lambda: self.get_only_first_value(self.author_textbox))
-        self.body_button_brackets = Button(text="[1]", command=lambda: self.get_only_first_value(self.body_textbox), )
-        self.regex_dmy_button = Button(text="Rgx.", command=lambda: self.add_regex_for_date(r'\d{1,2}\.\d{1,2}\.\d{2,4}'))
-        self.regex_ymd_button = Button(text="Rgx Txt", command=lambda: self.add_regex_for_date(r'(\d{1,2})\.(\s\w+\s\d{2,4})'))
+        self.title_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.title_textbox, before_value='(', after_value=')[1]'))
+        self.pubdate_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value='(',
+                                                                                                     after_value=')[1]'))
+        self.author_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.author_textbox, before_value='(', after_value=')[1]'))
+        self.body_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.body_textbox, before_value='(', after_value=')[1]'), )
+        self.regex_dmy_button = Button(text="Rgx.", command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
+                                                                                               after_value=r", '\d{1,2}\.\d{1,2}\.\d{2,4}', 'g')"))
+        self.regex_ymd_button = Button(text="Rgx Txt", command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
+                                                                                                  after_value=r", '(\d{1,2})\.(\s\w+\s\d{2,4})', 'g')"))
         self.menu_default_button = Button(text="Default", command=lambda: self.replace_textbox_value(self.menu_textbox,
                                                                                                      "(//ul[contains(@class, 'menu')] |"
                                                                                                      " //ul[contains(@id, 'menu')] | //nav//ul)[1]//a"))
-        self.menu_category_button = Button(text="Cat", command=lambda: self.append_textbox_value(self.menu_textbox, "[contains(@href, 'ategor')]"))
+        self.menu_category_button = Button(text="Cat", command=lambda: self.append_textbox_values(self.menu_textbox, after_value="[contains(@href, 'ategor')]"))
+        self.article_category_button = Button(text="Not Cat", command=lambda: self.append_textbox_values(self.articles_textbox, before_value='(',
+                                                                                                         after_value=")[not(contains(@href, 'ategor'))]"))
         self.meta_button = Button(text="Meta", command=lambda: self.replace_textbox_value(self.pubdate_textbox, self.date_meta))
         self.date_order_DMY = Button(text="DMY", command=lambda: self.replace_textbox_value(self.date_order_textbox, "DMY"))
         self.date_order_YMD = Button(text="YMD", command=lambda: self.replace_textbox_value(self.date_order_textbox, "YMD"))
         self.date_order_MDY = Button(text="MDY", command=lambda: self.replace_textbox_value(self.date_order_textbox, "MDY"))
-        self.author_substring_button = Button(text="Substr", command=self.author_substring)
+        self.author_substring_button = Button(text="Substr", command=lambda: self.append_textbox_values(self.author_textbox, before_value="substring-after(",
+                                                                                                        after_value=", ':')"))
         self.author_meta_button = Button(text="Meta", command=lambda: self.replace_textbox_value(self.author_textbox, "//meta[contains(@*,'uthor')]/@content"))
         self.author_child_text_button = Button(text="Child", command=lambda: self.replace_textbox_value(self.author_textbox,
                                                                                                         '//*[child::text()[contains(.,"Autor")]]'))
         self.body_contains_class_button = Button(text="Cnt",
                                                  command=lambda: self.replace_textbox_value(self.body_textbox, "//div[contains(@class, 'content')]"))
         self.not_contains_class_button = Button(text="Not Class",
-                                                command=lambda: self.append_textbox_value(self.body_textbox,
-                                                                                          f"[not(contains(@class, '{self.clipboard_get()}'))]"))
+                                                command=lambda: self.append_textbox_values(self.body_textbox,
+                                                                                           after_value=f"[not(contains(@class, "
+                                                                                                       f"'{self.clipboard_get().strip()}'))]"))
         self.not_contains_text_button = Button(text="Not Text",
-                                               command=lambda: self.append_textbox_value(self.body_textbox,
-                                                                                         f"[not(descendant::text()[contains(.,'{self.clipboard_get()}')])]"))
+                                               command=lambda: self.append_textbox_values(self.body_textbox,
+                                                                                          after_value=f"[not(descendant::text()"
+                                                                                                      f"[contains(.,'{self.clipboard_get().strip()}')])]"))
         self.open_link_button = Button(text='Link', command=self.open_start_urls_link)
         self.open_domain_button = Button(text='Domain', command=self.open_domain)
         self.sitemap_button = Button(text='Sitemap', command=self.find_sitemap)
@@ -280,7 +288,7 @@ class MainApplication(tk.Tk):
             (self.start_urls_textbox, "start_urls", self.start_urls_label, self.copy_start_button, self.open_link_button, self.open_domain_button,
              self.sitemap_button),
             (self.menu_textbox, "menu_xpath", self.menu_label, self.copy_menu_button, self.menu_default_button, self.menu_category_button),
-            (self.articles_textbox, "articles_xpath", self.articles_label, self.copy_articles_button),
+            (self.articles_textbox, "articles_xpath", self.articles_label, self.copy_articles_button, self.article_category_button),
             (self.title_textbox, "title_xpath", self.title_label, self.copy_title_button, self.title_button_brackets),
             (self.pubdate_textbox, "pubdate_xpath", self.pubdate_label, self.copy_pubdate_button, self.meta_button, self.regex_dmy_button,
              self.regex_ymd_button, self.pubdate_button_brackets),
@@ -323,7 +331,9 @@ class MainApplication(tk.Tk):
         self.con = sqlite3.connect('log.db')
         self.cur = self.con.cursor()
 
-        # stats()
+        self.kraken_id = ""
+
+        # self.stats()
         self.cur.execute('''CREATE TABLE IF NOT EXISTS log
                        (id text, date text, start_urls text, menu_xpath text, articles_xpath text, title_xpath text, 
                        pubdate_xpath text, date_order text, author_xpath text, body_xpath text, settings text, 
@@ -384,8 +394,12 @@ class MainApplication(tk.Tk):
         row += 1
 
         atexit.register(self.exit_handler)
-
-        self.geometry("960x1080+1+1")
+        width = 960
+        height = 1080
+        width_screen = self.winfo_screenwidth()
+        starting_width = width_screen - width - 6
+        starting_height = 0
+        self.geometry('%dx%d+%d+%d' % (width, height, starting_width, starting_height))
         self.bind_all("<Key>", self.on_key_release, "+")
         self.lift()
 
@@ -400,6 +414,14 @@ class MainApplication(tk.Tk):
         if value_to_copy:
             pyperclip.copy(value_to_copy)
 
+    def set_kraken_id(self, kraken_id=""):
+        if kraken_id:
+            self.kraken_id = kraken_id
+            self.title(f"{kraken_id} - {self.window_title}")
+        else:
+            self.kraken_id = ""
+            self.title(self.window_title)
+
     def get_link(self, link):
         """
         Function to correctly format the Kraken link by searching for the ID in the URL
@@ -409,7 +431,7 @@ class MainApplication(tk.Tk):
         kraken_id = re.search(r'\d+', link)
         if kraken_id:
             kraken_id = kraken_id.group()
-            self.title(f"{kraken_id} - {self.window_title}")
+            self.set_kraken_id(kraken_id)
             link = f"http://kraken.aiidatapro.net/items/edit/{kraken_id}/"
             return link
         else:
@@ -422,14 +444,14 @@ class MainApplication(tk.Tk):
         :param open_source_bool: Bool indicating whether the source link should be opened in a browser tab
         :return:
         """
+        self.clear_all_textboxes()
+
         link = self.get_link(link)  # Format link
         if not link:
             print("No ID found")
             return
         if open_source_bool:
             webbrowser.get("chrome").open(link)
-
-        self.clear_all_textboxes()
 
         # Show correctly formatted link in textbox
         self.kraken_id_textbox.delete('1.0', tk.END)
@@ -476,7 +498,7 @@ class MainApplication(tk.Tk):
         self.cur.execute('SELECT * FROM log WHERE id=?', (kraken_id,))
         result = self.cur.fetchone()
         if result:
-            self.title(f"{kraken_id} - {self.window_title}")
+            self.set_kraken_id(kraken_id)
             settings = result[10].replace("'", '"').replace("False", '"False"').replace("True",
                                                                                         '"True"')  # Format Bool Values to not crash JSON
             # Create a new var and load database values into it
@@ -510,26 +532,15 @@ class MainApplication(tk.Tk):
             pyperclip.copy(name)
 
     @staticmethod
-    def get_only_first_value(textbox):
+    def append_textbox_values(textbox, before_value="", after_value=""):
         current_value = textbox.get("1.0", tk.END)
         textbox.delete("1.0", tk.END)
-        textbox.insert("1.0", '(' + current_value.strip() + ')[1]')
-
-    def add_regex_for_date(self, regex):
-        current_value = self.pubdate_textbox.get("1.0", tk.END)
-        self.pubdate_textbox.delete("1.0", tk.END)
-        self.pubdate_textbox.insert("1.0", f"re:match({current_value.strip()}, '{regex}', 'g')")
+        textbox.insert("1.0", f'{before_value.strip()}{current_value.strip()}{after_value.strip()}')
 
     @staticmethod
     def replace_textbox_value(textbox, value):
         textbox.delete("1.0", tk.END)
         textbox.insert("1.0", value)
-
-    @staticmethod
-    def append_textbox_value(textbox, string_to_append):
-        current_value = textbox.get("1.0", tk.END).strip()
-        textbox.delete("1.0", tk.END)
-        textbox.insert("1.0", f"{current_value}{string_to_append}")
 
     @staticmethod
     def from_textbox_to_textbox(textbox1, textbox2, append_with_pipe=False):
@@ -547,11 +558,6 @@ class MainApplication(tk.Tk):
         else:
             textbox2.delete('1.0', tk.END)
             textbox2.insert('1.0', value)
-
-    def author_substring(self):
-        author = self.author_textbox.get("1.0", tk.END).strip()
-        self.author_textbox.delete("1.0", tk.END)
-        self.author_textbox.insert('1.0', f"substring-after({author},':')")
 
     def open_start_urls_link(self):
         links = self.start_urls_textbox.get("1.0", tk.END).split(';')
@@ -607,6 +613,7 @@ class MainApplication(tk.Tk):
             return
 
     def clear_all_textboxes(self):
+        self.set_kraken_id()
         for textbox in self.all_textboxes:
             textbox.delete("1.0", tk.END)
 
@@ -681,18 +688,16 @@ class MainApplication(tk.Tk):
         return xpath
 
     def log_code(self, json_dict, json_str):
-        try:
-            kraken_id = re.search(r'\d+', self.kraken_id_textbox.get('1.0', tk.END).strip()).group()
-        except AttributeError:
+        if not self.kraken_id:
             print('No ID found in Kraken ID Textbox, logging skipped')
             return
-        self.log_to_db(kraken_id, json_dict)
+        self.log_to_db(json_dict)
         if not os.path.isdir('./logs'):
             os.mkdir('./logs')
-        with open(f'./logs/{kraken_id}.txt', 'w', encoding='utf-8') as f:
+        with open(f'./logs/{self.kraken_id}.txt', 'w', encoding='utf-8') as f:
             f.write(json_str)
 
-    def log_to_db(self, kraken_id_db, json_var):
+    def log_to_db(self, json_var):
         current_time = datetime.now().strftime("%d-%b-%Y %H:%M:%S")
         user = login_data.user if 'user' in dir(login_data) else "Default User"
 
@@ -706,20 +711,19 @@ class MainApplication(tk.Tk):
         author_xpath = self.rearrange(json_var['scrapy_arguments']['author_xpath']) if 'author_xpath' in json_var['scrapy_arguments'].keys() else ""
         body_xpath = self.rearrange(json_var['scrapy_arguments']['body_xpath']) if 'body_xpath' in json_var['scrapy_arguments'].keys() else ""
 
-        self.cur.execute("SELECT id FROM log WHERE id=?", (kraken_id_db,))
+        self.cur.execute("SELECT id FROM log WHERE id=?", (self.kraken_id,))
         if len(self.cur.fetchall()):
             self.cur.execute(
                 "UPDATE log SET date=?, start_urls=?, menu_xpath=?, articles_xpath=?, title_xpath=?, pubdate_xpath=?, date_order=?, author_xpath=?, "
                 "body_xpath=?, settings=?, full_json=?, user=? WHERE id=?",
                 (current_time, start_urls, menu_xpath, articles_xpath, title_xpath, pubdate_xpath, date_order, author_xpath, body_xpath,
-                 str(json_var['scrapy_settings']), str(json_var), user, kraken_id_db))
+                 str(json_var['scrapy_settings']), str(json_var), user, self.kraken_id))
         else:
             self.cur.execute("INSERT INTO log VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                             (kraken_id_db, current_time, start_urls, menu_xpath, articles_xpath, title_xpath, pubdate_xpath, date_order, author_xpath,
+                             (self.kraken_id, current_time, start_urls, menu_xpath, articles_xpath, title_xpath, pubdate_xpath, date_order, author_xpath,
                               body_xpath,
                               str(json_var['scrapy_settings']), str(json_var), user))
         self.con.commit()
-        # print(f"Entry {kraken_id_db} entered into database")
 
     def generate(self, _=None, initial_json=None, load_from_existing_bool=False):
         existing_code = self.existing_code_textbox.get("1.0", tk.END).strip()
@@ -744,7 +748,7 @@ class MainApplication(tk.Tk):
             for tup in self.first_grid_element_container[2:]:
                 self.edit_textbox(tup[0], tup[1], json_variable)
 
-            if self.kraken_id_textbox.get('1.0', tk.END).strip():
+            if self.kraken_id:
                 self.log_code(json_variable, final_json)
 
         elif self.not_empty():
@@ -772,30 +776,57 @@ class MainApplication(tk.Tk):
             return
 
     def fill_found_textboxes(self, tree, column, index_of_container):
+
+        default_menu_xpath = ["//div[@id='td-header-menu']//a", "//ul[@id='menu-glavni-meni']//a", "//ul[@class='menu']//a",
+                              "//ul[@id='menu-td-demo-header-menu-1']//a", "//ul[contains(@id, 'menu')]", "//ul[@id='nav']//a", "//nav//a", "//nav//ul//a"]
+        default_articles_xpath = ["//h2/a", "//h3/a", "//a[.//h2]", "//h4/a", "//article/a", "//a[.//h3]", "//*[contains(@class, 'entry-title')]/a", "//h1/a",
+                                  "//div[@class='td-module-thumb']/a", "//a[@class='title']", "//a[.//h4]", "//span[@class='field-content']/a",
+                                  "//*[contains(@id, 'recent-posts')]//a"]
+        default_title_xpath = ["//h1", "//h1[@class='entry-title']", "(//h1)[1]", "//h1[contains(@class, 'title')]", "//h2[@class='itemTitle']",
+                               "//h1[@itemprop='headline']", "//header/h1", "(//h2)[1]", "//div[@class='blogpost-heading']//h1", "//h3[@itemprop='name']",
+                               "//article/h1"]
+        default_pubdate_xpath = ["(//meta[@*='article:published_time'])[1]/@content", "//meta[@property='og:updated_time']/@content",
+                                 "//meta[@itemprop='datePublished']/@content", "//time/@datetime", "(//time/@datetime)[1]", "//span[@class='date']",
+                                 "//*[child::text()[contains(.,'202')]]"]
+        default_author_xpath = ["//meta[@name='author']/@content", "//a[@rel='author']", "(//a[@rel='author'])[1]", "//span[@class='fn']/a",
+                                "(//span[@class='fn']/a)[1]", "//meta[contains(@*,'uthor')]/@content", "//div[@class='td-post-author-name']/a",
+                                "//meta[@name='twitter:data1']/@content", "(//a[@class='url fn n'])[1]", "//a[@class='tdb-author-name']",
+                                "//a[@class='article-published-author']", "//*[child::text()[contains(.,'Author')]]", "//*[child::text()[contains(.,'Autor')]]"]
+        default_body_xpath = ["//div[contains(@class, 'td-post-content')]", "//div[@itemprop='articleBody']", "//article",
+                              "//div[contains(@class, 'entry-content')]", "//div[contains(@class, 'post-content')]", "//div[@class='entry']",
+                              "//div[@class='itemFullText']", "//div[@class='shortcode-content']"]
+
+        xpath_list = []
         if column == 'menu_xpath':
             self.cur.execute("SELECT menu_xpath, count(menu_xpath) FROM log GROUP BY menu_xpath ORDER BY count(menu_xpath) DESC")
+            xpath_list.extend(default_menu_xpath)
         elif column == 'articles_xpath':
             self.cur.execute("SELECT articles_xpath, count(articles_xpath) FROM log GROUP BY articles_xpath ORDER BY count(articles_xpath) DESC")
+            xpath_list.extend(default_articles_xpath)
         elif column == 'title_xpath':
             self.cur.execute("SELECT title_xpath, count(title_xpath) FROM log GROUP BY title_xpath ORDER BY count(title_xpath) DESC")
+            xpath_list.extend(default_title_xpath)
         elif column == 'pubdate_xpath':
             self.cur.execute("SELECT pubdate_xpath, count(pubdate_xpath) FROM log GROUP BY pubdate_xpath ORDER BY count(pubdate_xpath) DESC")
+            xpath_list.extend(default_pubdate_xpath)
         elif column == 'author_xpath':
             self.cur.execute("SELECT author_xpath, count(author_xpath) FROM log GROUP BY author_xpath ORDER BY count(author_xpath) DESC")
+            xpath_list.extend(default_author_xpath)
         elif column == 'body_xpath':
             self.cur.execute("SELECT body_xpath, count(body_xpath) FROM log GROUP BY body_xpath ORDER BY count(body_xpath) DESC")
+            xpath_list.extend(default_body_xpath)
         element = self.second_grid_elements_container[index_of_container]
         query_results = self.cur.fetchall()
-        xpath_list = []
+
         for result in query_results:
             xpath = result[0].split('|')
             xpath = [x.strip() for x in xpath if 'substring' not in x and not x.startswith('re') and 're:' not in x and '//' in x]
             if column == 'body_xpath':
-                xpath = [x for x in xpath if '//node()' not in x and '/text()' not in x and ']//p' not in x and "'row'" not in x]
+                xpath = [x.split('/node()')[0] for x in xpath]
+                xpath = [x for x in xpath if '//node()' not in x and '/text()' not in x and ']//p' not in x and "'row'" not in x and not x.endswith('/p')]
             for entry in xpath:
                 if entry not in xpath_list:
                     xpath_list.append(entry)
-            pprint(xpath)
         final_result = []
 
         for xpath in xpath_list:
