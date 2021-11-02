@@ -328,7 +328,13 @@ class MainApplication(tk.Tk):
         with open('settings.json') as f1:
             self.settings_json = json.load(f1)
 
-        self.con = sqlite3.connect('log.db')
+        try:
+            self.con = sqlite3.connect(r'\\VT10\xpath_manager\log.db')
+            print("Shared folder accessed")
+        except:
+            self.con = sqlite3.connect('log.db')
+            print("Local folder accessed")
+
         self.cur = self.con.cursor()
 
         self.kraken_id = ""
