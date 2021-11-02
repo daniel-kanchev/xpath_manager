@@ -331,7 +331,7 @@ class MainApplication(tk.Tk):
         try:
             self.con = sqlite3.connect(r'\\VT10\xpath_manager\log.db')
             print("Shared folder accessed")
-        except:
+        except sqlite3.OperationalError:
             self.con = sqlite3.connect('log.db')
             print("Local folder accessed")
 
@@ -397,6 +397,33 @@ class MainApplication(tk.Tk):
 
         self.generate_button.grid(row=row, column=1, sticky='W', ipadx=0, ipady=0, pady=(5, 2), padx=(20, 2))
         self.clear_button.grid(row=row, column=2, sticky="E", ipadx=0, ipady=0, pady=2, padx=2)
+
+        row=  1
+        self.article_url_label.grid(row=row, column=1, sticky='W', padx=(50, 2), pady=2)
+        self.article_url_textbox.grid(row=row, column=2, sticky='W', padx=2, pady=2)
+        self.find_menu_articles_button.grid(row=row, column=3, sticky='W', padx=2, pady=2)
+        self.find_content_button.grid(row=row, column=4, sticky='W', padx=2, pady=2)
+        row += 1
+        for element in self.second_grid_elements_container:
+            element[0].grid(row=row, column=1, sticky='W', padx=(50, 2), pady=(20, 2))
+            start_row = row
+            for i, widget in enumerate(element[1:]):
+                curr_row = math.floor(i / 3) + start_row
+                curr_col = (i % 3) + 2
+                if i < 3:
+                    widget.grid(row=curr_row, column=curr_col, sticky='W', padx=2, pady=(20, 2))
+                else:
+                    widget.grid(row=curr_row, column=curr_col, sticky='W', padx=2, pady=2)
+            row += 5
+
+        # Forget Second View
+        self.article_url_label.grid_remove()
+        self.article_url_textbox.grid_remove()
+        self.find_content_button.grid_remove()
+        self.find_menu_articles_button.grid_remove()
+        for element in self.second_grid_elements_container:
+            for widget in element:
+                widget.grid_remove()
         row += 1
 
         atexit.register(self.exit_handler)
@@ -533,7 +560,10 @@ class MainApplication(tk.Tk):
         domain = self.start_urls_textbox.get("1.0", tk.END).strip()
         if domain and domain[-1] == '/':
             domain = domain[:-1]
-        name = domain.split('/')[-1].replace('www.', '')
+        try:
+            name = domain.split('//')[1].split('/')[0]
+        except IndexError:
+            return
         if name:
             pyperclip.copy(name)
 
@@ -798,7 +828,7 @@ class MainApplication(tk.Tk):
                                 "(//span[@class='fn']/a)[1]", "//meta[contains(@*,'uthor')]/@content", "//div[@class='td-post-author-name']/a",
                                 "//meta[@name='twitter:data1']/@content", "(//a[@class='url fn n'])[1]", "//a[@class='tdb-author-name']",
                                 "//a[@class='article-published-author']", "//*[child::text()[contains(.,'Author')]]", "//*[child::text()[contains(.,'Autor')]]"]
-        default_body_xpath = ["//div[contains(@class, 'td-post-content')]", "//div[@itemprop='articleBody']", "//article",
+        default_body_xpath = ["//div[contains(@class, 'td-post-content')]", "//div[@itemprop='articleBody']",
                               "//div[contains(@class, 'entry-content')]", "//div[contains(@class, 'post-content')]", "//div[@class='entry']",
                               "//div[@class='itemFullText']", "//div[@class='shortcode-content']"]
 
@@ -915,43 +945,36 @@ class MainApplication(tk.Tk):
             for element in self.first_grid_element_container:
                 for widget in element:
                     if not isinstance(widget, str):
-                        widget.grid_forget()
-                        self.generate_button.grid_forget()
-                        self.clear_button.grid_forget()
+                        widget.grid_remove()
+            self.generate_button.grid_remove()
+            self.clear_button.grid_remove()
+
             # Load Second View
-            self.article_url_label.grid(row=row, column=1, sticky='W', padx=(50, 2), pady=2)
-            self.article_url_textbox.grid(row=row, column=2, sticky='W', padx=2, pady=2)
-            self.find_menu_articles_button.grid(row=row, column=3, sticky='W', padx=2, pady=2)
-            self.find_content_button.grid(row=row, column=4, sticky='W', padx=2, pady=2)
-            row += 1
-            for element in self.second_grid_elements_container:
-                element[0].grid(row=row, column=1, sticky='W', padx=(50, 2), pady=(20, 2))
-                start_row = row
-                for i, widget in enumerate(element[1:]):
-                    curr_row = math.floor(i / 3) + start_row
-                    curr_col = (i % 3) + 2
-                    if i < 3:
-                        widget.grid(row=curr_row, column=curr_col, sticky='W', padx=2, pady=(20, 2))
-                    else:
-                        widget.grid(row=curr_row, column=curr_col, sticky='W', padx=2, pady=2)
-                row += 5
-        else:
-            # Forget Second View
-            self.article_url_label.grid_forget()
-            self.article_url_textbox.grid_forget()
-            self.find_content_button.grid_forget()
-            self.find_menu_articles_button.grid_forget()
+            self.article_url_label.grid()
+            self.article_url_textbox.grid()
+            self.find_menu_articles_button.grid()
+            self.find_content_button.grid()
             for element in self.second_grid_elements_container:
                 for widget in element:
-                    widget.grid_forget()
+                    widget.grid()
+
+        else:
+            # Forget Second View
+            self.article_url_label.grid_remove()
+            self.article_url_textbox.grid_remove()
+            self.find_content_button.grid_remove()
+            self.find_menu_articles_button.grid_remove()
+            for element in self.second_grid_elements_container:
+                for widget in element:
+                    widget.grid_remove()
+
             # Load First View
-            for t in self.first_grid_element_container:
-                row = self.pack_entries(t, row)
-
-            self.generate_button.grid(row=row, column=1, sticky='W', ipadx=0, ipady=0, pady=(5, 2), padx=(20, 2))
-            self.clear_button.grid(row=row, column=2, sticky="E", ipadx=0, ipady=0, pady=2, padx=2)
-            row += 1
-
+            for element in self.first_grid_element_container:
+                for widget in element:
+                    if not isinstance(widget, str):
+                        widget.grid()
+            self.generate_button.grid()
+            self.clear_button.grid()
     @staticmethod
     def pack_entries(entry_tuple, curr_row):
         entry_tuple[2].grid(row=curr_row, column=1, sticky='W', pady=2, padx=(20, 2))
