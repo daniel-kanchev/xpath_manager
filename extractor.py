@@ -12,6 +12,7 @@ from lxml import html
 import login_data
 import os
 import sqlite3
+from time import time
 from datetime import datetime
 import atexit
 import config
@@ -20,6 +21,8 @@ from tkinter.ttk import *
 
 class MainApplication(tk.Tk):
     def __init__(self):
+        t1 = time()
+
         super().__init__()
         self.window_title = f"Xpath Extractor ({config.last_change})"
         self.title(self.window_title)
@@ -175,14 +178,15 @@ class MainApplication(tk.Tk):
         self.source_domain_button = Button(text="Copy Domain", command=lambda: self.get_domain(copy=True))
         self.load_from_existing_button = Button(text="Load", command=lambda: self.generate(load_from_existing_bool=True))
         self.title_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.title_textbox, before_value='(', after_value=')[1]'))
+        self.title_h1_button = Button(text="h1", command=lambda: self.replace_textbox_value(self.menu_textbox, "//h1[contains(@class,'title')]"))
         self.pubdate_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value='(',
                                                                                                      after_value=')[1]'))
         self.author_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.author_textbox, before_value='(', after_value=')[1]'))
         self.body_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.body_textbox, before_value='(', after_value=')[1]'), )
         self.regex_dmy_button = Button(text="Regex .", command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
-                                                                                               after_value=r", '\d{1,2}\.\d{1,2}\.\d{2,4}', 'g')"))
+                                                                                                  after_value=r", '\d{1,2}\.\d{1,2}\.\d{2,4}', 'g')"))
         self.regex_ymd_button = Button(text="Regex Text", command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
-                                                                                                  after_value=r", '(\d{1,2})\.(\s\w+\s\d{2,4})', 'g')"))
+                                                                                                     after_value=r", '(\d{1,2})\.(\s\w+\s\d{2,4})', 'g')"))
         self.menu_default_button = Button(text="Default", command=lambda: self.replace_textbox_value(self.menu_textbox,
                                                                                                      "(//ul[contains(@class, 'menu')] |"
                                                                                                      " //ul[contains(@id, 'menu')] | //nav//ul)[1]//a"))
@@ -196,7 +200,7 @@ class MainApplication(tk.Tk):
         self.date_order_YMD = Button(text="YMD", command=lambda: self.replace_textbox_value(self.date_order_textbox, "YMD"))
         self.date_order_MDY = Button(text="MDY", command=lambda: self.replace_textbox_value(self.date_order_textbox, "MDY"))
         self.author_substring_button = Button(text="Substring", command=lambda: self.append_textbox_values(self.author_textbox, before_value="substring-after(",
-                                                                                                        after_value=", ':')"))
+                                                                                                           after_value=", ':')"))
         self.author_meta_button = Button(text="Meta", command=lambda: self.replace_textbox_value(self.author_textbox, "//meta[contains(@*,'uthor')]/@content"))
         self.author_child_text_button = Button(text="Child", command=lambda: self.replace_textbox_value(self.author_textbox,
                                                                                                         '//*[child::text()[contains(.,"Autor")]]'))
@@ -328,29 +332,44 @@ class MainApplication(tk.Tk):
         self.session = requests.Session()
         with open('settings.json') as f1:
             self.settings_json = json.load(f1)
-
-        try:
-            self.con = sqlite3.connect(r'\\VT10\xpath_manager\log.db')
-            print("Shared folder accessed")
-        except sqlite3.OperationalError:
-            self.con = sqlite3.connect('log.db')
-            print("Local folder accessed")
-
-        self.cur = self.con.cursor()
-
         self.kraken_id = ""
 
+        self.shared_db_path = r'\\VT10\xpath_manager\log.db'
+        self.local_db_path = 'log.db'
+
+        try:
+            con = sqlite3.connect(self.shared_db_path)
+            shared_connection = True
+            print("Using shared database.")
+        except sqlite3.OperationalError:
+            con = sqlite3.connect(self.local_db_path)
+            shared_connection = False
+            print("Using local database.")
+
+        self.create_tables(con)
+
+        if shared_connection:
+            synced_entries = 0
+            cur = con.cursor()
+            local_con = sqlite3.connect(self.local_db_path)
+            self.create_tables(local_con)
+            local_cur = local_con.cursor()
+            local_cur.execute("SELECT * FROM log")
+            local_entries = local_cur.fetchall()
+            for entry in local_entries:
+                cur.execute("SELECT * FROM log WHERE id=?", (entry[0],))
+                if not cur.fetchall():
+                    cur.execute("INSERT INTO log VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", entry)
+                    synced_entries += 1
+            if synced_entries:
+                print(f'Added {synced_entries} log(s) to shared database.')
+            local_con.commit()
+            local_con.close()
+
+        con.commit()
+        con.close()
+
         self.stats()
-        self.cur.execute('''CREATE TABLE IF NOT EXISTS log
-                       (id text, date text, start_urls text, menu_xpath text, articles_xpath text, title_xpath text, 
-                       pubdate_xpath text, date_order text, author_xpath text, body_xpath text, settings text, 
-                       full_json text, user text)''')
-        self.cur.execute('''CREATE TABLE IF NOT EXISTS menu_xpath(xpath text, count number)''')
-        self.cur.execute('''CREATE TABLE IF NOT EXISTS articles_xpath(xpath text, count number)''')
-        self.cur.execute('''CREATE TABLE IF NOT EXISTS title_xpath(xpath text, count number)''')
-        self.cur.execute('''CREATE TABLE IF NOT EXISTS pubdate_xpath(xpath text, count number)''')
-        self.cur.execute('''CREATE TABLE IF NOT EXISTS author_xpath(xpath text, count number)''')
-        self.cur.execute('''CREATE TABLE IF NOT EXISTS body_xpath(xpath text, count number)''')
 
         login_link = "https://dashbeta.aiidatapro.net/"
 
@@ -363,7 +382,7 @@ class MainApplication(tk.Tk):
 
         if not os.path.exists('./login_data.py'):
             with open('login_data.py', 'w') as login_file:
-                login_file.write('username = "USERNAME_HERE"\npassword = "PASSWORD_HERE"')
+                login_file.write('username = "USERNAME_HERE"\npassword = "PASSWORD_HERE"\nuser="Default"')
                 print("Fill in your login details in login_data.py!")
         else:
             try:
@@ -442,6 +461,29 @@ class MainApplication(tk.Tk):
         self.geometry('%dx%d+%d+%d' % (width, height, starting_width, starting_height))
         self.bind_all("<Key>", self.on_key_release, "+")
         self.lift()
+        t2 = time()
+        print(f"Booted in {t2 - t1} seconds.")
+
+    def initiate_connection(self):
+        try:
+            con = sqlite3.connect(self.shared_db_path)
+        except sqlite3.OperationalError:
+            con = sqlite3.connect(self.local_db_path)
+        return con
+
+    @staticmethod
+    def create_tables(con):
+        cur = con.cursor()
+        cur.execute('''CREATE TABLE IF NOT EXISTS log
+                       (id text, date text, start_urls text, menu_xpath text, articles_xpath text, title_xpath text, 
+                       pubdate_xpath text, date_order text, author_xpath text, body_xpath text, settings text, 
+                       full_json text, user text)''')
+        cur.execute('''CREATE TABLE IF NOT EXISTS menu_xpath(xpath text, count number)''')
+        cur.execute('''CREATE TABLE IF NOT EXISTS articles_xpath(xpath text, count number)''')
+        cur.execute('''CREATE TABLE IF NOT EXISTS title_xpath(xpath text, count number)''')
+        cur.execute('''CREATE TABLE IF NOT EXISTS pubdate_xpath(xpath text, count number)''')
+        cur.execute('''CREATE TABLE IF NOT EXISTS author_xpath(xpath text, count number)''')
+        cur.execute('''CREATE TABLE IF NOT EXISTS body_xpath(xpath text, count number)''')
 
     @staticmethod
     def copy_code(textbox):
@@ -531,12 +573,16 @@ class MainApplication(tk.Tk):
         Extracts ID from Kraken Textbox and loads the source from the database
         :return:
         """
+
+        con = self.initiate_connection()
+        cur = con.cursor()
+
         if self.kraken_id_textbox.get('1.0', tk.END).strip():
             kraken_id = re.search(r'\d+', self.kraken_id_textbox.get('1.0', tk.END)).group()
         else:
             return
-        self.cur.execute('SELECT * FROM log WHERE id=?', (kraken_id,))
-        result = self.cur.fetchone()
+        cur.execute('SELECT * FROM log WHERE id=?', (kraken_id,))
+        result = cur.fetchone()
         if result:
             self.set_kraken_id(kraken_id)
             settings = result[10].replace("'", '"').replace("False", '"False"').replace("True",
@@ -554,6 +600,9 @@ class MainApplication(tk.Tk):
             self.generate(initial_json=json_var)
         else:
             self.clear_all_textboxes()  # Clear all textboxes to indicate entry doesn't exist
+
+        con.commit()
+        con.close()
 
     def open_items_page(self):
         # Function to open the "View Item" page of the source in Kraken
@@ -724,52 +773,43 @@ class MainApplication(tk.Tk):
         self.existing_code_textbox.insert('1.0', final_text)
         return final_text
 
-    @staticmethod
-    def rearrange(xpath):
-        xpath_list = xpath.split('|')
-        for i, entry in enumerate(xpath_list):
-            xpath_list[i] = entry.strip()
-        xpath_list = sorted(xpath_list)
-        xpath = " | ".join(xpath_list)
-        return xpath
-
-    def log_code(self, json_dict, json_str):
+    def log_code(self, json_dict):
         if not self.kraken_id:
             print('No ID found in Kraken ID Textbox, logging skipped')
             return
         self.log_to_db(json_dict)
-        if not os.path.isdir('./logs'):
-            os.mkdir('./logs')
-        with open(f'./logs/{self.kraken_id}.txt', 'w', encoding='utf-8') as f:
-            f.write(json_str)
 
     def log_to_db(self, json_var):
+        con = self.initiate_connection()
+        cur = con.cursor()
+
         current_time = datetime.now().strftime("%d-%b-%Y %H:%M:%S")
         user = login_data.user if 'user' in dir(login_data) else "Default User"
 
-        start_urls = self.rearrange(json_var['scrapy_arguments']['start_urls']) if 'start_urls' in json_var['scrapy_arguments'].keys() else ""
-        menu_xpath = self.rearrange(json_var['scrapy_arguments']['menu_xpath']) if 'menu_xpath' in json_var['scrapy_arguments'].keys() else ""
-        articles_xpath = self.rearrange(json_var['scrapy_arguments']['articles_xpath']) if 'articles_xpath' in json_var[
+        start_urls = json_var['scrapy_arguments']['start_urls'] if 'start_urls' in json_var['scrapy_arguments'].keys() else ""
+        menu_xpath = json_var['scrapy_arguments']['menu_xpath'] if 'menu_xpath' in json_var['scrapy_arguments'].keys() else ""
+        articles_xpath = json_var['scrapy_arguments']['articles_xpath'] if 'articles_xpath' in json_var[
             'scrapy_arguments'].keys() else ""
-        title_xpath = self.rearrange(json_var['scrapy_arguments']['title_xpath']) if 'title_xpath' in json_var['scrapy_arguments'].keys() else ""
+        title_xpath = json_var['scrapy_arguments']['title_xpath'] if 'title_xpath' in json_var['scrapy_arguments'].keys() else ""
         pubdate_xpath = json_var['scrapy_arguments']['pubdate_xpath'] if 'pubdate_xpath' in json_var['scrapy_arguments'].keys() else ""
-        date_order = self.rearrange(json_var['scrapy_arguments']['date_order']) if 'date_order' in json_var['scrapy_arguments'].keys() else ""
-        author_xpath = self.rearrange(json_var['scrapy_arguments']['author_xpath']) if 'author_xpath' in json_var['scrapy_arguments'].keys() else ""
-        body_xpath = self.rearrange(json_var['scrapy_arguments']['body_xpath']) if 'body_xpath' in json_var['scrapy_arguments'].keys() else ""
+        date_order = json_var['scrapy_arguments']['date_order'] if 'date_order' in json_var['scrapy_arguments'].keys() else ""
+        author_xpath = json_var['scrapy_arguments']['author_xpath'] if 'author_xpath' in json_var['scrapy_arguments'].keys() else ""
+        body_xpath = json_var['scrapy_arguments']['body_xpath'] if 'body_xpath' in json_var['scrapy_arguments'].keys() else ""
 
-        self.cur.execute("SELECT id FROM log WHERE id=?", (self.kraken_id,))
-        if len(self.cur.fetchall()):
-            self.cur.execute(
+        cur.execute("SELECT id FROM log WHERE id=?", (self.kraken_id,))
+        if len(cur.fetchall()):
+            cur.execute(
                 "UPDATE log SET date=?, start_urls=?, menu_xpath=?, articles_xpath=?, title_xpath=?, pubdate_xpath=?, date_order=?, author_xpath=?, "
                 "body_xpath=?, settings=?, full_json=?, user=? WHERE id=?",
                 (current_time, start_urls, menu_xpath, articles_xpath, title_xpath, pubdate_xpath, date_order, author_xpath, body_xpath,
                  str(json_var['scrapy_settings']), str(json_var), user, self.kraken_id))
         else:
-            self.cur.execute("INSERT INTO log VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                             (self.kraken_id, current_time, start_urls, menu_xpath, articles_xpath, title_xpath, pubdate_xpath, date_order, author_xpath,
-                              body_xpath,
-                              str(json_var['scrapy_settings']), str(json_var), user))
-        self.con.commit()
+            cur.execute("INSERT INTO log VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (self.kraken_id, current_time, start_urls, menu_xpath, articles_xpath, title_xpath, pubdate_xpath, date_order, author_xpath,
+                         body_xpath,
+                         str(json_var['scrapy_settings']), str(json_var), user))
+        con.commit()
+        con.close()
 
     def generate(self, _=None, initial_json=None, load_from_existing_bool=False):
         existing_code = self.existing_code_textbox.get("1.0", tk.END).strip()
@@ -795,7 +835,7 @@ class MainApplication(tk.Tk):
                 self.edit_textbox(tup[0], tup[1], json_variable)
 
             if self.kraken_id:
-                self.log_code(json_variable, final_json)
+                self.log_code(json_variable)
 
         elif self.not_empty():
             json_variable = {
@@ -817,27 +857,33 @@ class MainApplication(tk.Tk):
             final_json = self.fill_code_textbox(json_variable)
             pyperclip.copy(final_json)
             if self.kraken_id_textbox.get('1.0', tk.END).strip():
-                self.log_code(json_variable, final_json)
+                self.log_code(json_variable)
         else:
             return
 
     def fill_found_textboxes(self, tree, column, index_of_container):
 
+        con = self.initiate_connection()
+        cur = con.cursor()
+
         if column == 'menu_xpath':
-            self.cur.execute("SELECT xpath, count FROM menu_xpath ORDER BY count DESC")
+            cur.execute("SELECT xpath, count FROM menu_xpath ORDER BY count DESC")
         elif column == 'articles_xpath':
-            self.cur.execute("SELECT xpath FROM articles_xpath ORDER BY count DESC")
+            cur.execute("SELECT xpath FROM articles_xpath ORDER BY count DESC")
         elif column == 'title_xpath':
-            self.cur.execute("SELECT xpath FROM title_xpath ORDER BY count DESC")
+            cur.execute("SELECT xpath FROM title_xpath ORDER BY count DESC")
         elif column == 'pubdate_xpath':
-            self.cur.execute("SELECT xpath FROM pubdate_xpath ORDER BY count DESC")
+            cur.execute("SELECT xpath FROM pubdate_xpath ORDER BY count DESC")
         elif column == 'author_xpath':
-            self.cur.execute("SELECT xpath FROM author_xpath ORDER BY count DESC")
+            cur.execute("SELECT xpath FROM author_xpath ORDER BY count DESC")
         elif column == 'body_xpath':
-            self.cur.execute("SELECT xpath FROM body_xpath ORDER BY count DESC")
+            cur.execute("SELECT xpath FROM body_xpath ORDER BY count DESC")
         element = self.second_grid_elements_container[index_of_container]
-        xpath_list = self.cur.fetchall()
+        xpath_list = cur.fetchall()
         xpath_list = [x[0] for x in xpath_list]
+
+        con.commit()
+        con.close()
 
         final_result = []
         number_of_textboxes = 4
@@ -874,11 +920,6 @@ class MainApplication(tk.Tk):
                     widget.delete('1.0', tk.END)
         article_url = self.article_url_textbox.get("1.0", tk.END).strip()
         website_response = requests.get(article_url, headers=self.headers)
-        try:
-            print(website_response)
-        except Exception:
-            print("Website couldn't load")
-            return
         tree = html.fromstring(website_response.text)
         self.fill_found_textboxes(tree, 'title_xpath', 2)
         self.fill_found_textboxes(tree, 'pubdate_xpath', 3)
@@ -892,11 +933,6 @@ class MainApplication(tk.Tk):
                     widget.delete('1.0', tk.END)
         article_url = self.article_url_textbox.get("1.0", tk.END).strip()
         website_response = requests.get(article_url, headers=self.headers)
-        try:
-            print(website_response)
-        except Exception:
-            print("Website couldn't load")
-            return
         tree = html.fromstring(website_response.text)
         self.fill_found_textboxes(tree, 'menu_xpath', 0)
         self.fill_found_textboxes(tree, 'articles_xpath', 1)
@@ -917,7 +953,7 @@ class MainApplication(tk.Tk):
             event.widget.event_generate("<<SelectAll>>")
 
     def exit_handler(self):
-        self.con.close()
+        pass
 
     def toggle_view(self):
         if self.generate_button.winfo_ismapped():
@@ -985,6 +1021,7 @@ class MainApplication(tk.Tk):
             for xpath in db_results:
                 split_xpath_list = xpath.split('|')
                 for updated_xpath in split_xpath_list:
+                    updated_xpath = updated_xpath.replace(' ', '')
                     if not any(s in updated_xpath for s in all_contains):
                         if body_xpath:
                             if updated_xpath.endswith('/p'):
@@ -1002,46 +1039,54 @@ class MainApplication(tk.Tk):
 
             return sorted(created_dict.items(), key=lambda d: d[1], reverse=True)
 
-        self.cur.execute("DELETE FROM menu_xpath")
-        self.cur.execute("DELETE FROM articles_xpath")
-        self.cur.execute("DELETE FROM title_xpath")
-        self.cur.execute("DELETE FROM pubdate_xpath")
-        self.cur.execute("DELETE FROM author_xpath")
-        self.cur.execute("DELETE FROM body_xpath")
+        con = self.initiate_connection()
+        cur = con.cursor()
 
-        self.cur.execute("SELECT menu_xpath FROM log")
-        results = create_dict(self.cur.fetchall())
+        cur.execute("SELECT * FROM log")
+        print(f"Hello, {login_data.user}")
+        print(f"The database contains {len(cur.fetchall())} entries.")
+        cur.execute("DELETE FROM menu_xpath")
+        cur.execute("DELETE FROM articles_xpath")
+        cur.execute("DELETE FROM title_xpath")
+        cur.execute("DELETE FROM pubdate_xpath")
+        cur.execute("DELETE FROM author_xpath")
+        cur.execute("DELETE FROM body_xpath")
+
+        cur.execute("SELECT menu_xpath FROM log")
+        results = create_dict(cur.fetchall())
         for entry in results:
-            self.cur.execute("INSERT INTO menu_xpath VALUES (?, ?)", (entry[0], entry[1]))
+            cur.execute("INSERT INTO menu_xpath VALUES (?, ?)", (entry[0], entry[1]))
 
-        self.cur.execute("SELECT articles_xpath FROM log")
-        results = create_dict(self.cur.fetchall())
+        cur.execute("SELECT articles_xpath FROM log")
+        results = create_dict(cur.fetchall())
         for entry in results:
-            self.cur.execute("INSERT INTO articles_xpath VALUES (?, ?)", (entry[0], entry[1]))
+            cur.execute("INSERT INTO articles_xpath VALUES (?, ?)", (entry[0], entry[1]))
 
-        self.cur.execute("SELECT title_xpath FROM log")
-        results = create_dict(self.cur.fetchall())
+        cur.execute("SELECT title_xpath FROM log")
+        results = create_dict(cur.fetchall())
         for entry in results:
-            self.cur.execute("INSERT INTO title_xpath VALUES (?, ?)", (entry[0], entry[1]))
+            cur.execute("INSERT INTO title_xpath VALUES (?, ?)", (entry[0], entry[1]))
 
-        self.cur.execute("SELECT pubdate_xpath FROM log")
-        results = create_dict(self.cur.fetchall())
+        cur.execute("SELECT pubdate_xpath FROM log")
+        results = create_dict(cur.fetchall())
         for entry in results:
-            self.cur.execute("INSERT INTO pubdate_xpath VALUES (?, ?)", (entry[0], entry[1]))
+            cur.execute("INSERT INTO pubdate_xpath VALUES (?, ?)", (entry[0], entry[1]))
 
-        self.cur.execute("SELECT author_xpath FROM log")
-        results = create_dict(self.cur.fetchall())
+        cur.execute("SELECT author_xpath FROM log")
+        results = create_dict(cur.fetchall())
         for entry in results:
-            self.cur.execute("INSERT INTO author_xpath VALUES (?, ?)", (entry[0], entry[1]))
+            cur.execute("INSERT INTO author_xpath VALUES (?, ?)", (entry[0], entry[1]))
 
-        self.cur.execute("SELECT body_xpath FROM log")
-        results = create_dict(self.cur.fetchall(), body_xpath=True)
+        cur.execute("SELECT body_xpath FROM log")
+        results = create_dict(cur.fetchall(), body_xpath=True)
         for entry in results:
-            self.cur.execute("INSERT INTO body_xpath VALUES (?, ?)", (entry[0], entry[1]))
+            cur.execute("INSERT INTO body_xpath VALUES (?, ?)", (entry[0], entry[1]))
 
-        self.con.commit()
+        con.commit()
+        con.close()
 
 
 if __name__ == '__main__':
     app = MainApplication()
     app.mainloop()
+
