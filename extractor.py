@@ -167,20 +167,21 @@ class MainApplication(tk.Tk):
         self.copy_author_button = Button(text="Copy", command=lambda: self.copy_code(self.author_textbox))
         self.copy_body_button = Button(text="Copy", command=lambda: self.copy_code(self.body_textbox))
         self.kraken_id_load_button = Button(text="Load", command=lambda: self.load_code(self.kraken_id_textbox.get('1.0', tk.END), open_source_bool=False))
-        self.kraken_id_clipboard_button = Button(text="Clip", command=lambda: self.load_code(self.clipboard_get()))
+        self.kraken_id_clipboard_button = Button(text="Clipboard", command=lambda: self.load_code(self.clipboard_get()))
         self.open_source_button = Button(text="Source", command=lambda: self.open_link(self.kraken_id_textbox.get('1.0', tk.END)))
         self.load_from_db_button = Button(text="DB Load", command=self.load_from_db)
         self.open_items_button = Button(text="Items", command=self.open_items_page)
-        self.source_name_button = Button(text="Name", command=self.get_source_name)
+        self.source_name_button = Button(text="Copy Name", command=self.get_source_name)
+        self.source_domain_button = Button(text="Copy Domain", command=lambda: self.get_domain(copy=True))
         self.load_from_existing_button = Button(text="Load", command=lambda: self.generate(load_from_existing_bool=True))
         self.title_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.title_textbox, before_value='(', after_value=')[1]'))
         self.pubdate_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value='(',
                                                                                                      after_value=')[1]'))
         self.author_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.author_textbox, before_value='(', after_value=')[1]'))
         self.body_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.body_textbox, before_value='(', after_value=')[1]'), )
-        self.regex_dmy_button = Button(text="Rgx.", command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
+        self.regex_dmy_button = Button(text="Regex .", command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
                                                                                                after_value=r", '\d{1,2}\.\d{1,2}\.\d{2,4}', 'g')"))
-        self.regex_ymd_button = Button(text="Rgx Txt", command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
+        self.regex_ymd_button = Button(text="Regex Text", command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
                                                                                                   after_value=r", '(\d{1,2})\.(\s\w+\s\d{2,4})', 'g')"))
         self.menu_default_button = Button(text="Default", command=lambda: self.replace_textbox_value(self.menu_textbox,
                                                                                                      "(//ul[contains(@class, 'menu')] |"
@@ -188,16 +189,18 @@ class MainApplication(tk.Tk):
         self.menu_category_button = Button(text="Cat", command=lambda: self.append_textbox_values(self.menu_textbox, after_value="[contains(@href, 'ategor')]"))
         self.article_category_button = Button(text="Not Cat", command=lambda: self.append_textbox_values(self.articles_textbox, before_value='(',
                                                                                                          after_value=")[not(contains(@href, 'ategor'))]"))
+        self.article_title_button = Button(text="Cont Title", command=lambda: self.replace_textbox_value(self.articles_textbox,
+                                                                                                         "//*[contains(@class,'title')]/a"))
         self.meta_button = Button(text="Meta", command=lambda: self.replace_textbox_value(self.pubdate_textbox, self.date_meta))
         self.date_order_DMY = Button(text="DMY", command=lambda: self.replace_textbox_value(self.date_order_textbox, "DMY"))
         self.date_order_YMD = Button(text="YMD", command=lambda: self.replace_textbox_value(self.date_order_textbox, "YMD"))
         self.date_order_MDY = Button(text="MDY", command=lambda: self.replace_textbox_value(self.date_order_textbox, "MDY"))
-        self.author_substring_button = Button(text="Substr", command=lambda: self.append_textbox_values(self.author_textbox, before_value="substring-after(",
+        self.author_substring_button = Button(text="Substring", command=lambda: self.append_textbox_values(self.author_textbox, before_value="substring-after(",
                                                                                                         after_value=", ':')"))
         self.author_meta_button = Button(text="Meta", command=lambda: self.replace_textbox_value(self.author_textbox, "//meta[contains(@*,'uthor')]/@content"))
         self.author_child_text_button = Button(text="Child", command=lambda: self.replace_textbox_value(self.author_textbox,
                                                                                                         '//*[child::text()[contains(.,"Autor")]]'))
-        self.body_contains_class_button = Button(text="Cnt",
+        self.body_contains_class_button = Button(text="Content",
                                                  command=lambda: self.replace_textbox_value(self.body_textbox, "//div[contains(@class, 'content')]"))
         self.not_contains_class_button = Button(text="Not Class",
                                                 command=lambda: self.append_textbox_values(self.body_textbox,
@@ -207,10 +210,9 @@ class MainApplication(tk.Tk):
                                                command=lambda: self.append_textbox_values(self.body_textbox,
                                                                                           after_value=f"[not(descendant::text()"
                                                                                                       f"[contains(.,'{self.clipboard_get().strip()}')])]"))
-        self.open_link_button = Button(text='Link', command=self.open_start_urls_link)
-        self.open_domain_button = Button(text='Domain', command=self.open_domain)
-        self.sitemap_button = Button(text='Sitemap', command=self.find_sitemap)
-        self.clear_button = Button(text="Clear", command=self.clear_all_textboxes)
+        self.open_link_button = Button(text='Open Link', command=self.open_start_urls_link)
+        self.open_domain_button = Button(text='Open Domain', command=self.open_domain)
+        self.clear_button = Button(text="Clear All", command=self.clear_all_textboxes)
         self.generate_button = Button(text="Generate JSON!", command=self.generate, master=self)
 
         # Second View
@@ -283,12 +285,11 @@ class MainApplication(tk.Tk):
         self.first_grid_element_container = [
             (self.kraken_id_textbox, "kraken_link", self.kraken_id_label, self.kraken_id_load_button, self.kraken_id_clipboard_button,
              self.open_source_button, self.load_from_db_button, self.open_items_button),
-            (self.existing_code_textbox, "existing_code", self.existing_code_label, self.code_copy_button, self.source_name_button,
-             self.load_from_existing_button),
+            (self.existing_code_textbox, "existing_code", self.existing_code_label, self.code_copy_button, self.load_from_existing_button),
             (self.start_urls_textbox, "start_urls", self.start_urls_label, self.copy_start_button, self.open_link_button, self.open_domain_button,
-             self.sitemap_button),
+             self.source_name_button, self.source_domain_button),
             (self.menu_textbox, "menu_xpath", self.menu_label, self.copy_menu_button, self.menu_default_button, self.menu_category_button),
-            (self.articles_textbox, "articles_xpath", self.articles_label, self.copy_articles_button, self.article_category_button),
+            (self.articles_textbox, "articles_xpath", self.articles_label, self.copy_articles_button, self.article_title_button, self.article_category_button),
             (self.title_textbox, "title_xpath", self.title_label, self.copy_title_button, self.title_button_brackets),
             (self.pubdate_textbox, "pubdate_xpath", self.pubdate_label, self.copy_pubdate_button, self.meta_button, self.regex_dmy_button,
              self.regex_ymd_button, self.pubdate_button_brackets),
@@ -339,11 +340,17 @@ class MainApplication(tk.Tk):
 
         self.kraken_id = ""
 
-        # self.stats()
+        self.stats()
         self.cur.execute('''CREATE TABLE IF NOT EXISTS log
                        (id text, date text, start_urls text, menu_xpath text, articles_xpath text, title_xpath text, 
                        pubdate_xpath text, date_order text, author_xpath text, body_xpath text, settings text, 
                        full_json text, user text)''')
+        self.cur.execute('''CREATE TABLE IF NOT EXISTS menu_xpath(xpath text, count number)''')
+        self.cur.execute('''CREATE TABLE IF NOT EXISTS articles_xpath(xpath text, count number)''')
+        self.cur.execute('''CREATE TABLE IF NOT EXISTS title_xpath(xpath text, count number)''')
+        self.cur.execute('''CREATE TABLE IF NOT EXISTS pubdate_xpath(xpath text, count number)''')
+        self.cur.execute('''CREATE TABLE IF NOT EXISTS author_xpath(xpath text, count number)''')
+        self.cur.execute('''CREATE TABLE IF NOT EXISTS body_xpath(xpath text, count number)''')
 
         login_link = "https://dashbeta.aiidatapro.net/"
 
@@ -398,7 +405,7 @@ class MainApplication(tk.Tk):
         self.generate_button.grid(row=row, column=1, sticky='W', ipadx=0, ipady=0, pady=(5, 2), padx=(20, 2))
         self.clear_button.grid(row=row, column=2, sticky="E", ipadx=0, ipady=0, pady=2, padx=2)
 
-        row=  1
+        row = 1
         self.article_url_label.grid(row=row, column=1, sticky='W', padx=(50, 2), pady=2)
         self.article_url_textbox.grid(row=row, column=2, sticky='W', padx=2, pady=2)
         self.find_menu_articles_button.grid(row=row, column=3, sticky='W', padx=2, pady=2)
@@ -561,7 +568,7 @@ class MainApplication(tk.Tk):
         if domain and domain[-1] == '/':
             domain = domain[:-1]
         try:
-            name = domain.split('//')[1].split('/')[0]
+            name = domain.split('//')[1].split('/')[0].replace('www.', '')
         except IndexError:
             return
         if name:
@@ -603,12 +610,15 @@ class MainApplication(tk.Tk):
                 link = link if link.endswith('/') else link + '/'
                 webbrowser.get("chrome").open(link)
 
-    def get_domain(self):
+    def get_domain(self, copy=False):
         link = self.start_urls_textbox.get("1.0", tk.END).strip()
         if not link.startswith('http'):
             link = 'http://' + link
         domain = "/".join(link.split('/')[:3]) + '/'
-        return domain
+        if copy:
+            pyperclip.copy(domain)
+        else:
+            return domain
 
     def find_sitemap(self):
         xpath = "(//*[contains(@href, 'site')][contains(@href, 'map')] | //*[contains(@href, 'map')][contains(@href, 'web')])[1]/@href"
@@ -813,58 +823,24 @@ class MainApplication(tk.Tk):
 
     def fill_found_textboxes(self, tree, column, index_of_container):
 
-        default_menu_xpath = ["//div[@id='td-header-menu']//a", "//ul[@id='menu-glavni-meni']//a", "//ul[@class='menu']//a",
-                              "//ul[@id='menu-td-demo-header-menu-1']//a", "//ul[contains(@id, 'menu')]", "//ul[@id='nav']//a", "//nav//a", "//nav//ul//a"]
-        default_articles_xpath = ["//h2/a", "//h3/a", "//a[.//h2]", "//h4/a", "//article/a", "//a[.//h3]", "//*[contains(@class, 'entry-title')]/a", "//h1/a",
-                                  "//div[@class='td-module-thumb']/a", "//a[@class='title']", "//a[.//h4]", "//span[@class='field-content']/a",
-                                  "//*[contains(@id, 'recent-posts')]//a"]
-        default_title_xpath = ["//h1", "//h1[@class='entry-title']", "(//h1)[1]", "//h1[contains(@class, 'title')]", "//h2[@class='itemTitle']",
-                               "//h1[@itemprop='headline']", "//header/h1", "(//h2)[1]", "//div[@class='blogpost-heading']//h1", "//h3[@itemprop='name']",
-                               "//article/h1"]
-        default_pubdate_xpath = ["(//meta[@*='article:published_time'])[1]/@content", "//meta[@property='og:updated_time']/@content",
-                                 "//meta[@itemprop='datePublished']/@content", "//time/@datetime", "(//time/@datetime)[1]", "//span[@class='date']",
-                                 "//*[child::text()[contains(.,'202')]]"]
-        default_author_xpath = ["//meta[@name='author']/@content", "//a[@rel='author']", "(//a[@rel='author'])[1]", "//span[@class='fn']/a",
-                                "(//span[@class='fn']/a)[1]", "//meta[contains(@*,'uthor')]/@content", "//div[@class='td-post-author-name']/a",
-                                "//meta[@name='twitter:data1']/@content", "(//a[@class='url fn n'])[1]", "//a[@class='tdb-author-name']",
-                                "//a[@class='article-published-author']", "//*[child::text()[contains(.,'Author')]]", "//*[child::text()[contains(.,'Autor')]]"]
-        default_body_xpath = ["//div[contains(@class, 'td-post-content')]", "//div[@itemprop='articleBody']",
-                              "//div[contains(@class, 'entry-content')]", "//div[contains(@class, 'post-content')]", "//div[@class='entry']",
-                              "//div[@class='itemFullText']", "//div[@class='shortcode-content']"]
-
-        xpath_list = []
         if column == 'menu_xpath':
-            self.cur.execute("SELECT menu_xpath, count(menu_xpath) FROM log GROUP BY menu_xpath ORDER BY count(menu_xpath) DESC")
-            xpath_list.extend(default_menu_xpath)
+            self.cur.execute("SELECT xpath, count FROM menu_xpath ORDER BY count DESC")
         elif column == 'articles_xpath':
-            self.cur.execute("SELECT articles_xpath, count(articles_xpath) FROM log GROUP BY articles_xpath ORDER BY count(articles_xpath) DESC")
-            xpath_list.extend(default_articles_xpath)
+            self.cur.execute("SELECT xpath FROM articles_xpath ORDER BY count DESC")
         elif column == 'title_xpath':
-            self.cur.execute("SELECT title_xpath, count(title_xpath) FROM log GROUP BY title_xpath ORDER BY count(title_xpath) DESC")
-            xpath_list.extend(default_title_xpath)
+            self.cur.execute("SELECT xpath FROM title_xpath ORDER BY count DESC")
         elif column == 'pubdate_xpath':
-            self.cur.execute("SELECT pubdate_xpath, count(pubdate_xpath) FROM log GROUP BY pubdate_xpath ORDER BY count(pubdate_xpath) DESC")
-            xpath_list.extend(default_pubdate_xpath)
+            self.cur.execute("SELECT xpath FROM pubdate_xpath ORDER BY count DESC")
         elif column == 'author_xpath':
-            self.cur.execute("SELECT author_xpath, count(author_xpath) FROM log GROUP BY author_xpath ORDER BY count(author_xpath) DESC")
-            xpath_list.extend(default_author_xpath)
+            self.cur.execute("SELECT xpath FROM author_xpath ORDER BY count DESC")
         elif column == 'body_xpath':
-            self.cur.execute("SELECT body_xpath, count(body_xpath) FROM log GROUP BY body_xpath ORDER BY count(body_xpath) DESC")
-            xpath_list.extend(default_body_xpath)
+            self.cur.execute("SELECT xpath FROM body_xpath ORDER BY count DESC")
         element = self.second_grid_elements_container[index_of_container]
-        query_results = self.cur.fetchall()
+        xpath_list = self.cur.fetchall()
+        xpath_list = [x[0] for x in xpath_list]
 
-        for result in query_results:
-            xpath = result[0].split('|')
-            xpath = [x.strip() for x in xpath if 'substring' not in x and not x.startswith('re') and 're:' not in x and '//' in x]
-            if column == 'body_xpath':
-                xpath = [x.split('/node()')[0] for x in xpath]
-                xpath = [x for x in xpath if '//node()' not in x and '/text()' not in x and ']//p' not in x and "'row'" not in x and not x.endswith('/p')]
-            for entry in xpath:
-                if entry not in xpath_list:
-                    xpath_list.append(entry)
         final_result = []
-
+        number_of_textboxes = 4
         for xpath in xpath_list:
             xpath_to_use = xpath if '@content' in xpath or '@datetime' in xpath or '/text()' in xpath else xpath + '//text()'
             try:
@@ -872,15 +848,20 @@ class MainApplication(tk.Tk):
                 text_results = tree.xpath(xpath_to_use)
             except Exception:
                 continue
-            if text_results:
-                try:
+
+            try:
+                if number_of_results:
                     dict_to_append = {'xpath': xpath, 'result': f"({number_of_results}) - "
                                                                 f"{','.join(x.strip() for x in text_results if isinstance(x, str) and x.strip())}"}
                     if dict_to_append['result'] not in [x['result'] for x in final_result]:
                         final_result.append(dict_to_append)
-                except Exception:
-                    continue
-        for i, entry in enumerate(final_result[:4]):
+                        if len(final_result) == number_of_textboxes:
+                            break
+            except Exception:
+                continue
+
+        # final_result = sorted(final_result, key=lambda d: d['result'])
+        for i, entry in enumerate(final_result):
             element[i * 3 + 1].delete('1.0', tk.END)
             element[i * 3 + 1].insert('1.0', entry['xpath'])
             element[i * 3 + 3].delete('1.0', tk.END)
@@ -939,7 +920,6 @@ class MainApplication(tk.Tk):
         self.con.close()
 
     def toggle_view(self):
-        row = 1
         if self.generate_button.winfo_ismapped():
             # Forget First View
             for element in self.first_grid_element_container:
@@ -975,6 +955,7 @@ class MainApplication(tk.Tk):
                         widget.grid()
             self.generate_button.grid()
             self.clear_button.grid()
+
     @staticmethod
     def pack_entries(entry_tuple, curr_row):
         entry_tuple[2].grid(row=curr_row, column=1, sticky='W', pady=2, padx=(20, 2))
@@ -993,36 +974,72 @@ class MainApplication(tk.Tk):
             string_list.append(str(element))
         return ', '.join(string_list)
 
-    def write_to_txt(self, column):
-        if column == 'menu_xpath':
-            self.cur.execute("SELECT menu_xpath, count(menu_xpath) FROM log GROUP BY menu_xpath ORDER BY count(menu_xpath) DESC LIMIT 50")
-        elif column == 'articles_xpath':
-            self.cur.execute("SELECT articles_xpath, count(articles_xpath) FROM log GROUP BY articles_xpath ORDER BY count(articles_xpath) DESC LIMIT 50")
-        elif column == 'title_xpath':
-            self.cur.execute("SELECT title_xpath, count(title_xpath) FROM log GROUP BY title_xpath ORDER BY count(title_xpath) DESC LIMIT 50")
-        elif column == 'pubdate_xpath':
-            self.cur.execute("SELECT pubdate_xpath, count(pubdate_xpath) FROM log GROUP BY pubdate_xpath ORDER BY count(pubdate_xpath) DESC LIMIT 50")
-        elif column == 'author_xpath':
-            self.cur.execute("SELECT author_xpath, count(author_xpath) FROM log GROUP BY author_xpath ORDER BY count(author_xpath) DESC LIMIT 50")
-        elif column == 'body_xpath':
-            self.cur.execute("SELECT body_xpath, count(body_xpath) FROM log GROUP BY body_xpath ORDER BY count(body_xpath) DESC LIMIT 50")
-        elif column == 'settings':
-            self.cur.execute("SELECT settings, count(settings) FROM log GROUP BY settings ORDER BY count(settings) DESC LIMIT 50")
-        with open('stats.txt', 'a') as file:
-            results = self.cur.fetchall()
-            results = list(map(self.join_tuple_string, results))
-            file.write(f"{column}:\n")
-            file.writelines(line + '\n' for line in results)
-            file.write('\n')
-            file.close()
-
     def stats(self):
-        with open('stats.txt', 'w') as f:
-            f.close()
+        def create_dict(db_results, body_xpath=False):
+            db_results = [x[0] for x in db_results if x[0]]
+            updated_list = []
+            all_contains = ['substring', 're.', 're:']
+            body_contains = ['//node()', '/text()', ']//p', "'row'", "//div[contains(@class, 'content')]", '::img']
+            body_matches = ['//article', '//main', '//figure', "", '//figure/img']
 
-        columns = ['menu_xpath', 'articles_xpath', 'title_xpath', 'pubdate_xpath', 'author_xpath', 'body_xpath', 'settings']
-        for col in columns:
-            self.write_to_txt(col)
+            for xpath in db_results:
+                split_xpath_list = xpath.split('|')
+                for updated_xpath in split_xpath_list:
+                    if not any(s in updated_xpath for s in all_contains):
+                        if body_xpath:
+                            if updated_xpath.endswith('/p'):
+                                updated_xpath = updated_xpath[:-2]
+                            if '/node()' in updated_xpath:
+                                updated_xpath = updated_xpath.split('/node()')[0]
+                            if not any(s in updated_xpath for s in body_contains) and not any(updated_xpath == s for s in body_matches):
+                                updated_list.append(updated_xpath.strip())
+                        else:
+                            updated_list.append(updated_xpath.strip())
+
+            created_dict = dict()
+            for i in updated_list:
+                created_dict[i] = created_dict.get(i, 0) + 1
+
+            return sorted(created_dict.items(), key=lambda d: d[1], reverse=True)
+
+        self.cur.execute("DELETE FROM menu_xpath")
+        self.cur.execute("DELETE FROM articles_xpath")
+        self.cur.execute("DELETE FROM title_xpath")
+        self.cur.execute("DELETE FROM pubdate_xpath")
+        self.cur.execute("DELETE FROM author_xpath")
+        self.cur.execute("DELETE FROM body_xpath")
+
+        self.cur.execute("SELECT menu_xpath FROM log")
+        results = create_dict(self.cur.fetchall())
+        for entry in results:
+            self.cur.execute("INSERT INTO menu_xpath VALUES (?, ?)", (entry[0], entry[1]))
+
+        self.cur.execute("SELECT articles_xpath FROM log")
+        results = create_dict(self.cur.fetchall())
+        for entry in results:
+            self.cur.execute("INSERT INTO articles_xpath VALUES (?, ?)", (entry[0], entry[1]))
+
+        self.cur.execute("SELECT title_xpath FROM log")
+        results = create_dict(self.cur.fetchall())
+        for entry in results:
+            self.cur.execute("INSERT INTO title_xpath VALUES (?, ?)", (entry[0], entry[1]))
+
+        self.cur.execute("SELECT pubdate_xpath FROM log")
+        results = create_dict(self.cur.fetchall())
+        for entry in results:
+            self.cur.execute("INSERT INTO pubdate_xpath VALUES (?, ?)", (entry[0], entry[1]))
+
+        self.cur.execute("SELECT author_xpath FROM log")
+        results = create_dict(self.cur.fetchall())
+        for entry in results:
+            self.cur.execute("INSERT INTO author_xpath VALUES (?, ?)", (entry[0], entry[1]))
+
+        self.cur.execute("SELECT body_xpath FROM log")
+        results = create_dict(self.cur.fetchall(), body_xpath=True)
+        for entry in results:
+            self.cur.execute("INSERT INTO body_xpath VALUES (?, ?)", (entry[0], entry[1]))
+
+        self.con.commit()
 
 
 if __name__ == '__main__':
