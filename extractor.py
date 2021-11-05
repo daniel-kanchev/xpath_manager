@@ -17,6 +17,7 @@ from datetime import datetime
 import atexit
 import config
 from tkinter.ttk import *
+import sys
 
 
 class MainApplication(tk.Tk):
@@ -294,7 +295,7 @@ class MainApplication(tk.Tk):
              self.source_name_button, self.source_domain_button),
             (self.menu_textbox, "menu_xpath", self.menu_label, self.copy_menu_button, self.menu_default_button, self.menu_category_button),
             (self.articles_textbox, "articles_xpath", self.articles_label, self.copy_articles_button, self.article_title_button, self.article_category_button),
-            (self.title_textbox, "title_xpath", self.title_label, self.copy_title_button, self.title_button_brackets),
+            (self.title_textbox, "title_xpath", self.title_label, self.copy_title_button, self.title_h1_button, self.title_button_brackets),
             (self.pubdate_textbox, "pubdate_xpath", self.pubdate_label, self.copy_pubdate_button, self.meta_button, self.regex_dmy_button,
              self.regex_ymd_button, self.pubdate_button_brackets),
             (self.date_order_textbox, "date_order", self.date_order_label, self.date_order_DMY, self.date_order_YMD, self.date_order_MDY),
@@ -348,7 +349,8 @@ class MainApplication(tk.Tk):
 
         self.create_tables(con)
 
-        if shared_connection:
+        if shared_connection and len(sys.argv) > 1 and list(sys.argv)[1] == 'sync':
+            print("Syncing..")
             synced_entries = 0
             cur = con.cursor()
             local_con = sqlite3.connect(self.local_db_path)
@@ -673,7 +675,7 @@ class MainApplication(tk.Tk):
         xpath = "(//*[contains(@href, 'site')][contains(@href, 'map')] | //*[contains(@href, 'map')][contains(@href, 'web')])[1]/@href"
         domain = self.get_domain()
         try:
-            sitemap_response = requests.get(domain, headers=self.headers)
+            sitemap_response = requests.get(domain, headers=self.headers, verify=False)
             tree = html.fromstring(sitemap_response.text)
             sitemap = tree.xpath(xpath)
             if sitemap:
@@ -698,7 +700,7 @@ class MainApplication(tk.Tk):
         try:
             self.find_sitemap()
             webbrowser.get("chrome").open(domain)
-            req = self.session.get(domain)
+            req = requests.get(domain, headers=self.headers, verify=False)
             new_url = req.url
             if new_url[-1] != '/':
                 new_url += '/'
@@ -919,7 +921,7 @@ class MainApplication(tk.Tk):
                 if isinstance(widget, tk.Text):
                     widget.delete('1.0', tk.END)
         article_url = self.article_url_textbox.get("1.0", tk.END).strip()
-        website_response = requests.get(article_url, headers=self.headers)
+        website_response = requests.get(article_url, headers=self.headers, verify=False)
         tree = html.fromstring(website_response.text)
         self.fill_found_textboxes(tree, 'title_xpath', 2)
         self.fill_found_textboxes(tree, 'pubdate_xpath', 3)
@@ -932,7 +934,7 @@ class MainApplication(tk.Tk):
                 if isinstance(widget, tk.Text):
                     widget.delete('1.0', tk.END)
         article_url = self.article_url_textbox.get("1.0", tk.END).strip()
-        website_response = requests.get(article_url, headers=self.headers)
+        website_response = requests.get(article_url, headers=self.headers, verify=False)
         tree = html.fromstring(website_response.text)
         self.fill_found_textboxes(tree, 'menu_xpath', 0)
         self.fill_found_textboxes(tree, 'articles_xpath', 1)
@@ -1015,20 +1017,22 @@ class MainApplication(tk.Tk):
             db_results = [x[0] for x in db_results if x[0]]
             updated_list = []
             all_contains = ['substring', 're.', 're:']
-            body_contains = ['//node()', '/text()', ']//p', "'row'", "//div[contains(@class, 'content')]", '::img']
-            body_matches = ['//article', '//main', '//figure', "", '//figure/img']
+            body_contains = ['//node()', '/text()', ']//p', "'row'", "//div[contains(@class,'content')", '::img', '//article', '//figure/', '//main',
+                             '//figcaption', "//div[contains(@class,'-content')]", '//section/']
 
             for xpath in db_results:
                 split_xpath_list = xpath.split('|')
                 for updated_xpath in split_xpath_list:
                     updated_xpath = updated_xpath.replace(' ', '')
+                    if updated_xpath.endswith('/'):
+                        updated_xpath = updated_xpath[:-1]
                     if not any(s in updated_xpath for s in all_contains):
                         if body_xpath:
                             if updated_xpath.endswith('/p'):
                                 updated_xpath = updated_xpath[:-2]
                             if '/node()' in updated_xpath:
                                 updated_xpath = updated_xpath.split('/node()')[0]
-                            if not any(s in updated_xpath for s in body_contains) and not any(updated_xpath == s for s in body_matches):
+                            if not any(s in updated_xpath for s in body_contains):
                                 updated_list.append(updated_xpath.strip())
                         else:
                             updated_list.append(updated_xpath.strip())
@@ -1089,4 +1093,3 @@ class MainApplication(tk.Tk):
 if __name__ == '__main__':
     app = MainApplication()
     app.mainloop()
-
