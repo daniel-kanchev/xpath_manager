@@ -698,12 +698,13 @@ class MainApplication(tk.Tk):
             print("Invalid URL")
             return
         try:
-            self.find_sitemap()
+
             webbrowser.get("chrome").open(domain)
             req = requests.get(domain, headers=self.headers, verify=False)
             new_url = req.url
             if new_url[-1] != '/':
                 new_url += '/'
+            self.find_sitemap()
             self.replace_textbox_value(self.start_urls_textbox, new_url)
         except Exception:
             print(f"Domain could not load - {domain}")
