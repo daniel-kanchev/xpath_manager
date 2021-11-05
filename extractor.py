@@ -179,7 +179,7 @@ class MainApplication(tk.Tk):
         self.source_domain_button = Button(text="Copy Domain", command=lambda: self.get_domain(copy=True))
         self.load_from_existing_button = Button(text="Load", command=lambda: self.generate(load_from_existing_bool=True))
         self.title_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.title_textbox, before_value='(', after_value=')[1]'))
-        self.title_h1_button = Button(text="h1", command=lambda: self.replace_textbox_value(self.menu_textbox, "//h1[contains(@class,'title')]"))
+        self.title_h1_button = Button(text="h1", command=lambda: self.replace_textbox_value(self.title_textbox, "//h1[contains(@class,'title')]"))
         self.pubdate_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value='(',
                                                                                                      after_value=')[1]'))
         self.author_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.author_textbox, before_value='(', after_value=')[1]'))
