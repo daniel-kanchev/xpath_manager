@@ -458,7 +458,10 @@ class MainApplication(tk.Tk):
         width = 960
         height = 1080
         width_screen = self.winfo_screenwidth()
-        starting_width = width_screen - width - 6
+        if config.side_of_window == "r":
+            starting_width = width_screen - width - 6
+        else:
+            starting_width = 0
         starting_height = 0
         self.geometry('%dx%d+%d+%d' % (width, height, starting_width, starting_height))
         self.bind_all("<Key>", self.on_key_release, "+")
@@ -498,25 +501,34 @@ class MainApplication(tk.Tk):
         if value_to_copy:
             pyperclip.copy(value_to_copy)
 
-    def set_kraken_id(self, kraken_id=""):
+    def set_kraken_id(self, kraken_id="", unset=False):
         if kraken_id:
             self.kraken_id = kraken_id
             self.title(f"{kraken_id} - {self.window_title}")
-        else:
+        elif unset:
             self.kraken_id = ""
             self.title(self.window_title)
+        else:
+            if self.kraken_id_textbox.get('1.0', tk.END).strip():
+                try:
+                    self.kraken_id = re.findall(r'\d+', self.kraken_id_textbox.get('1.0', tk.END).strip())[-1]
+                except IndexError:
+                    print("No ID found")
+                    return
+                print(self.kraken_id)
+                self.title(f"{self.kraken_id} - {self.window_title}")
+            else:
+                self.kraken_id = ""
+                self.title(self.window_title)
 
-    def get_link(self, link):
+    def get_link(self):
         """
         Function to correctly format the Kraken link by searching for the ID in the URL
-        :param link: Kraken link / ID
         :return: The correctly formatted link
         """
-        kraken_id = re.search(r'\d+', link)
-        if kraken_id:
-            kraken_id = kraken_id.group()
-            self.set_kraken_id(kraken_id)
-            link = f"http://kraken.aiidatapro.net/items/edit/{kraken_id}/"
+        self.set_kraken_id()
+        if self.kraken_id:
+            link = f"http://kraken.aiidatapro.net/items/edit/{self.kraken_id}/"
             return link
         else:
             return ""
@@ -529,8 +541,9 @@ class MainApplication(tk.Tk):
         :return:
         """
         self.clear_all_textboxes()
-
-        link = self.get_link(link)  # Format link
+        self.kraken_id_textbox.delete('1.0', tk.END)
+        self.kraken_id_textbox.insert('1.0', link)
+        link = self.get_link()  # Format link
         if not link:
             print("No ID found")
             return
@@ -609,7 +622,7 @@ class MainApplication(tk.Tk):
     def open_items_page(self):
         # Function to open the "View Item" page of the source in Kraken
         if self.kraken_id_textbox.get('1.0', tk.END).strip():
-            link = self.get_link(self.kraken_id_textbox.get('1.0', tk.END).strip()).replace('/edit', '')
+            link = self.get_link().replace('/edit', '')
             webbrowser.get("chrome").open(link)
         else:
             return
@@ -711,7 +724,7 @@ class MainApplication(tk.Tk):
             return
 
     def clear_all_textboxes(self):
-        self.set_kraken_id()
+        self.set_kraken_id(unset=True)
         for textbox in self.all_textboxes:
             textbox.delete("1.0", tk.END)
 
@@ -777,10 +790,14 @@ class MainApplication(tk.Tk):
         return final_text
 
     def log_code(self, json_dict):
-        if not self.kraken_id:
-            print('No ID found in Kraken ID Textbox, logging skipped')
+        if self.kraken_id:
+            self.log_to_db(json_dict)
+        elif self.kraken_id_textbox.get('1.0', tk.END).strip():
+            self.set_kraken_id()
+            self.log_to_db(json_dict)
+        else:
+            print("No ID found, logging skipped")
             return
-        self.log_to_db(json_dict)
 
     def log_to_db(self, json_var):
         con = self.initiate_connection()
@@ -801,12 +818,14 @@ class MainApplication(tk.Tk):
 
         cur.execute("SELECT id FROM log WHERE id=?", (self.kraken_id,))
         if len(cur.fetchall()):
+            print(f"Updated Source {self.kraken_id}")
             cur.execute(
                 "UPDATE log SET date=?, start_urls=?, menu_xpath=?, articles_xpath=?, title_xpath=?, pubdate_xpath=?, date_order=?, author_xpath=?, "
                 "body_xpath=?, settings=?, full_json=?, user=? WHERE id=?",
                 (current_time, start_urls, menu_xpath, articles_xpath, title_xpath, pubdate_xpath, date_order, author_xpath, body_xpath,
                  str(json_var['scrapy_settings']), str(json_var), user, self.kraken_id))
         else:
+            print(f"Adding Source {self.kraken_id}")
             cur.execute("INSERT INTO log VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (self.kraken_id, current_time, start_urls, menu_xpath, articles_xpath, title_xpath, pubdate_xpath, date_order, author_xpath,
                          body_xpath,
@@ -837,8 +856,7 @@ class MainApplication(tk.Tk):
             for tup in self.first_grid_element_container[2:]:
                 self.edit_textbox(tup[0], tup[1], json_variable)
 
-            if self.kraken_id:
-                self.log_code(json_variable)
+            self.log_code(json_variable)
 
         elif self.not_empty():
             json_variable = {
@@ -859,8 +877,7 @@ class MainApplication(tk.Tk):
             json_variable = self.default_changes(json_variable)
             final_json = self.fill_code_textbox(json_variable)
             pyperclip.copy(final_json)
-            if self.kraken_id_textbox.get('1.0', tk.END).strip():
-                self.log_code(json_variable)
+            self.log_code(json_variable)
         else:
             return
 

@@ -14,7 +14,8 @@ with open('config.py', 'r') as file:
     data = file.readlines()
     for i, line in enumerate(data):
         if 'last_change' in data[i]:
-            data[i] = f"last_change = '{datetime.now().strftime('%d-%b-%Y %H:%M')}'"
-
+            data[i] = f"last_change = '{datetime.now().strftime('%d-%b-%Y %H:%M')}'\n"
+        elif 'side_of_window' in data[i]:
+            data[i] = f"side_of_window = 'l'\n"
 with open('config.py', 'w') as file:
     file.writelines(data)
