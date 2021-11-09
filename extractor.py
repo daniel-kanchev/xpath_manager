@@ -18,6 +18,7 @@ import atexit
 import config
 from tkinter.ttk import *
 import sys
+import urllib3
 
 
 class MainApplication(tk.Tk):
@@ -409,6 +410,7 @@ class MainApplication(tk.Tk):
 
         chrome_path = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
         webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         # Style all buttons
         style = Style()
@@ -693,7 +695,7 @@ class MainApplication(tk.Tk):
             sitemap = tree.xpath(xpath)
             if sitemap:
                 sitemap_link = sitemap[0]
-                if domain not in sitemap[0]:
+                if 'http' not in sitemap[0]:
                     sitemap_link = domain[:-1] + sitemap[0]
                 webbrowser.get("chrome").open(sitemap_link)
                 print(f"Sitemap - {sitemap_link}")
