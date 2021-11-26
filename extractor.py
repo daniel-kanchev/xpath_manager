@@ -66,8 +66,9 @@ class MainApplication(tk.Tk):
         self.body_frame = MyFrame(master=self, view='extractor')
         self.body_buttons_frame = MyFrame(self.body_frame, view='extractor')
         self.bottom_buttons_frame = MyFrame(master=self, view='extractor')
-        self.testing_frame = MyFrame(master=self, view='extractor')
         self.bottom_info_frame = MyFrame(master=self, view='extractor')
+        self.testing_frame = MyFrame(master=self, view='extractor')
+        self.testing_textbox_frame = MyFrame(master=self.testing_frame, view='extractor')
 
         # Extractor Labels
         self.kraken_id_label = MyLabel(master=self.kraken_frame, view='extractor', text="Kraken Link/ID:")
@@ -82,8 +83,8 @@ class MainApplication(tk.Tk):
         self.testing_label = MyLabel(master=self.testing_frame, view='extractor', text="Test XPath Here:")
         self.testing_result_label = MyLabel(master=self.testing_frame, view='extractor', text="")
         self.date_order_label = MyLabel(master=self.json_buttons_frame, view='extractor', text="")
-        self.last_extractor_edit_label = MyLabel(master=self.bottom_info_frame, view='extractor', text="")
-        self.last_kraken_edit_label = MyLabel(master=self.bottom_info_frame, view='extractor', text="")
+        self.last_extractor_edit_label = MyLabel(master=self.bottom_info_frame, view='extractor', text="xd")
+        self.last_kraken_edit_label = MyLabel(master=self.bottom_info_frame, view='extractor', text="memes")
 
         # # Finder Labels
         # self.article_url_label = MyLabel(text="URL:")
@@ -103,8 +104,8 @@ class MainApplication(tk.Tk):
         self.pubdate_textbox = MyText(master=self.pubdate_frame, view='extractor', height=3, width=60)
         self.author_textbox = MyText(master=self.author_frame, view='extractor', height=2, width=60)
         self.body_textbox = MyText(master=self.body_frame, view='extractor', height=3, width=60)
-        self.testing_xpath_textbox = MyText(master=self.testing_frame, view='extractor', height=2, width=50)
-        self.testing_article_textbox = MyText(master=self.testing_frame, view='extractor', height=2, width=50)
+        self.testing_xpath_textbox = MyText(master=self.testing_textbox_frame, view='extractor', height=1, width=50)
+        self.testing_article_textbox = MyText(master=self.testing_textbox_frame, view='extractor', height=1, width=50)
         self.kraken_textbox = MyText(master=self.kraken_frame, view='extractor', height=1, width=60)
         self.xpath_dict = {
             "start_urls": self.start_urls_textbox,
@@ -178,16 +179,11 @@ class MainApplication(tk.Tk):
         # self.body_xpath_result_textbox_3 = MyText(height=1, width=40)
         # self.body_xpath_result_textbox_4 = MyText(height=1, width=40)
 
-        for widget in self.winfo_children():
-            if isinstance(widget, MyText):
-                widget['undo'] = True
-                widget['bg'] = 'white'
-                widget['font'] = self.text_font
-
         # View Menu MyButtons
         self.open_extractor_button = MyButton(master=self.view_menu_frame, view='extractor', text="Extractor",
                                               command=lambda: self.switch_view(view_to_open='extractor'))
-        self.open_finder_button = MyButton(master=self.view_menu_frame, view='extractor', text="Finder", command=lambda: self.switch_view(view_to_open='finder'))
+        self.open_finder_button = MyButton(master=self.view_menu_frame, view='extractor', text="Finder",
+                                           command=lambda: self.switch_view(view_to_open='finder'))
 
         # Kraken MyButtons
         self.kraken_load_button = MyButton(master=self.kraken_frame, view='extractor', text="Load",
@@ -203,9 +199,10 @@ class MainApplication(tk.Tk):
         self.code_copy_button = MyButton(master=self.json_buttons_frame, view='extractor', text="Copy", command=lambda: self.copy_code(self.json_textbox))
         self.load_from_existing_button = MyButton(master=self.json_buttons_frame, view='extractor', text="Load",
                                                   command=lambda: self.generate(load_from_existing_bool=True))
-        self.add_proxy_button = MyButton(master=self.json_buttons_frame, view='extractor', text="Proxy", command=lambda: self.edit_json(initial_key="scrapy_settings",
-                                                                                                                                 keyword="HTTP_PROXY",
-                                                                                                                                 value=config.proxy))
+        self.add_proxy_button = MyButton(master=self.json_buttons_frame, view='extractor', text="Proxy",
+                                         command=lambda: self.edit_json(initial_key="scrapy_settings",
+                                                                        keyword="HTTP_PROXY",
+                                                                        value=config.proxy))
         self.allowed_domains_button = MyButton(master=self.json_buttons_frame, view='extractor', text="Allowed Domains",
                                                command=lambda: self.edit_json(initial_key="scrapy_arguments",
                                                                               keyword="allowed_domains",
@@ -220,15 +217,18 @@ class MainApplication(tk.Tk):
                                                                            keyword='article_wait',
                                                                            value=2))
         # Date Order MyButtons
-        self.date_order_DMY = MyButton(master=self.json_buttons_frame, view='extractor', text="DMY", command=lambda: self.edit_json(initial_key="scrapy_arguments",
-                                                                                                                             keyword='date_order',
-                                                                                                                             value='DMY'))
-        self.date_order_YMD = MyButton(master=self.json_buttons_frame, view='extractor', text="YMD", command=lambda: self.edit_json(initial_key="scrapy_arguments",
-                                                                                                                             keyword='date_order',
-                                                                                                                             value='YMD'))
-        self.date_order_MDY = MyButton(master=self.json_buttons_frame, view='extractor', text="MDY", command=lambda: self.edit_json(initial_key="scrapy_arguments",
-                                                                                                                             keyword='date_order',
-                                                                                                                             value='MDY'))
+        self.date_order_DMY = MyButton(master=self.json_buttons_frame, view='extractor', text="DMY",
+                                       command=lambda: self.edit_json(initial_key="scrapy_arguments",
+                                                                      keyword='date_order',
+                                                                      value='DMY'))
+        self.date_order_YMD = MyButton(master=self.json_buttons_frame, view='extractor', text="YMD",
+                                       command=lambda: self.edit_json(initial_key="scrapy_arguments",
+                                                                      keyword='date_order',
+                                                                      value='YMD'))
+        self.date_order_MDY = MyButton(master=self.json_buttons_frame, view='extractor', text="MDY",
+                                       command=lambda: self.edit_json(initial_key="scrapy_arguments",
+                                                                      keyword='date_order',
+                                                                      value='MDY'))
         # JSON Checkbuttons
         self.open_links_check_bool = tk.IntVar()
         self.open_links_check_bool.set(1)
@@ -264,7 +264,8 @@ class MainApplication(tk.Tk):
                                         command=lambda: self.replace_textbox_value(self.title_textbox, "//h1[contains(@class,'title')]"))
 
         # Pubdate Xpath MyButtons
-        self.copy_pubdate_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Copy", command=lambda: self.copy_code(self.pubdate_textbox))
+        self.copy_pubdate_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Copy",
+                                            command=lambda: self.copy_code(self.pubdate_textbox))
         self.pubdate_single_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="[1]",
                                               command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value='(',
                                                                                          after_value=')[1]'))
@@ -319,7 +320,7 @@ class MainApplication(tk.Tk):
         self.generate_button = MyButton(master=self.bottom_buttons_frame, view='extractor', text="Generate JSON!", command=self.generate)
 
         # Testing MyButton
-        self.test_xpath_button = MyButton(master=self.testing_frame, view='extractor', text='Test', command=self.test_xpath)
+        self.test_xpath_button = MyButton(master=self.testing_textbox_frame, view='extractor', text='Test', command=self.test_xpath)
 
         # # Second View
         # self.find_menu_articles_button = MyButton(text="Menu/Articles", command=self.find_menu_articles, master=self)
@@ -387,44 +388,44 @@ class MainApplication(tk.Tk):
         #                                                                                                        self.body_textbox))
 
         # Extractor Frame Lists
-        self.view_menu_frame_list = [[self.open_extractor_button, self.open_finder_button]]
-        self.kraken_frame_list = [[self.kraken_id_label],
-                                  [self.kraken_textbox, self.kraken_load_button, self.kraken_clipboard_button, self.open_source_button,
-                                   self.load_from_db_button, self.open_items_button]]
-        self.json_buttons_frame_list = [[self.code_copy_button, self.load_from_existing_button, self.add_proxy_button, self.allowed_domains_button],
-                                        [self.init_wait_button, self.article_wait_button],
-                                        [self.date_order_DMY, self.date_order_MDY, self.date_order_YMD, self.date_order_label]]
-        self.json_checkbutton_frame_list = [[self.open_source_checkbutton]]
-        self.json_combined_buttons_frame_list = [[self.json_buttons_frame],
-                                                 [self.json_checkbutton_frame]]
-        self.json_full_frame_list = [[self.json_label],
-                                     [self.json_textbox, self.json_combined_buttons_frame]]
-        self.start_urls_frame_list = [[self.start_urls_label],
-                                      [self.start_urls_textbox, self.copy_start_button, self.open_link_button, self.open_domain_button, self.source_name_button,
-                                       self.source_domain_button]]
-        self.menu_frame_list = [[self.menu_label],
-                                [self.menu_textbox, self.copy_menu_button, self.menu_category_button]]
-        self.articles_frame_list = [[self.articles_label],
-                                    [self.articles_textbox, self.copy_articles_button, self.article_not_category_button, self.article_title_button]]
-        self.title_frame_list = [[self.title_label],
-                                 [self.title_textbox, self.copy_title_button, self.title_h1_button, self.title_single_button]]
-        self.pubdate_buttons_frame_list = [[self.copy_pubdate_button, self.meta_button, self.standard_regex_button, self.blank_regex_button,
-                                            self.pubdate_single_button],
-                                           [self.pubdate_replace_button]]
-        self.pubdate_frame_list = [[self.pubdate_label], [self.pubdate_textbox, self.pubdate_buttons_frame]]
-        self.author_frame_list = [[self.author_label],
-                                  [self.author_textbox, self.copy_author_button, self.author_meta_button, self.author_substring_button,
-                                   self.author_child_text_button, self.author_single_button]]
-        self.body_buttons_frame_list = [[self.copy_body_button, self.body_content_button, self.body_not_contains_class_button, self.body_not_contains_id_button,
-                                         self.body_not_contains_text_button],
-                                        [self.body_not_self_button, self.body_single_button]]
-        self.body_frame_list = [[self.body_label],
-                                [self.body_textbox, self.body_buttons_frame]]
-        self.bottom_buttons_frame_list = [[self.generate_button, self.clear_button]]
-        self.bottom_info_frame_list = [[self.last_kraken_edit_label], [self.last_kraken_edit_label]]
-        self.testing_frame_list = [[self.testing_label],
-                                   [self.testing_xpath_textbox, self.testing_article_textbox, self.test_xpath_button],
-                                   [self.testing_result_label]]
+        self.view_menu_frame.frame_list = [[self.open_extractor_button, self.open_finder_button]]
+        self.kraken_frame.frame_list = [[self.kraken_id_label],
+                                        [self.kraken_textbox, self.kraken_load_button, self.kraken_clipboard_button, self.open_source_button,
+                                         self.load_from_db_button, self.open_items_button]]
+        self.json_buttons_frame.frame_list = [[self.code_copy_button, self.load_from_existing_button, self.add_proxy_button, self.allowed_domains_button],
+                                              [self.init_wait_button, self.article_wait_button],
+                                              [self.date_order_DMY, self.date_order_MDY, self.date_order_YMD, self.date_order_label]]
+        self.json_checkbutton_frame.frame_list = [[self.open_source_checkbutton]]
+        self.json_combined_buttons_frame.frame_list = [[self.json_buttons_frame],
+                                                       [self.json_checkbutton_frame]]
+        self.json_full_frame.frame_list = [[self.json_label],
+                                           [self.json_textbox, self.json_combined_buttons_frame]]
+        self.start_urls_frame.frame_list = [[self.start_urls_label],
+                                            [self.start_urls_textbox, self.copy_start_button, self.open_link_button, self.open_domain_button,
+                                             self.source_name_button, self.source_domain_button]]
+        self.menu_frame.frame_list = [[self.menu_label],
+                                      [self.menu_textbox, self.copy_menu_button, self.menu_category_button]]
+        self.articles_frame.frame_list = [[self.articles_label],
+                                          [self.articles_textbox, self.copy_articles_button, self.article_not_category_button, self.article_title_button]]
+        self.title_frame.frame_list = [[self.title_label],
+                                       [self.title_textbox, self.copy_title_button, self.title_h1_button, self.title_single_button]]
+        self.pubdate_buttons_frame.frame_list = [[self.copy_pubdate_button, self.meta_button, self.standard_regex_button, self.blank_regex_button,
+                                                  self.pubdate_single_button],
+                                                 [self.pubdate_replace_button]]
+        self.pubdate_frame.frame_list = [[self.pubdate_label], [self.pubdate_textbox, self.pubdate_buttons_frame]]
+        self.author_frame.frame_list = [[self.author_label],
+                                        [self.author_textbox, self.copy_author_button, self.author_meta_button, self.author_substring_button,
+                                         self.author_child_text_button, self.author_single_button]]
+        self.body_buttons_frame.frame_list = [
+            [self.copy_body_button, self.body_content_button, self.body_not_contains_class_button, self.body_not_contains_id_button,
+             self.body_not_contains_text_button],
+            [self.body_not_self_button, self.body_single_button]]
+        self.body_frame.frame_list = [[self.body_label],
+                                      [self.body_textbox, self.body_buttons_frame]]
+        self.bottom_buttons_frame.frame_list = [[self.generate_button, self.clear_button]]
+        self.bottom_info_frame.frame_list = [[self.last_kraken_edit_label], [self.last_extractor_edit_label]]
+        self.testing_textbox_frame.frame_list = [[self.testing_xpath_textbox, self.testing_article_textbox, self.test_xpath_button]]
+        self.testing_frame.frame_list = [[self.testing_label], [self.testing_textbox_frame], [self.testing_result_label]]
 
         # self.second_grid_elements_container = [
         #     (self.menu_xpath_found_label, self.menu_xpath_found_textbox_1, self.menu_xpath_select_button_1, self.menu_xpath_result_textbox_1,
@@ -532,41 +533,28 @@ class MainApplication(tk.Tk):
         webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-        # Pack Frames
+        self.all_widgets = []
+        self.get_all_widgets(self)
 
-        # self.pack_frame(self.pubdate_buttons_frame_list)
-        # self.pack_frame(self.body_buttons_frame_list)
+        for widget in self.all_widgets:
+            if isinstance(widget, MyText):
+                widget['undo'] = True
+                widget['bg'] = 'white'
+                widget['font'] = self.text_font
 
-        main_frame_order = [self.view_menu_frame_list, self.json_full_frame_list, self.start_urls_frame_list, self.menu_frame_list, self.articles_frame_list,
-                            self.title_frame_list, self.pubdate_frame_list, self.author_frame_list, self.body_frame_list, self.bottom_buttons_frame_list,
-                            self.bottom_info_frame_list, self.testing_frame_list]
-
-        # row = 0
-        # col = 0
-        # for frame in main_frame_order:
-        #     for element_row in frame:
-        #         for element in element_row:
-        #             element.grid(row=row, column=col, sticky='W', padx=10, pady=10)
-        #             col += 1
-        #         row += 1
         row = 0
-        self.pack_frame(self.view_menu_frame_list)
-        self.view_menu_frame.grid(row=row, column=0, padx=5, pady=5)
+        for widget in self.all_widgets:
+            if isinstance(widget, MyFrame):
+                self.pack_frame(widget.frame_list)
+                if widget in self.winfo_children():
+                    widget.grid(row=row, column=0, sticky='W', padx=20, pady=0)
+                    row += 1
 
-        row += 1
-        self.pack_frame(self.json_buttons_frame_list)
-        self.pack_frame(self.json_checkbutton_frame_list)
-        self.pack_frame(self.json_combined_buttons_frame_list)
-        self.pack_frame(self.json_full_frame_list)
-        self.json_full_frame.grid(row=row, column=0, padx=5, pady=5)
-
-        row+=1
-        self.pack_frame(self.start_urls_frame_list)
-        self.start_urls_frame.grid(row=row, column=0, padx=5, pady=5)
-
-        row+=1
-        self.pack_frame(self.articles_frame_list)
-        self.articles_frame.grid(row=row, column=0, padx=5, pady=5)
+        # Forget unneeded elements at start
+        for widget in self.winfo_children():
+            if not hasattr(widget, 'view') or widget.view != 'extractor':
+                widget.grid_remove()
+                print(f"removed {widget}")
         # # Second View
         # row = 1
         # self.article_url_label.grid(row=row, column=1, sticky='W', padx=(50, 2), pady=2)
@@ -585,13 +573,6 @@ class MainApplication(tk.Tk):
         #         else:
         #             widget.grid(row=curr_row, column=curr_col, sticky='W', padx=2, pady=2)
         #     row += 5
-
-        # Forget Second View
-
-        for widget in self.winfo_children():
-            if not hasattr(widget, 'view') or widget.view != 'extractor':
-                widget.grid_remove()
-                print(f"removed {widget}")
 
         atexit.register(self.exit_handler)
         width = 960
@@ -639,13 +620,18 @@ class MainApplication(tk.Tk):
         self.tk.call('set', 'tcl_wordchars', '[a-zA-Z0-9_.,]')
         self.tk.call('set', 'tcl_nonwordchars', '[^a-zA-Z0-9_.,]')
 
+    def get_all_widgets(self, root):
+        for widget in root.winfo_children():
+            self.all_widgets.append(widget)
+            if widget.winfo_children():
+                self.get_all_widgets(widget)
+
     @staticmethod
     def pack_frame(elements, sticky='NW', padx=2, pady=2):
         row = 0
         col = 0
         for element_row in elements:
             for element in element_row:
-                print(f"packing {element}")
                 element.grid(row=row, column=col, sticky=sticky, padx=padx, pady=pady)
                 col += 1
             row += 1
@@ -878,7 +864,37 @@ class MainApplication(tk.Tk):
             textbox2.insert('1.0', value)
 
     def test_xpath(self):
-        pass
+
+        def look_for_regex(string):
+            regex_list = []
+            regex_exists = {'match_index': string.find(':match'), 'replace_index': string.find(':replace'),
+                            'before_index': string.find('substring-before'), 'after_index': string.find('substring-after')}
+            for key in list(regex_exists.keys()):
+                if regex_exists[key] == -1:
+                    del regex_exists[key]
+            regex_exists = dict(sorted(regex_exists.items(), key=lambda item: item[1]))
+            print(regex_exists)
+            for key in regex_exists.keys():
+                if key == 'match_index':
+                    match_search = re.match(r"re:match\((.+),\s*'(.+)',\s*'(.+)'", string)
+                    regex_list.append({'regex': match_search.group(2), 'command': 'match', 'scope': match_search.group(3)})
+                elif key == 'replace_index':
+                    replace_search = re.match(r"re:replace\((.+),\s*'(.+)',\s*'(.+)',\s*'(.+)'", string)
+                    regex_list.append({'command': 'replace', 'from': replace_search.group(2), 'to': replace_search.group(4)})
+            print(regex_list)
+
+        xpath = self.testing_xpath_textbox.get("1.0", tk.END).strip()
+        article = self.testing_article_textbox.get("1.0", tk.END).strip()
+        xpath = xpath if re.match(r'.+\/@', xpath) or re.match(r'.+\/text\(\)', xpath) else xpath + '//text()'
+        print(xpath)
+        look_for_regex(xpath)
+        website_response = requests.get(article, headers=self.headers, verify=False)
+        tree = html.fromstring(website_response.text)
+        result = tree.xpath(xpath)
+        if result:
+            self.testing_result_label['text'] = f"({len(result)}) - {','.join(result)}"
+        else:
+            self.testing_result_label['text'] = ""
 
     def open_start_urls_link(self):
         links = self.start_urls_textbox.get("1.0", tk.END).split(';')
@@ -1229,9 +1245,9 @@ class MainApplication(tk.Tk):
             return
         self.forget_current_view()
         if view_to_open == 'extractor':
-            self.open_new_view()
+            self.open_new_view('extractor')
         elif view_to_open == 'finder':
-            self.open_finder_view()
+            self.open_new_view('finder')
         self.current_view = view_to_open
 
     @staticmethod

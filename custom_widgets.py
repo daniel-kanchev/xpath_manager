@@ -10,28 +10,29 @@ class MyText(tk.Text):
 
 
 class MyLabel(Label):
-    def __init__(self, master, tags=None, view=None, *args, **kwargs):
+    def __init__(self, master, tags=None, view=None, **kwargs):
         Label.__init__(self, master, **kwargs)
         self.tags = tags
         self.view = view
 
 
 class MyButton(Button):
-    def __init__(self, master, tags=None, view=None, *args, **kwargs):
+    def __init__(self, master, tags=None, view=None, **kwargs):
         Button.__init__(self, master, **kwargs)
         self.tags = tags
         self.view = view
 
 
 class MyCheckbutton(Checkbutton):
-    def __init__(self, master, tags=None, view=None, *args, **kwargs):
+    def __init__(self, master, tags=None, view=None, **kwargs):
         Checkbutton.__init__(self, master, **kwargs)
         self.tags = tags
         self.view = view
 
 
 class MyFrame(Frame):
-    def __init__(self, master, tags=None, view=None, **kwargs):
+    def __init__(self, master, frame_list=None, tags=None, view=None, **kwargs):
         Frame.__init__(self, master, **kwargs)
         self.tags = tags
         self.view = view
+        self.frame_list = frame_list
