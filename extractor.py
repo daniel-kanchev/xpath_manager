@@ -19,6 +19,7 @@ import config
 from tkinter.ttk import *
 import sys
 import urllib3
+from custom_widgets import MyText, MyLabel, MyFrame, MyButton, MyCheckbutton
 
 
 class MainApplication(tk.Tk):
@@ -28,308 +29,428 @@ class MainApplication(tk.Tk):
         super().__init__()
         self.window_title = f"Xpath Extractor ({config.last_change})"
         self.title(self.window_title)
+        self.set_word_boundaries()
         self.background = 'dark grey'
         self.configure(background=self.background)
-        self.label_font = Font(family="Arial", size=12)
+        self.current_view = 'extractor'
+        self.frame_style = Style()
+        self.frame_style.configure('TFrame', background=self.background)
+        self.checkbutton_style = Style()
+        self.checkbutton_style.configure('TCheckbutton', background=self.background)
+        self.label_style = Style()
+        self.label_style.configure('TLabel', background=self.background, font=('Calibri', 12))
+        self.button_style = Style()
+        self.button_style.configure('TMyButton', font=('Helvetica', 10))
+        self.button_style.map('TMyButton', foreground=[('active', '!disabled', 'green')],
+                              background=[('active', 'black')], focuscolor='')
         self.text_font = Font(family="Calibri", size=12)
         self.date_meta = "(((//meta[contains(@*, 'date')] | //meta[contains(@*, 'time')] | //*[contains(@*, 'datePublished')])[1]/@content) | " \
                          "//time/@datetime)[1]"
         self.menu_meta = "(//ul[contains(@class, 'menu')] | //ul[contains(@id, 'menu')] | //nav//ul)[1]//a"
         self.author_meta = "//meta[contains(@*,'uthor')]/@content"
-        # Labels
-        self.kraken_id_label = tk.Label(text="Kraken Link/ID:")
-        self.existing_code_label = tk.Label(text="JSON:")
-        self.start_urls_label = tk.Label(text="Start URLs:")
-        self.menu_label = tk.Label(text="Menu XPath:")
-        self.articles_label = tk.Label(text="Articles XPath:")
-        self.title_label = tk.Label(text="Title XPath:")
-        self.pubdate_label = tk.Label(text="Pubdate XPath:")
-        self.date_order_label = tk.Label(text="Date Order XPath:")
-        self.author_label = tk.Label(text="Author XPath:")
-        self.body_label = tk.Label(text="Body XPath:")
-        self.article_url_label = tk.Label(text="URL:")
 
-        self.menu_xpath_found_label = tk.Label(text="Menu XPath:")
-        self.articles_xpath_found_label = tk.Label(text="Articles XPath:")
-        self.title_xpath_found_label = tk.Label(text="Title XPath:")
-        self.pubdate_xpath_found_label = tk.Label(text="Pubdate XPath:")
-        self.author_xpath_found_label = tk.Label(text="Author XPath:")
-        self.body_xpath_found_label = tk.Label(text="Body XPath:")
+        # Extractor Frames
+        self.view_menu_frame = MyFrame(master=self, padding=5, view='extractor')
+        self.kraken_frame = MyFrame(master=self, view='extractor')
+        self.json_full_frame = MyFrame(master=self, view='extractor')
+        self.json_combined_buttons_frame = MyFrame(master=self.json_full_frame, view='extractor')
+        self.json_buttons_frame = MyFrame(master=self.json_combined_buttons_frame, view='extractor')
+        self.json_checkbutton_frame = MyFrame(self.json_combined_buttons_frame, view='extractor')
+        self.start_urls_frame = MyFrame(master=self, view='extractor')
+        self.menu_frame = MyFrame(master=self, view='extractor')
+        self.articles_frame = MyFrame(master=self, view='extractor')
+        self.title_frame = MyFrame(master=self, view='extractor')
+        self.pubdate_frame = MyFrame(master=self, view='extractor')
+        self.pubdate_buttons_frame = MyFrame(master=self.pubdate_frame, view='extractor')
+        self.author_frame = MyFrame(master=self, view='extractor')
+        self.body_frame = MyFrame(master=self, view='extractor')
+        self.body_buttons_frame = MyFrame(self.body_frame, view='extractor')
+        self.bottom_buttons_frame = MyFrame(master=self, view='extractor')
+        self.testing_frame = MyFrame(master=self, view='extractor')
+        self.bottom_info_frame = MyFrame(master=self, view='extractor')
 
-        all_labels = [self.existing_code_label, self.kraken_id_label, self.start_urls_label, self.menu_label, self.articles_label, self.title_label,
-                      self.pubdate_label, self.date_order_label, self.author_label, self.body_label, self.article_url_label, self.author_xpath_found_label,
-                      self.pubdate_xpath_found_label, self.title_xpath_found_label, self.body_xpath_found_label, self.menu_xpath_found_label,
-                      self.articles_xpath_found_label]
+        # Extractor Labels
+        self.kraken_id_label = MyLabel(master=self.kraken_frame, view='extractor', text="Kraken Link/ID:")
+        self.json_label = MyLabel(master=self.json_full_frame, view='extractor', text="JSON:")
+        self.start_urls_label = MyLabel(master=self.start_urls_frame, view='extractor', text="Start URLs:")
+        self.menu_label = MyLabel(master=self.menu_frame, view='extractor', text="Menu XPath:")
+        self.articles_label = MyLabel(master=self.articles_frame, view='extractor', text="Articles XPath:")
+        self.title_label = MyLabel(master=self.title_frame, view='extractor', text="Title XPath:")
+        self.pubdate_label = MyLabel(master=self.pubdate_frame, view='extractor', text="Pubdate XPath:")
+        self.author_label = MyLabel(master=self.author_frame, view='extractor', text="Author XPath:")
+        self.body_label = MyLabel(master=self.body_frame, view='extractor', text="Body XPath:")
+        self.testing_label = MyLabel(master=self.testing_frame, view='extractor', text="Test XPath Here:")
+        self.testing_result_label = MyLabel(master=self.testing_frame, view='extractor', text="")
+        self.date_order_label = MyLabel(master=self.json_buttons_frame, view='extractor', text="")
+        self.last_extractor_edit_label = MyLabel(master=self.bottom_info_frame, view='extractor', text="")
+        self.last_kraken_edit_label = MyLabel(master=self.bottom_info_frame, view='extractor', text="")
 
-        for label in all_labels:
-            label['bg'] = self.background
-            label['font'] = self.label_font
+        # # Finder Labels
+        # self.article_url_label = MyLabel(text="URL:")
+        # self.menu_xpath_found_label = MyLabel(text="Menu XPath:")
+        # self.articles_xpath_found_label = MyLabel(text="Articles XPath:")
+        # self.title_xpath_found_label = MyLabel(text="Title XPath:")
+        # self.pubdate_xpath_found_label = MyLabel(text="Pubdate XPath:")
+        # self.author_xpath_found_label = MyLabel(text="Author XPath:")
+        # self.body_xpath_found_label = MyLabel(text="Body XPath:")
 
-        # Textboxes
-        self.article_url_textbox = tk.Text(height=1, width=40)
-        self.existing_code_textbox = tk.Text(height=10, width=60)
-        self.start_urls_textbox = tk.Text(height=2, width=60)
-        self.menu_textbox = tk.Text(height=2, width=60)
-        self.articles_textbox = tk.Text(height=2, width=60)
-        self.title_textbox = tk.Text(height=2, width=60)
-        self.pubdate_textbox = tk.Text(height=2, width=60)
-        self.date_order_textbox = tk.Text(height=2, width=20)
-        self.author_textbox = tk.Text(height=2, width=60)
-        self.body_textbox = tk.Text(height=3, width=60)
-        self.kraken_id_textbox = tk.Text(height=1, width=60)
+        # Extractor Textboxes
+        self.json_textbox = MyText(master=self.json_full_frame, view='extractor', height=8, width=60)
+        self.start_urls_textbox = MyText(master=self.start_urls_frame, view='extractor', height=2, width=60)
+        self.menu_textbox = MyText(master=self.menu_frame, view='extractor', height=2, width=60)
+        self.articles_textbox = MyText(master=self.articles_frame, view='extractor', height=2, width=60)
+        self.title_textbox = MyText(master=self.title_frame, view='extractor', height=2, width=60)
+        self.pubdate_textbox = MyText(master=self.pubdate_frame, view='extractor', height=3, width=60)
+        self.author_textbox = MyText(master=self.author_frame, view='extractor', height=2, width=60)
+        self.body_textbox = MyText(master=self.body_frame, view='extractor', height=3, width=60)
+        self.testing_xpath_textbox = MyText(master=self.testing_frame, view='extractor', height=2, width=50)
+        self.testing_article_textbox = MyText(master=self.testing_frame, view='extractor', height=2, width=50)
+        self.kraken_textbox = MyText(master=self.kraken_frame, view='extractor', height=1, width=60)
+        self.xpath_dict = {
+            "start_urls": self.start_urls_textbox,
+            "menu_xpath": self.menu_textbox,
+            "articles_xpath": self.articles_textbox,
+            "title_xpath": self.title_textbox,
+            "pubdate_xpath": self.pubdate_textbox,
+            "author_xpath": self.author_textbox,
+            "body_xpath": self.body_textbox,
+        }
 
-        self.menu_xpath_found_textbox_1 = tk.Text(height=1, width=40)
-        self.menu_xpath_found_textbox_2 = tk.Text(height=1, width=40)
-        self.menu_xpath_found_textbox_3 = tk.Text(height=1, width=40)
-        self.menu_xpath_found_textbox_4 = tk.Text(height=1, width=40)
+        # # Finder Textboxes
+        # self.article_url_textbox = MyText(height=1, width=40)
+        # self.menu_xpath_found_textbox_1 = MyText(height=1, width=40)
+        # self.menu_xpath_found_textbox_2 = MyText(height=1, width=40)
+        # self.menu_xpath_found_textbox_3 = MyText(height=1, width=40)
+        # self.menu_xpath_found_textbox_4 = MyText(height=1, width=40)
+        #
+        # self.menu_xpath_result_textbox_1 = MyText(height=1, width=40)
+        # self.menu_xpath_result_textbox_2 = MyText(height=1, width=40)
+        # self.menu_xpath_result_textbox_3 = MyText(height=1, width=40)
+        # self.menu_xpath_result_textbox_4 = MyText(height=1, width=40)
+        #
+        # self.articles_xpath_found_textbox_1 = MyText(height=1, width=40)
+        # self.articles_xpath_found_textbox_2 = MyText(height=1, width=40)
+        # self.articles_xpath_found_textbox_3 = MyText(height=1, width=40)
+        # self.articles_xpath_found_textbox_4 = MyText(height=1, width=40)
+        #
+        # self.articles_xpath_result_textbox_1 = MyText(height=1, width=40)
+        # self.articles_xpath_result_textbox_2 = MyText(height=1, width=40)
+        # self.articles_xpath_result_textbox_3 = MyText(height=1, width=40)
+        # self.articles_xpath_result_textbox_4 = MyText(height=1, width=40)
+        #
+        # self.title_xpath_found_textbox_1 = MyText(height=1, width=40)
+        # self.title_xpath_found_textbox_2 = MyText(height=1, width=40)
+        # self.title_xpath_found_textbox_3 = MyText(height=1, width=40)
+        # self.title_xpath_found_textbox_4 = MyText(height=1, width=40)
+        #
+        # self.title_xpath_result_textbox_1 = MyText(height=1, width=40)
+        # self.title_xpath_result_textbox_2 = MyText(height=1, width=40)
+        # self.title_xpath_result_textbox_3 = MyText(height=1, width=40)
+        # self.title_xpath_result_textbox_4 = MyText(height=1, width=40)
+        #
+        # self.pubdate_xpath_found_textbox_1 = MyText(height=1, width=40)
+        # self.pubdate_xpath_found_textbox_2 = MyText(height=1, width=40)
+        # self.pubdate_xpath_found_textbox_3 = MyText(height=1, width=40)
+        # self.pubdate_xpath_found_textbox_4 = MyText(height=1, width=40)
+        #
+        # self.pubdate_xpath_result_textbox_1 = MyText(height=1, width=40)
+        # self.pubdate_xpath_result_textbox_2 = MyText(height=1, width=40)
+        # self.pubdate_xpath_result_textbox_3 = MyText(height=1, width=40)
+        # self.pubdate_xpath_result_textbox_4 = MyText(height=1, width=40)
+        #
+        # self.author_xpath_found_textbox_1 = MyText(height=1, width=40)
+        # self.author_xpath_found_textbox_2 = MyText(height=1, width=40)
+        # self.author_xpath_found_textbox_3 = MyText(height=1, width=40)
+        # self.author_xpath_found_textbox_4 = MyText(height=1, width=40)
+        #
+        # self.author_xpath_result_textbox_1 = MyText(height=1, width=40)
+        # self.author_xpath_result_textbox_2 = MyText(height=1, width=40)
+        # self.author_xpath_result_textbox_3 = MyText(height=1, width=40)
+        # self.author_xpath_result_textbox_4 = MyText(height=1, width=40)
+        #
+        # self.body_xpath_found_textbox_1 = MyText(height=1, width=40)
+        # self.body_xpath_found_textbox_2 = MyText(height=1, width=40)
+        # self.body_xpath_found_textbox_3 = MyText(height=1, width=40)
+        # self.body_xpath_found_textbox_4 = MyText(height=1, width=40)
+        #
+        # self.body_xpath_result_textbox_1 = MyText(height=1, width=40)
+        # self.body_xpath_result_textbox_2 = MyText(height=1, width=40)
+        # self.body_xpath_result_textbox_3 = MyText(height=1, width=40)
+        # self.body_xpath_result_textbox_4 = MyText(height=1, width=40)
 
-        self.menu_xpath_result_textbox_1 = tk.Text(height=1, width=40)
-        self.menu_xpath_result_textbox_2 = tk.Text(height=1, width=40)
-        self.menu_xpath_result_textbox_3 = tk.Text(height=1, width=40)
-        self.menu_xpath_result_textbox_4 = tk.Text(height=1, width=40)
+        for widget in self.winfo_children():
+            if isinstance(widget, MyText):
+                widget['undo'] = True
+                widget['bg'] = 'white'
+                widget['font'] = self.text_font
 
-        self.articles_xpath_found_textbox_1 = tk.Text(height=1, width=40)
-        self.articles_xpath_found_textbox_2 = tk.Text(height=1, width=40)
-        self.articles_xpath_found_textbox_3 = tk.Text(height=1, width=40)
-        self.articles_xpath_found_textbox_4 = tk.Text(height=1, width=40)
+        # View Menu MyButtons
+        self.open_extractor_button = MyButton(master=self.view_menu_frame, view='extractor', text="Extractor",
+                                              command=lambda: self.switch_view(view_to_open='extractor'))
+        self.open_finder_button = MyButton(master=self.view_menu_frame, view='extractor', text="Finder", command=lambda: self.switch_view(view_to_open='finder'))
 
-        self.articles_xpath_result_textbox_1 = tk.Text(height=1, width=40)
-        self.articles_xpath_result_textbox_2 = tk.Text(height=1, width=40)
-        self.articles_xpath_result_textbox_3 = tk.Text(height=1, width=40)
-        self.articles_xpath_result_textbox_4 = tk.Text(height=1, width=40)
+        # Kraken MyButtons
+        self.kraken_load_button = MyButton(master=self.kraken_frame, view='extractor', text="Load",
+                                           command=lambda: self.load_from_kraken(self.kraken_textbox.get('1.0', tk.END), open_source_bool=False))
+        self.kraken_clipboard_button = MyButton(master=self.kraken_frame, view='extractor', text="Clipboard",
+                                                command=lambda: self.load_from_kraken(self.clipboard_get()))
+        self.open_source_button = MyButton(master=self.kraken_frame, view='extractor', text="Source",
+                                           command=lambda: self.open_link(self.kraken_textbox.get('1.0', tk.END)))
+        self.load_from_db_button = MyButton(master=self.kraken_frame, view='extractor', text="DB Load", command=self.load_from_db)
+        self.open_items_button = MyButton(master=self.kraken_frame, view='extractor', text="Items", command=self.open_items_page)
 
-        self.title_xpath_found_textbox_1 = tk.Text(height=1, width=40)
-        self.title_xpath_found_textbox_2 = tk.Text(height=1, width=40)
-        self.title_xpath_found_textbox_3 = tk.Text(height=1, width=40)
-        self.title_xpath_found_textbox_4 = tk.Text(height=1, width=40)
+        # JSON MyButtons
+        self.code_copy_button = MyButton(master=self.json_buttons_frame, view='extractor', text="Copy", command=lambda: self.copy_code(self.json_textbox))
+        self.load_from_existing_button = MyButton(master=self.json_buttons_frame, view='extractor', text="Load",
+                                                  command=lambda: self.generate(load_from_existing_bool=True))
+        self.add_proxy_button = MyButton(master=self.json_buttons_frame, view='extractor', text="Proxy", command=lambda: self.edit_json(initial_key="scrapy_settings",
+                                                                                                                                 keyword="HTTP_PROXY",
+                                                                                                                                 value=config.proxy))
+        self.allowed_domains_button = MyButton(master=self.json_buttons_frame, view='extractor', text="Allowed Domains",
+                                               command=lambda: self.edit_json(initial_key="scrapy_arguments",
+                                                                              keyword="allowed_domains",
+                                                                              value=self.get_source_name(
+                                                                                  copy=False)))
+        self.init_wait_button = MyButton(master=self.json_buttons_frame, view='extractor', text="Init Wait",
+                                         command=lambda: self.edit_json(initial_key="scrapy_arguments",
+                                                                        keyword='init_wait',
+                                                                        value=2))
+        self.article_wait_button = MyButton(master=self.json_buttons_frame, view='extractor', text="Article Wait",
+                                            command=lambda: self.edit_json(initial_key="scrapy_arguments",
+                                                                           keyword='article_wait',
+                                                                           value=2))
+        # Date Order MyButtons
+        self.date_order_DMY = MyButton(master=self.json_buttons_frame, view='extractor', text="DMY", command=lambda: self.edit_json(initial_key="scrapy_arguments",
+                                                                                                                             keyword='date_order',
+                                                                                                                             value='DMY'))
+        self.date_order_YMD = MyButton(master=self.json_buttons_frame, view='extractor', text="YMD", command=lambda: self.edit_json(initial_key="scrapy_arguments",
+                                                                                                                             keyword='date_order',
+                                                                                                                             value='YMD'))
+        self.date_order_MDY = MyButton(master=self.json_buttons_frame, view='extractor', text="MDY", command=lambda: self.edit_json(initial_key="scrapy_arguments",
+                                                                                                                             keyword='date_order',
+                                                                                                                             value='MDY'))
+        # JSON Checkbuttons
+        self.open_links_check_bool = tk.IntVar()
+        self.open_links_check_bool.set(1)
+        self.open_source_checkbutton = MyCheckbutton(master=self.json_checkbutton_frame, view='extractor', text="Open links when loading Kraken",
+                                                     variable=self.open_links_check_bool,
+                                                     takefocus=False)
 
-        self.title_xpath_result_textbox_1 = tk.Text(height=1, width=40)
-        self.title_xpath_result_textbox_2 = tk.Text(height=1, width=40)
-        self.title_xpath_result_textbox_3 = tk.Text(height=1, width=40)
-        self.title_xpath_result_textbox_4 = tk.Text(height=1, width=40)
+        # Start URL MyButtons
+        self.copy_start_button = MyButton(master=self.start_urls_frame, view='extractor', text="Copy", command=lambda: self.copy_code(self.start_urls_textbox))
+        self.open_link_button = MyButton(master=self.start_urls_frame, view='extractor', text='Open Link', command=self.open_start_urls_link)
+        self.open_domain_button = MyButton(master=self.start_urls_frame, view='extractor', text='Open Domain', command=self.open_domain)
+        self.source_name_button = MyButton(master=self.start_urls_frame, view='extractor', text="Copy Name", command=self.get_source_name)
+        self.source_domain_button = MyButton(master=self.start_urls_frame, view='extractor', text="Copy Domain", command=lambda: self.get_domain(copy=True))
 
-        self.pubdate_xpath_found_textbox_1 = tk.Text(height=1, width=40)
-        self.pubdate_xpath_found_textbox_2 = tk.Text(height=1, width=40)
-        self.pubdate_xpath_found_textbox_3 = tk.Text(height=1, width=40)
-        self.pubdate_xpath_found_textbox_4 = tk.Text(height=1, width=40)
+        # Menu MyButtons
+        self.copy_menu_button = MyButton(master=self.menu_frame, view='extractor', text="Copy", command=lambda: self.copy_code(self.menu_textbox))
+        self.menu_category_button = MyButton(master=self.menu_frame, view='extractor', text="Cat",
+                                             command=lambda: self.append_textbox_values(self.menu_textbox, after_value="[contains(@href, 'ategor')]"))
 
-        self.pubdate_xpath_result_textbox_1 = tk.Text(height=1, width=40)
-        self.pubdate_xpath_result_textbox_2 = tk.Text(height=1, width=40)
-        self.pubdate_xpath_result_textbox_3 = tk.Text(height=1, width=40)
-        self.pubdate_xpath_result_textbox_4 = tk.Text(height=1, width=40)
+        # Article Xpath MyButtons
+        self.copy_articles_button = MyButton(master=self.articles_frame, view='extractor', text="Copy", command=lambda: self.copy_code(self.articles_textbox))
+        self.article_not_category_button = MyButton(master=self.articles_frame, view='extractor', text="Not Cat",
+                                                    command=lambda: self.append_textbox_values(self.articles_textbox, before_value='(',
+                                                                                               after_value=")[not(contains(@href, 'ategor'))]"))
+        self.article_title_button = MyButton(master=self.articles_frame, view='extractor', text="Contains Title",
+                                             command=lambda: self.replace_textbox_value(self.articles_textbox, "//*[contains(@class,'title')]/a"))
 
-        self.author_xpath_found_textbox_1 = tk.Text(height=1, width=40)
-        self.author_xpath_found_textbox_2 = tk.Text(height=1, width=40)
-        self.author_xpath_found_textbox_3 = tk.Text(height=1, width=40)
-        self.author_xpath_found_textbox_4 = tk.Text(height=1, width=40)
+        # Title Xpath MyButtons
+        self.copy_title_button = MyButton(master=self.title_frame, view='extractor', text="Copy", command=lambda: self.copy_code(self.title_textbox))
+        self.title_single_button = MyButton(master=self.title_frame, view='extractor', text="[1]",
+                                            command=lambda: self.append_textbox_values(self.title_textbox, before_value='(', after_value=')[1]'))
+        self.title_h1_button = MyButton(master=self.title_frame, view='extractor', text="h1",
+                                        command=lambda: self.replace_textbox_value(self.title_textbox, "//h1[contains(@class,'title')]"))
 
-        self.author_xpath_result_textbox_1 = tk.Text(height=1, width=40)
-        self.author_xpath_result_textbox_2 = tk.Text(height=1, width=40)
-        self.author_xpath_result_textbox_3 = tk.Text(height=1, width=40)
-        self.author_xpath_result_textbox_4 = tk.Text(height=1, width=40)
+        # Pubdate Xpath MyButtons
+        self.copy_pubdate_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Copy", command=lambda: self.copy_code(self.pubdate_textbox))
+        self.pubdate_single_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="[1]",
+                                              command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value='(',
+                                                                                         after_value=')[1]'))
+        self.standard_regex_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Rgx 1.1.2000",
+                                              command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
+                                                                                         after_value=r", '\d{1,2}\.\d{1,2}\.\d{2,4}', 'g')"))
+        self.blank_regex_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Rgx Blank",
+                                           command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
+                                                                                      after_value=r", 'REGEX', 'g')"))
+        self.meta_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Meta",
+                                    command=lambda: self.replace_textbox_value(self.pubdate_textbox, self.date_meta))
+        self.pubdate_replace_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Replace",
+                                               command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:replace(",
+                                                                                          after_value=r", 'SYMBOL1', 'g', 'SYMBOL2')"))
 
-        self.body_xpath_found_textbox_1 = tk.Text(height=1, width=40)
-        self.body_xpath_found_textbox_2 = tk.Text(height=1, width=40)
-        self.body_xpath_found_textbox_3 = tk.Text(height=1, width=40)
-        self.body_xpath_found_textbox_4 = tk.Text(height=1, width=40)
+        # Author Xpath MyButtons
+        self.copy_author_button = MyButton(master=self.author_frame, view='extractor', text="Copy", command=lambda: self.copy_code(self.author_textbox))
+        self.author_single_button = MyButton(master=self.author_frame, view='extractor', text="[1]",
+                                             command=lambda: self.append_textbox_values(self.author_textbox, before_value='(', after_value=')[1]'))
+        self.author_substring_button = MyButton(master=self.author_frame, view='extractor', text="Substring",
+                                                command=lambda: self.append_textbox_values(self.author_textbox, before_value="substring-after(",
+                                                                                           after_value=", ':')"))
+        self.author_meta_button = MyButton(master=self.author_frame, view='extractor', text="Meta",
+                                           command=lambda: self.replace_textbox_value(self.author_textbox, "//meta[contains(@*,'uthor')]/@content"))
+        self.author_child_text_button = MyButton(master=self.author_frame, view='extractor', text="Child",
+                                                 command=lambda: self.replace_textbox_value(self.author_textbox, '//*[child::text()[contains(.,"Autor")]]'))
 
-        self.body_xpath_result_textbox_1 = tk.Text(height=1, width=40)
-        self.body_xpath_result_textbox_2 = tk.Text(height=1, width=40)
-        self.body_xpath_result_textbox_3 = tk.Text(height=1, width=40)
-        self.body_xpath_result_textbox_4 = tk.Text(height=1, width=40)
+        # Body Xpath MyButtons
+        self.body_single_button = MyButton(master=self.body_buttons_frame, view='extractor', text="[1]",
+                                           command=lambda: self.append_textbox_values(self.body_textbox, before_value='(', after_value=')[1]'), )
+        self.copy_body_button = MyButton(master=self.body_buttons_frame, view='extractor', text="Copy", command=lambda: self.copy_code(self.body_textbox))
+        self.body_content_button = MyButton(master=self.body_buttons_frame, view='extractor', text="Content",
+                                            command=lambda: self.replace_textbox_value(self.body_textbox, "//div[contains(@class, 'content')]"))
+        self.body_not_contains_class_button = MyButton(master=self.body_buttons_frame, view='extractor', text="Not Class",
+                                                       command=lambda: self.append_textbox_values(self.body_textbox,
+                                                                                                  after_value=f"[not(contains(@class, "
+                                                                                                              f"'{self.clipboard_get().strip()}'))]"))
+        self.body_not_contains_text_button = MyButton(master=self.body_buttons_frame, view='extractor', text="Not Text",
+                                                      command=lambda: self.append_textbox_values(self.body_textbox,
+                                                                                                 after_value=f"[not(descendant::text()[contains(.,"
+                                                                                                             f"'{self.clipboard_get().strip()}')])]"))
+        self.body_not_contains_id_button = MyButton(master=self.body_buttons_frame, view='extractor', text="Not ID",
+                                                    command=lambda: self.append_textbox_values(self.body_textbox,
+                                                                                               after_value=f"[not(contains(@id, "
+                                                                                                           f"'{self.clipboard_get().strip()}'))]"))
+        self.body_not_self_button = MyButton(master=self.body_buttons_frame, view='extractor', text="Not Self",
+                                             command=lambda: self.append_textbox_values(self.body_textbox,
+                                                                                        after_value=f"[not(self::{self.clipboard_get().strip()})]"))
 
-        self.all_textboxes = [self.article_url_textbox, self.existing_code_textbox, self.start_urls_textbox, self.menu_textbox, self.articles_textbox,
-                              self.title_textbox, self.pubdate_textbox, self.date_order_textbox, self.author_textbox, self.body_textbox, self.kraken_id_textbox,
-                              self.author_xpath_found_textbox_1, self.author_xpath_found_textbox_2, self.author_xpath_found_textbox_3,
-                              self.author_xpath_found_textbox_4, self.author_xpath_result_textbox_1, self.author_xpath_result_textbox_2,
-                              self.author_xpath_result_textbox_3, self.author_xpath_result_textbox_4, self.pubdate_xpath_found_textbox_1,
-                              self.pubdate_xpath_found_textbox_2, self.pubdate_xpath_found_textbox_3, self.pubdate_xpath_found_textbox_4,
-                              self.pubdate_xpath_result_textbox_1, self.pubdate_xpath_result_textbox_2, self.pubdate_xpath_result_textbox_3,
-                              self.pubdate_xpath_result_textbox_4, self.title_xpath_found_textbox_1, self.title_xpath_found_textbox_2,
-                              self.title_xpath_found_textbox_3, self.title_xpath_found_textbox_4, self.title_xpath_result_textbox_1,
-                              self.title_xpath_result_textbox_2, self.title_xpath_result_textbox_3, self.title_xpath_result_textbox_4,
-                              self.body_xpath_found_textbox_1, self.body_xpath_found_textbox_2, self.body_xpath_found_textbox_3,
-                              self.body_xpath_found_textbox_4, self.body_xpath_result_textbox_1, self.body_xpath_result_textbox_2,
-                              self.body_xpath_result_textbox_3, self.body_xpath_result_textbox_4, self.menu_xpath_found_textbox_1,
-                              self.menu_xpath_found_textbox_2, self.menu_xpath_found_textbox_3, self.menu_xpath_found_textbox_4,
-                              self.menu_xpath_result_textbox_1, self.menu_xpath_result_textbox_2, self.menu_xpath_result_textbox_3,
-                              self.menu_xpath_result_textbox_4, self.articles_xpath_found_textbox_1, self.articles_xpath_found_textbox_2,
-                              self.articles_xpath_found_textbox_4, self.articles_xpath_result_textbox_1, self.articles_xpath_result_textbox_2,
-                              self.articles_xpath_result_textbox_3, self.articles_xpath_result_textbox_4, self.articles_xpath_found_textbox_3]
+        # Bottom Frame MyButtons
+        self.clear_button = MyButton(master=self.bottom_buttons_frame, view='extractor', text="Clear All", command=self.clear_all_textboxes)
+        self.generate_button = MyButton(master=self.bottom_buttons_frame, view='extractor', text="Generate JSON!", command=self.generate)
 
-        for textbox in self.all_textboxes:
-            textbox['undo'] = True
-            textbox['bg'] = 'white'
-            textbox['font'] = self.text_font
+        # Testing MyButton
+        self.test_xpath_button = MyButton(master=self.testing_frame, view='extractor', text='Test', command=self.test_xpath)
 
-        # Buttons
-        self.code_copy_button = Button(text="Copy", command=lambda: self.copy_code(self.existing_code_textbox))
-        self.copy_start_button = Button(text="Copy", command=lambda: self.copy_code(self.start_urls_textbox))
-        self.copy_menu_button = Button(text="Copy", command=lambda: self.copy_code(self.menu_textbox))
-        self.copy_articles_button = Button(text="Copy", command=lambda: self.copy_code(self.articles_textbox))
-        self.copy_title_button = Button(text="Copy", command=lambda: self.copy_code(self.title_textbox))
-        self.copy_pubdate_button = Button(text="Copy", command=lambda: self.copy_code(self.pubdate_textbox))
-        self.copy_author_button = Button(text="Copy", command=lambda: self.copy_code(self.author_textbox))
-        self.copy_body_button = Button(text="Copy", command=lambda: self.copy_code(self.body_textbox))
-        self.kraken_id_load_button = Button(text="Load", command=lambda: self.load_code(self.kraken_id_textbox.get('1.0', tk.END), open_source_bool=False))
-        self.kraken_id_clipboard_button = Button(text="Clipboard", command=lambda: self.load_code(self.clipboard_get()))
-        self.open_source_button = Button(text="Source", command=lambda: self.open_link(self.kraken_id_textbox.get('1.0', tk.END)))
-        self.load_from_db_button = Button(text="DB Load", command=self.load_from_db)
-        self.open_items_button = Button(text="Items", command=self.open_items_page)
-        self.source_name_button = Button(text="Copy Name", command=self.get_source_name)
-        self.source_domain_button = Button(text="Copy Domain", command=lambda: self.get_domain(copy=True))
-        self.load_from_existing_button = Button(text="Load", command=lambda: self.generate(load_from_existing_bool=True))
-        self.title_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.title_textbox, before_value='(', after_value=')[1]'))
-        self.title_h1_button = Button(text="h1", command=lambda: self.replace_textbox_value(self.title_textbox, "//h1[contains(@class,'title')]"))
-        self.pubdate_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value='(',
-                                                                                                     after_value=')[1]'))
-        self.author_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.author_textbox, before_value='(', after_value=')[1]'))
-        self.body_button_brackets = Button(text="[1]", command=lambda: self.append_textbox_values(self.body_textbox, before_value='(', after_value=')[1]'), )
-        self.regex_dmy_button = Button(text="Regex .", command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
-                                                                                                  after_value=r", '\d{1,2}\.\d{1,2}\.\d{2,4}', 'g')"))
-        self.regex_ymd_button = Button(text="Regex Text", command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
-                                                                                                     after_value=r", '(\d{1,2})\.(\s\w+\s\d{2,4})', 'g')"))
-        self.menu_default_button = Button(text="Default", command=lambda: self.replace_textbox_value(self.menu_textbox,
-                                                                                                     "(//ul[contains(@class, 'menu')] |"
-                                                                                                     " //ul[contains(@id, 'menu')] | //nav//ul)[1]//a"))
-        self.menu_category_button = Button(text="Cat", command=lambda: self.append_textbox_values(self.menu_textbox, after_value="[contains(@href, 'ategor')]"))
-        self.article_category_button = Button(text="Not Cat", command=lambda: self.append_textbox_values(self.articles_textbox, before_value='(',
-                                                                                                         after_value=")[not(contains(@href, 'ategor'))]"))
-        self.article_title_button = Button(text="Cont Title", command=lambda: self.replace_textbox_value(self.articles_textbox,
-                                                                                                         "//*[contains(@class,'title')]/a"))
-        self.meta_button = Button(text="Meta", command=lambda: self.replace_textbox_value(self.pubdate_textbox, self.date_meta))
-        self.date_order_DMY = Button(text="DMY", command=lambda: self.replace_textbox_value(self.date_order_textbox, "DMY"))
-        self.date_order_YMD = Button(text="YMD", command=lambda: self.replace_textbox_value(self.date_order_textbox, "YMD"))
-        self.date_order_MDY = Button(text="MDY", command=lambda: self.replace_textbox_value(self.date_order_textbox, "MDY"))
-        self.author_substring_button = Button(text="Substring", command=lambda: self.append_textbox_values(self.author_textbox, before_value="substring-after(",
-                                                                                                           after_value=", ':')"))
-        self.author_meta_button = Button(text="Meta", command=lambda: self.replace_textbox_value(self.author_textbox, "//meta[contains(@*,'uthor')]/@content"))
-        self.author_child_text_button = Button(text="Child", command=lambda: self.replace_textbox_value(self.author_textbox,
-                                                                                                        '//*[child::text()[contains(.,"Autor")]]'))
-        self.body_contains_class_button = Button(text="Content",
-                                                 command=lambda: self.replace_textbox_value(self.body_textbox, "//div[contains(@class, 'content')]"))
-        self.not_contains_class_button = Button(text="Not Class",
-                                                command=lambda: self.append_textbox_values(self.body_textbox,
-                                                                                           after_value=f"[not(contains(@class, "
-                                                                                                       f"'{self.clipboard_get().strip()}'))]"))
-        self.not_contains_text_button = Button(text="Not Text",
-                                               command=lambda: self.append_textbox_values(self.body_textbox,
-                                                                                          after_value=f"[not(descendant::text()"
-                                                                                                      f"[contains(.,'{self.clipboard_get().strip()}')])]"))
-        self.open_link_button = Button(text='Open Link', command=self.open_start_urls_link)
-        self.open_domain_button = Button(text='Open Domain', command=self.open_domain)
-        self.clear_button = Button(text="Clear All", command=self.clear_all_textboxes)
-        self.generate_button = Button(text="Generate JSON!", command=self.generate, master=self)
+        # # Second View
+        # self.find_menu_articles_button = MyButton(text="Menu/Articles", command=self.find_menu_articles, master=self)
+        # self.find_content_button = MyButton(text="Content", command=self.find_content, master=self)
+        # self.menu_xpath_select_button_1 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.menu_xpath_found_textbox_1,
+        #                                                                                                        self.menu_textbox))
+        # self.menu_xpath_select_button_2 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.menu_xpath_found_textbox_2,
+        #                                                                                                        self.menu_textbox))
+        # self.menu_xpath_select_button_3 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.menu_xpath_found_textbox_3,
+        #                                                                                                        self.menu_textbox))
+        # self.menu_xpath_select_button_4 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.menu_xpath_found_textbox_4,
+        #                                                                                                        self.menu_textbox))
+        #
+        # self.articles_xpath_select_button_1 = MyButton(text="Add", command=lambda: self.from_textbox_to_textbox(
+        #     self.articles_xpath_found_textbox_1,
+        #     self.articles_textbox,
+        #     append_with_pipe=True))
+        # self.articles_xpath_select_button_2 = MyButton(text="Add", command=lambda: self.from_textbox_to_textbox(
+        #     self.articles_xpath_found_textbox_2,
+        #     self.articles_textbox,
+        #     append_with_pipe=True))
+        # self.articles_xpath_select_button_3 = MyButton(text="Add", command=lambda: self.from_textbox_to_textbox(
+        #     self.articles_xpath_found_textbox_3,
+        #     self.articles_textbox,
+        #     append_with_pipe=True))
+        # self.articles_xpath_select_button_4 = MyButton(text="Add", command=lambda: self.from_textbox_to_textbox(
+        #     self.articles_xpath_found_textbox_4,
+        #     self.articles_textbox,
+        #     append_with_pipe=True))
+        #
+        # self.title_xpath_select_button_1 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.title_xpath_found_textbox_1,
+        #                                                                                                         self.title_textbox))
+        # self.title_xpath_select_button_2 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.title_xpath_found_textbox_2,
+        #                                                                                                         self.title_textbox))
+        # self.title_xpath_select_button_3 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.title_xpath_found_textbox_3,
+        #                                                                                                         self.title_textbox))
+        # self.title_xpath_select_button_4 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.title_xpath_found_textbox_4,
+        #                                                                                                         self.title_textbox))
+        #
+        # self.pubdate_xpath_select_button_1 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.pubdate_xpath_found_textbox_1,
+        #                                                                                                           self.pubdate_textbox))
+        # self.pubdate_xpath_select_button_2 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.pubdate_xpath_found_textbox_2,
+        #                                                                                                           self.pubdate_textbox))
+        # self.pubdate_xpath_select_button_3 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.pubdate_xpath_found_textbox_3,
+        #                                                                                                           self.pubdate_textbox))
+        # self.pubdate_xpath_select_button_4 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.pubdate_xpath_found_textbox_4,
+        #                                                                                                           self.pubdate_textbox))
+        #
+        # self.author_xpath_select_button_1 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.author_xpath_found_textbox_1,
+        #                                                                                                          self.author_textbox))
+        # self.author_xpath_select_button_2 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.author_xpath_found_textbox_2,
+        #                                                                                                          self.author_textbox))
+        # self.author_xpath_select_button_3 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.author_xpath_found_textbox_3,
+        #                                                                                                          self.author_textbox))
+        # self.author_xpath_select_button_4 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.author_xpath_found_textbox_4,
+        #                                                                                                          self.author_textbox))
+        #
+        # self.body_xpath_select_button_1 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.body_xpath_found_textbox_1,
+        #                                                                                                        self.body_textbox))
+        # self.body_xpath_select_button_2 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.body_xpath_found_textbox_2,
+        #                                                                                                        self.body_textbox))
+        # self.body_xpath_select_button_3 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.body_xpath_found_textbox_3,
+        #                                                                                                        self.body_textbox))
+        # self.body_xpath_select_button_4 = MyButton(text="Select", command=lambda: self.from_textbox_to_textbox(self.body_xpath_found_textbox_4,
+        #                                                                                                        self.body_textbox))
 
-        # Second View
-        self.find_menu_articles_button = Button(text="Menu/Articles", command=self.find_menu_articles, master=self)
-        self.find_content_button = Button(text="Content", command=self.find_content, master=self)
-        self.menu_xpath_select_button_1 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.menu_xpath_found_textbox_1,
-                                                                                                             self.menu_textbox))
-        self.menu_xpath_select_button_2 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.menu_xpath_found_textbox_2,
-                                                                                                             self.menu_textbox))
-        self.menu_xpath_select_button_3 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.menu_xpath_found_textbox_3,
-                                                                                                             self.menu_textbox))
-        self.menu_xpath_select_button_4 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.menu_xpath_found_textbox_4,
-                                                                                                             self.menu_textbox))
+        # Extractor Frame Lists
+        self.view_menu_frame_list = [[self.open_extractor_button, self.open_finder_button]]
+        self.kraken_frame_list = [[self.kraken_id_label],
+                                  [self.kraken_textbox, self.kraken_load_button, self.kraken_clipboard_button, self.open_source_button,
+                                   self.load_from_db_button, self.open_items_button]]
+        self.json_buttons_frame_list = [[self.code_copy_button, self.load_from_existing_button, self.add_proxy_button, self.allowed_domains_button],
+                                        [self.init_wait_button, self.article_wait_button],
+                                        [self.date_order_DMY, self.date_order_MDY, self.date_order_YMD, self.date_order_label]]
+        self.json_checkbutton_frame_list = [[self.open_source_checkbutton]]
+        self.json_combined_buttons_frame_list = [[self.json_buttons_frame],
+                                                 [self.json_checkbutton_frame]]
+        self.json_full_frame_list = [[self.json_label],
+                                     [self.json_textbox, self.json_combined_buttons_frame]]
+        self.start_urls_frame_list = [[self.start_urls_label],
+                                      [self.start_urls_textbox, self.copy_start_button, self.open_link_button, self.open_domain_button, self.source_name_button,
+                                       self.source_domain_button]]
+        self.menu_frame_list = [[self.menu_label],
+                                [self.menu_textbox, self.copy_menu_button, self.menu_category_button]]
+        self.articles_frame_list = [[self.articles_label],
+                                    [self.articles_textbox, self.copy_articles_button, self.article_not_category_button, self.article_title_button]]
+        self.title_frame_list = [[self.title_label],
+                                 [self.title_textbox, self.copy_title_button, self.title_h1_button, self.title_single_button]]
+        self.pubdate_buttons_frame_list = [[self.copy_pubdate_button, self.meta_button, self.standard_regex_button, self.blank_regex_button,
+                                            self.pubdate_single_button],
+                                           [self.pubdate_replace_button]]
+        self.pubdate_frame_list = [[self.pubdate_label], [self.pubdate_textbox, self.pubdate_buttons_frame]]
+        self.author_frame_list = [[self.author_label],
+                                  [self.author_textbox, self.copy_author_button, self.author_meta_button, self.author_substring_button,
+                                   self.author_child_text_button, self.author_single_button]]
+        self.body_buttons_frame_list = [[self.copy_body_button, self.body_content_button, self.body_not_contains_class_button, self.body_not_contains_id_button,
+                                         self.body_not_contains_text_button],
+                                        [self.body_not_self_button, self.body_single_button]]
+        self.body_frame_list = [[self.body_label],
+                                [self.body_textbox, self.body_buttons_frame]]
+        self.bottom_buttons_frame_list = [[self.generate_button, self.clear_button]]
+        self.bottom_info_frame_list = [[self.last_kraken_edit_label], [self.last_kraken_edit_label]]
+        self.testing_frame_list = [[self.testing_label],
+                                   [self.testing_xpath_textbox, self.testing_article_textbox, self.test_xpath_button],
+                                   [self.testing_result_label]]
 
-        self.articles_xpath_select_button_1 = Button(text="Add", command=lambda: self.from_textbox_to_textbox(
-            self.articles_xpath_found_textbox_1,
-            self.articles_textbox,
-            append_with_pipe=True))
-        self.articles_xpath_select_button_2 = Button(text="Add", command=lambda: self.from_textbox_to_textbox(
-            self.articles_xpath_found_textbox_2,
-            self.articles_textbox,
-            append_with_pipe=True))
-        self.articles_xpath_select_button_3 = Button(text="Add", command=lambda: self.from_textbox_to_textbox(
-            self.articles_xpath_found_textbox_3,
-            self.articles_textbox,
-            append_with_pipe=True))
-        self.articles_xpath_select_button_4 = Button(text="Add", command=lambda: self.from_textbox_to_textbox(
-            self.articles_xpath_found_textbox_4,
-            self.articles_textbox,
-            append_with_pipe=True))
-
-        self.title_xpath_select_button_1 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.title_xpath_found_textbox_1,
-                                                                                                              self.title_textbox))
-        self.title_xpath_select_button_2 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.title_xpath_found_textbox_2,
-                                                                                                              self.title_textbox))
-        self.title_xpath_select_button_3 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.title_xpath_found_textbox_3,
-                                                                                                              self.title_textbox))
-        self.title_xpath_select_button_4 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.title_xpath_found_textbox_4,
-                                                                                                              self.title_textbox))
-
-        self.pubdate_xpath_select_button_1 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.pubdate_xpath_found_textbox_1,
-                                                                                                                self.pubdate_textbox))
-        self.pubdate_xpath_select_button_2 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.pubdate_xpath_found_textbox_2,
-                                                                                                                self.pubdate_textbox))
-        self.pubdate_xpath_select_button_3 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.pubdate_xpath_found_textbox_3,
-                                                                                                                self.pubdate_textbox))
-        self.pubdate_xpath_select_button_4 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.pubdate_xpath_found_textbox_4,
-                                                                                                                self.pubdate_textbox))
-
-        self.author_xpath_select_button_1 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.author_xpath_found_textbox_1,
-                                                                                                               self.author_textbox))
-        self.author_xpath_select_button_2 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.author_xpath_found_textbox_2,
-                                                                                                               self.author_textbox))
-        self.author_xpath_select_button_3 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.author_xpath_found_textbox_3,
-                                                                                                               self.author_textbox))
-        self.author_xpath_select_button_4 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.author_xpath_found_textbox_4,
-                                                                                                               self.author_textbox))
-
-        self.body_xpath_select_button_1 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.body_xpath_found_textbox_1,
-                                                                                                             self.body_textbox))
-        self.body_xpath_select_button_2 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.body_xpath_found_textbox_2,
-                                                                                                             self.body_textbox))
-        self.body_xpath_select_button_3 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.body_xpath_found_textbox_3,
-                                                                                                             self.body_textbox))
-        self.body_xpath_select_button_4 = Button(text="Select", command=lambda: self.from_textbox_to_textbox(self.body_xpath_found_textbox_4,
-                                                                                                             self.body_textbox))
-
-        self.toggle_view_button = Button(text="Switch Views", command=self.toggle_view)
-
-        self.first_grid_element_container = [
-            (self.kraken_id_textbox, "kraken_link", self.kraken_id_label, self.kraken_id_load_button, self.kraken_id_clipboard_button,
-             self.open_source_button, self.load_from_db_button, self.open_items_button),
-            (self.existing_code_textbox, "existing_code", self.existing_code_label, self.code_copy_button, self.load_from_existing_button),
-            (self.start_urls_textbox, "start_urls", self.start_urls_label, self.copy_start_button, self.open_link_button, self.open_domain_button,
-             self.source_name_button, self.source_domain_button),
-            (self.menu_textbox, "menu_xpath", self.menu_label, self.copy_menu_button, self.menu_default_button, self.menu_category_button),
-            (self.articles_textbox, "articles_xpath", self.articles_label, self.copy_articles_button, self.article_title_button, self.article_category_button),
-            (self.title_textbox, "title_xpath", self.title_label, self.copy_title_button, self.title_h1_button, self.title_button_brackets),
-            (self.pubdate_textbox, "pubdate_xpath", self.pubdate_label, self.copy_pubdate_button, self.meta_button, self.regex_dmy_button,
-             self.regex_ymd_button, self.pubdate_button_brackets),
-            (self.date_order_textbox, "date_order", self.date_order_label, self.date_order_DMY, self.date_order_YMD, self.date_order_MDY),
-            (self.author_textbox, "author_xpath", self.author_label, self.copy_author_button, self.author_meta_button, self.author_substring_button,
-             self.author_child_text_button, self.author_button_brackets),
-            (self.body_textbox, "body_xpath", self.body_label, self.copy_body_button, self.body_contains_class_button, self.not_contains_class_button,
-             self.not_contains_text_button, self.body_button_brackets)]
-
-        self.second_grid_elements_container = [
-            (self.menu_xpath_found_label, self.menu_xpath_found_textbox_1, self.menu_xpath_select_button_1, self.menu_xpath_result_textbox_1,
-             self.menu_xpath_found_textbox_2, self.menu_xpath_select_button_2, self.menu_xpath_result_textbox_2,
-             self.menu_xpath_found_textbox_3, self.menu_xpath_select_button_3, self.menu_xpath_result_textbox_3,
-             self.menu_xpath_found_textbox_4, self.menu_xpath_select_button_4, self.menu_xpath_result_textbox_4),
-            (self.articles_xpath_found_label, self.articles_xpath_found_textbox_1, self.articles_xpath_select_button_1, self.articles_xpath_result_textbox_1,
-             self.articles_xpath_found_textbox_2, self.articles_xpath_select_button_2, self.articles_xpath_result_textbox_2,
-             self.articles_xpath_found_textbox_3, self.articles_xpath_select_button_3, self.articles_xpath_result_textbox_3,
-             self.articles_xpath_found_textbox_4, self.articles_xpath_select_button_4, self.articles_xpath_result_textbox_4),
-            (self.title_xpath_found_label, self.title_xpath_found_textbox_1, self.title_xpath_select_button_1, self.title_xpath_result_textbox_1,
-             self.title_xpath_found_textbox_2, self.title_xpath_select_button_2, self.title_xpath_result_textbox_2,
-             self.title_xpath_found_textbox_3, self.title_xpath_select_button_3, self.title_xpath_result_textbox_3,
-             self.title_xpath_found_textbox_4, self.title_xpath_select_button_4, self.title_xpath_result_textbox_4),
-            (self.pubdate_xpath_found_label, self.pubdate_xpath_found_textbox_1, self.pubdate_xpath_select_button_1, self.pubdate_xpath_result_textbox_1,
-             self.pubdate_xpath_found_textbox_2, self.pubdate_xpath_select_button_2, self.pubdate_xpath_result_textbox_2,
-             self.pubdate_xpath_found_textbox_3, self.pubdate_xpath_select_button_3, self.pubdate_xpath_result_textbox_3,
-             self.pubdate_xpath_found_textbox_4, self.pubdate_xpath_select_button_4, self.pubdate_xpath_result_textbox_4),
-            (self.author_xpath_found_label, self.author_xpath_found_textbox_1, self.author_xpath_select_button_1, self.author_xpath_result_textbox_1,
-             self.author_xpath_found_textbox_2, self.author_xpath_select_button_2, self.author_xpath_result_textbox_2,
-             self.author_xpath_found_textbox_3, self.author_xpath_select_button_3, self.author_xpath_result_textbox_3,
-             self.author_xpath_found_textbox_4, self.author_xpath_select_button_4, self.author_xpath_result_textbox_4),
-            (self.body_xpath_found_label, self.body_xpath_found_textbox_1, self.body_xpath_select_button_1, self.body_xpath_result_textbox_1,
-             self.body_xpath_found_textbox_2, self.body_xpath_select_button_2, self.body_xpath_result_textbox_2,
-             self.body_xpath_found_textbox_3, self.body_xpath_select_button_3, self.body_xpath_result_textbox_3,
-             self.body_xpath_found_textbox_4, self.body_xpath_select_button_4, self.body_xpath_result_textbox_4)]
+        # self.second_grid_elements_container = [
+        #     (self.menu_xpath_found_label, self.menu_xpath_found_textbox_1, self.menu_xpath_select_button_1, self.menu_xpath_result_textbox_1,
+        #      self.menu_xpath_found_textbox_2, self.menu_xpath_select_button_2, self.menu_xpath_result_textbox_2,
+        #      self.menu_xpath_found_textbox_3, self.menu_xpath_select_button_3, self.menu_xpath_result_textbox_3,
+        #      self.menu_xpath_found_textbox_4, self.menu_xpath_select_button_4, self.menu_xpath_result_textbox_4),
+        #     (self.articles_xpath_found_label, self.articles_xpath_found_textbox_1, self.articles_xpath_select_button_1, self.articles_xpath_result_textbox_1,
+        #      self.articles_xpath_found_textbox_2, self.articles_xpath_select_button_2, self.articles_xpath_result_textbox_2,
+        #      self.articles_xpath_found_textbox_3, self.articles_xpath_select_button_3, self.articles_xpath_result_textbox_3,
+        #      self.articles_xpath_found_textbox_4, self.articles_xpath_select_button_4, self.articles_xpath_result_textbox_4),
+        #     (self.title_xpath_found_label, self.title_xpath_found_textbox_1, self.title_xpath_select_button_1, self.title_xpath_result_textbox_1,
+        #      self.title_xpath_found_textbox_2, self.title_xpath_select_button_2, self.title_xpath_result_textbox_2,
+        #      self.title_xpath_found_textbox_3, self.title_xpath_select_button_3, self.title_xpath_result_textbox_3,
+        #      self.title_xpath_found_textbox_4, self.title_xpath_select_button_4, self.title_xpath_result_textbox_4),
+        #     (self.pubdate_xpath_found_label, self.pubdate_xpath_found_textbox_1, self.pubdate_xpath_select_button_1, self.pubdate_xpath_result_textbox_1,
+        #      self.pubdate_xpath_found_textbox_2, self.pubdate_xpath_select_button_2, self.pubdate_xpath_result_textbox_2,
+        #      self.pubdate_xpath_found_textbox_3, self.pubdate_xpath_select_button_3, self.pubdate_xpath_result_textbox_3,
+        #      self.pubdate_xpath_found_textbox_4, self.pubdate_xpath_select_button_4, self.pubdate_xpath_result_textbox_4),
+        #     (self.author_xpath_found_label, self.author_xpath_found_textbox_1, self.author_xpath_select_button_1, self.author_xpath_result_textbox_1,
+        #      self.author_xpath_found_textbox_2, self.author_xpath_select_button_2, self.author_xpath_result_textbox_2,
+        #      self.author_xpath_found_textbox_3, self.author_xpath_select_button_3, self.author_xpath_result_textbox_3,
+        #      self.author_xpath_found_textbox_4, self.author_xpath_select_button_4, self.author_xpath_result_textbox_4),
+        #     (self.body_xpath_found_label, self.body_xpath_found_textbox_1, self.body_xpath_select_button_1, self.body_xpath_result_textbox_1,
+        #      self.body_xpath_found_textbox_2, self.body_xpath_select_button_2, self.body_xpath_result_textbox_2,
+        #      self.body_xpath_found_textbox_3, self.body_xpath_select_button_3, self.body_xpath_result_textbox_3,
+        #      self.body_xpath_found_textbox_4, self.body_xpath_select_button_4, self.body_xpath_result_textbox_4)]
 
         self.session = requests.Session()
         with open('settings.json') as f1:
@@ -376,11 +497,10 @@ class MainApplication(tk.Tk):
 
         login_link = "https://dashbeta.aiidatapro.net/"
 
-        self.headers = {'Connection': 'close', 'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0'}
+        self.headers = {'Connection': 'close', 'User-Agent': config.user_agent}
         session_headers = {
             'accept': 'text/html,application/xhtml+xml,application/xml',
-            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                          'Chrome/67.0.3396.99 Safari/537.36'
+            'user-agent': config.user_agent
         }
 
         if not os.path.exists('./login_data.py'):
@@ -412,49 +532,66 @@ class MainApplication(tk.Tk):
         webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-        # Style all buttons
-        style = Style()
-        style.configure('TButton', font=('Roboto Bold', 10))
-        style.map('TButton', foreground=[('active', '!disabled', 'green')],
-                  background=[('active', 'black')])
+        # Pack Frames
 
+        # self.pack_frame(self.pubdate_buttons_frame_list)
+        # self.pack_frame(self.body_buttons_frame_list)
+
+        main_frame_order = [self.view_menu_frame_list, self.json_full_frame_list, self.start_urls_frame_list, self.menu_frame_list, self.articles_frame_list,
+                            self.title_frame_list, self.pubdate_frame_list, self.author_frame_list, self.body_frame_list, self.bottom_buttons_frame_list,
+                            self.bottom_info_frame_list, self.testing_frame_list]
+
+        # row = 0
+        # col = 0
+        # for frame in main_frame_order:
+        #     for element_row in frame:
+        #         for element in element_row:
+        #             element.grid(row=row, column=col, sticky='W', padx=10, pady=10)
+        #             col += 1
+        #         row += 1
         row = 0
-        self.toggle_view_button.grid(row=row, column=1, sticky='W', pady=10, padx=(50, 2))
+        self.pack_frame(self.view_menu_frame_list)
+        self.view_menu_frame.grid(row=row, column=0, padx=5, pady=5)
+
         row += 1
+        self.pack_frame(self.json_buttons_frame_list)
+        self.pack_frame(self.json_checkbutton_frame_list)
+        self.pack_frame(self.json_combined_buttons_frame_list)
+        self.pack_frame(self.json_full_frame_list)
+        self.json_full_frame.grid(row=row, column=0, padx=5, pady=5)
 
-        for t in self.first_grid_element_container:
-            row = self.pack_entries(t, row)
+        row+=1
+        self.pack_frame(self.start_urls_frame_list)
+        self.start_urls_frame.grid(row=row, column=0, padx=5, pady=5)
 
-        self.generate_button.grid(row=row, column=1, sticky='W', ipadx=0, ipady=0, pady=(5, 2), padx=(20, 2))
-        self.clear_button.grid(row=row, column=2, sticky="E", ipadx=0, ipady=0, pady=2, padx=2)
-
-        row = 1
-        self.article_url_label.grid(row=row, column=1, sticky='W', padx=(50, 2), pady=2)
-        self.article_url_textbox.grid(row=row, column=2, sticky='W', padx=2, pady=2)
-        self.find_menu_articles_button.grid(row=row, column=3, sticky='W', padx=2, pady=2)
-        self.find_content_button.grid(row=row, column=4, sticky='W', padx=2, pady=2)
-        row += 1
-        for element in self.second_grid_elements_container:
-            element[0].grid(row=row, column=1, sticky='W', padx=(50, 2), pady=(20, 2))
-            start_row = row
-            for i, widget in enumerate(element[1:]):
-                curr_row = math.floor(i / 3) + start_row
-                curr_col = (i % 3) + 2
-                if i < 3:
-                    widget.grid(row=curr_row, column=curr_col, sticky='W', padx=2, pady=(20, 2))
-                else:
-                    widget.grid(row=curr_row, column=curr_col, sticky='W', padx=2, pady=2)
-            row += 5
+        row+=1
+        self.pack_frame(self.articles_frame_list)
+        self.articles_frame.grid(row=row, column=0, padx=5, pady=5)
+        # # Second View
+        # row = 1
+        # self.article_url_label.grid(row=row, column=1, sticky='W', padx=(50, 2), pady=2)
+        # self.article_url_textbox.grid(row=row, column=2, sticky='W', padx=2, pady=2)
+        # self.find_menu_articles_button.grid(row=row, column=3, sticky='W', padx=2, pady=2)
+        # self.find_content_button.grid(row=row, column=4, sticky='W', padx=2, pady=2)
+        # row += 1
+        # for element in self.second_grid_elements_container:
+        #     element[0].grid(row=row, column=1, sticky='W', padx=(50, 2), pady=(20, 2))
+        #     start_row = row
+        #     for i, widget in enumerate(element[1:]):
+        #         curr_row = math.floor(i / 3) + start_row
+        #         curr_col = (i % 3) + 2
+        #         if i < 3:
+        #             widget.grid(row=curr_row, column=curr_col, sticky='W', padx=2, pady=(20, 2))
+        #         else:
+        #             widget.grid(row=curr_row, column=curr_col, sticky='W', padx=2, pady=2)
+        #     row += 5
 
         # Forget Second View
-        self.article_url_label.grid_remove()
-        self.article_url_textbox.grid_remove()
-        self.find_content_button.grid_remove()
-        self.find_menu_articles_button.grid_remove()
-        for element in self.second_grid_elements_container:
-            for widget in element:
+
+        for widget in self.winfo_children():
+            if not hasattr(widget, 'view') or widget.view != 'extractor':
                 widget.grid_remove()
-        row += 1
+                print(f"removed {widget}")
 
         atexit.register(self.exit_handler)
         width = 960
@@ -469,12 +606,12 @@ class MainApplication(tk.Tk):
         self.bind_all("<Key>", self.on_key_release, "+")
         self.lift()
         t2 = time()
-        print(f"Booted in {t2 - t1} seconds.")
+        print(f"Booted in {round(t2 - t1, 2)} seconds.")
 
     def initiate_connection(self):
-        try:
+        if os.path.exists(self.shared_db_path):
             con = sqlite3.connect(self.shared_db_path)
-        except sqlite3.OperationalError:
+        else:
             con = sqlite3.connect(self.local_db_path)
         return con
 
@@ -491,6 +628,53 @@ class MainApplication(tk.Tk):
         cur.execute('''CREATE TABLE IF NOT EXISTS pubdate_xpath(xpath text, count number)''')
         cur.execute('''CREATE TABLE IF NOT EXISTS author_xpath(xpath text, count number)''')
         cur.execute('''CREATE TABLE IF NOT EXISTS body_xpath(xpath text, count number)''')
+
+    def set_word_boundaries(self):
+        # this first statement triggers tcl to autoload the library
+        # that defines the variables we want to override.
+        self.tk.call('tcl_wordBreakAfter', '', 0)
+
+        # this defines what tcl considers to be a "word". For more
+        # information see http://www.tcl.tk/man/tcl8.5/TclCmd/library.htm#M19
+        self.tk.call('set', 'tcl_wordchars', '[a-zA-Z0-9_.,]')
+        self.tk.call('set', 'tcl_nonwordchars', '[^a-zA-Z0-9_.,]')
+
+    @staticmethod
+    def pack_frame(elements, sticky='NW', padx=2, pady=2):
+        row = 0
+        col = 0
+        for element_row in elements:
+            for element in element_row:
+                print(f"packing {element}")
+                element.grid(row=row, column=col, sticky=sticky, padx=padx, pady=pady)
+                col += 1
+            row += 1
+            col = 0
+
+    def edit_json(self, initial_key, keyword, value):
+        if self.json_textbox.get("1.0", tk.END).strip():
+            existing_json = json.loads(self.json_textbox.get("1.0", tk.END).strip())
+            if keyword in existing_json[initial_key].keys():
+                if existing_json[initial_key][keyword] == value:
+                    del existing_json[initial_key][keyword]
+                else:
+                    existing_json[initial_key][keyword] = value
+            else:
+                existing_json[initial_key][keyword] = value
+            self.json_textbox.delete("1.0", tk.END)
+            self.json_textbox.insert("1.0", json.dumps(existing_json, indent=2))
+            if keyword == 'date_order':
+                self.update_date_order_label()
+        else:
+            return
+
+    def update_date_order_label(self):
+        if self.json_textbox.get("1.0", tk.END).strip():
+            existing_json = json.loads(self.json_textbox.get("1.0", tk.END).strip())
+            if 'date_order' in existing_json['scrapy_arguments'].keys():
+                self.date_order_label['text'] = existing_json['scrapy_arguments']['date_order']
+            else:
+                self.date_order_label['text'] = ""
 
     @staticmethod
     def copy_code(textbox):
@@ -511,9 +695,9 @@ class MainApplication(tk.Tk):
             self.kraken_id = ""
             self.title(self.window_title)
         else:
-            if self.kraken_id_textbox.get('1.0', tk.END).strip():
+            if self.kraken_textbox.get('1.0', tk.END).strip():
                 try:
-                    self.kraken_id = re.findall(r'\d+', self.kraken_id_textbox.get('1.0', tk.END).strip())[-1]
+                    self.kraken_id = re.findall(r'\d+', self.kraken_textbox.get('1.0', tk.END).strip())[-1]
                 except IndexError:
                     print("No ID found")
                     return
@@ -535,7 +719,7 @@ class MainApplication(tk.Tk):
         else:
             return ""
 
-    def load_code(self, link, open_source_bool=True):
+    def load_from_kraken(self, link, open_source_bool=True):
         """
         Function to fill the extractor with the JSON from Kraken
         :param link: Kraken link / ID
@@ -543,22 +727,40 @@ class MainApplication(tk.Tk):
         :return:
         """
         self.clear_all_textboxes()
-        self.kraken_id_textbox.delete('1.0', tk.END)
-        self.kraken_id_textbox.insert('1.0', link)
+        self.kraken_textbox.delete('1.0', tk.END)
+        self.kraken_textbox.insert('1.0', link)
         link = self.get_link()  # Format link
         if not link:
             print("No ID found")
             return
-        if open_source_bool:
+        if open_source_bool and self.open_links_check_bool.get():
             webbrowser.get("chrome").open(link)
 
         # Show correctly formatted link in textbox
-        self.kraken_id_textbox.delete('1.0', tk.END)
-        self.kraken_id_textbox.insert('1.0', link)
+        self.kraken_textbox.delete('1.0', tk.END)
+        self.kraken_textbox.insert('1.0', link)
 
+        # Show if/who/when edited the source last
+        con = self.initiate_connection()
+        cur = con.cursor()
+        cur.execute('SELECT * FROM log WHERE id=?', (self.kraken_id,))
+        result = cur.fetchone()
+        if result:
+            self.last_extractor_edit_label['text'] = f"Last Edit: {result[12]} - {result[1]}"
+        con.commit()
+        con.close()
+        items_link = link.replace('/edit', '')
+        last_editor_xpath = '//tr[td[child::text()[contains(.,"Updated by")]]]/td[2]//text()'
+        last_update_xpath = '//tr[td[child::text()[contains(.,"Last update")]]]/td[2]/text()'
+        items_page_response = self.session.get(items_link)
+        tree = html.fromstring(items_page_response.text)
+        last_editor = tree.xpath(last_editor_xpath)[1].strip() if len(tree.xpath(last_editor_xpath)) > 2 else "None"
+        last_update = tree.xpath(last_update_xpath)[0]
+        self.last_kraken_edit_label['text'] = f"Last Kraken Edit: {last_editor} - {last_update}"
         # Extract Xpath from Kraken page
         xpath = "//input[@name='feed_properties']/@value"
         link = link.strip()
+
         try:
             kraken_response = self.session.get(link)
         except Exception:
@@ -594,14 +796,19 @@ class MainApplication(tk.Tk):
         con = self.initiate_connection()
         cur = con.cursor()
 
-        if self.kraken_id_textbox.get('1.0', tk.END).strip():
-            kraken_id = re.search(r'\d+', self.kraken_id_textbox.get('1.0', tk.END)).group()
-        else:
+        if not self.kraken_textbox.get('1.0', tk.END).strip():
             return
-        cur.execute('SELECT * FROM log WHERE id=?', (kraken_id,))
-        result = cur.fetchone()
+
+        kraken_id = re.search(r'\d+', self.kraken_textbox.get('1.0', tk.END))
+        if kraken_id:
+            cur.execute('SELECT * FROM log WHERE id=?', (kraken_id.group(),))
+            result = cur.fetchone()
+        else:
+            cur.execute("SELECT * FROM log WHERE start_urls LIKE '%'||?||'%'", (self.kraken_textbox.get('1.0', tk.END).strip(),))
+            result = cur.fetchone()
         if result:
-            self.set_kraken_id(kraken_id)
+            self.set_kraken_id(result[0])
+            self.last_extractor_edit_label['text'] = f"Last Edit: {result[12]} - {result[1]}"
             settings = result[10].replace("'", '"').replace("False", '"False"').replace("True",
                                                                                         '"True"')  # Format Bool Values to not crash JSON
             # Create a new var and load database values into it
@@ -623,13 +830,13 @@ class MainApplication(tk.Tk):
 
     def open_items_page(self):
         # Function to open the "View Item" page of the source in Kraken
-        if self.kraken_id_textbox.get('1.0', tk.END).strip():
+        if self.kraken_textbox.get('1.0', tk.END).strip():
             link = self.get_link().replace('/edit', '')
             webbrowser.get("chrome").open(link)
         else:
             return
 
-    def get_source_name(self):
+    def get_source_name(self, copy=True):
         domain = self.start_urls_textbox.get("1.0", tk.END).strip()
         if domain and domain[-1] == '/':
             domain = domain[:-1]
@@ -638,7 +845,9 @@ class MainApplication(tk.Tk):
         except IndexError:
             return
         if name:
-            pyperclip.copy(name)
+            if copy:
+                pyperclip.copy(name)
+            return name
 
     @staticmethod
     def append_textbox_values(textbox, before_value="", after_value=""):
@@ -668,6 +877,9 @@ class MainApplication(tk.Tk):
             textbox2.delete('1.0', tk.END)
             textbox2.insert('1.0', value)
 
+    def test_xpath(self):
+        pass
+
     def open_start_urls_link(self):
         links = self.start_urls_textbox.get("1.0", tk.END).split(';')
         if links:
@@ -696,6 +908,8 @@ class MainApplication(tk.Tk):
             if sitemap:
                 sitemap_link = sitemap[0]
                 if 'http' not in sitemap[0]:
+                    if sitemap[0][0] != '/':
+                        sitemap[0] = '/' + sitemap[0]
                     sitemap_link = domain[:-1] + sitemap[0]
                 webbrowser.get("chrome").open(sitemap_link)
                 print(f"Sitemap - {sitemap_link}")
@@ -727,20 +941,30 @@ class MainApplication(tk.Tk):
 
     def clear_all_textboxes(self):
         self.set_kraken_id(unset=True)
-        for textbox in self.all_textboxes:
-            textbox.delete("1.0", tk.END)
+        for widget in self.winfo_children():
+            if isinstance(widget, MyText):
+                widget.delete("1.0", tk.END)
+        self.last_kraken_edit_label['text'] = ""
+        self.last_extractor_edit_label['text'] = ""
+        self.date_order_label['text'] = ""
 
     @staticmethod
     def sort_json(json_object):
         keyorder_arguments = ["start_urls", "menu_xpath", "articles_xpath", "title_xpath", "pubdate_xpath", "date_order",
-                              "author_xpath", "body_xpath", "link_id_regex"]
-        existing_keys = []
+                              "author_xpath", "body_xpath", "allowed_domains", "link_id_regex", "sitemap_urls"]
+        sortable_keys = []
+        other_keys = []
         for entry in keyorder_arguments:
             if entry in json_object["scrapy_arguments"].keys():
-                existing_keys.append(entry)
-
+                sortable_keys.append(entry)
+        for entry in json_object["scrapy_arguments"].keys():
+            if entry not in sortable_keys:
+                other_keys.append(entry)
+        if 'extractor' in other_keys:
+            other_keys.remove('extractor')
+        sortable_keys.extend(other_keys)
         new_dict = {"scrapy_arguments": {}, "scrapy_settings": {}}
-        for entry in existing_keys:
+        for entry in sortable_keys:
             new_dict["scrapy_arguments"][entry] = json_object["scrapy_arguments"][entry]
         new_dict["scrapy_settings"] = json_object["scrapy_settings"]
         return new_dict
@@ -751,7 +975,6 @@ class MainApplication(tk.Tk):
                     self.articles_textbox.get("1.0", tk.END).strip() or
                     self.title_textbox.get("1.0", tk.END).strip() or
                     self.pubdate_textbox.get("1.0", tk.END).strip() or
-                    self.date_order_textbox.get("1.0", tk.END).strip() or
                     self.author_textbox.get("1.0", tk.END).strip() or
                     self.body_textbox.get("1.0", tk.END).strip())
 
@@ -776,8 +999,8 @@ class MainApplication(tk.Tk):
 
     def default_changes(self, json_var):
         json_var["scrapy_arguments"]["link_id_regex"] = None
-        for element in self.first_grid_element_container[2:]:
-            self.edit_textbox(element[0], element[1], json_var)
+        for element in self.xpath_dict.keys():
+            self.edit_textbox(self.xpath_dict[element], element, json_var)
 
         if "scrapy_settings" in json_var.keys():
             json_var["scrapy_settings"].update(self.settings_json)
@@ -787,14 +1010,14 @@ class MainApplication(tk.Tk):
 
     def fill_code_textbox(self, json_var):
         final_text = json.dumps(json_var, indent=2)
-        self.existing_code_textbox.delete("1.0", tk.END)
-        self.existing_code_textbox.insert('1.0', final_text)
+        self.json_textbox.delete("1.0", tk.END)
+        self.json_textbox.insert('1.0', final_text)
         return final_text
 
     def log_code(self, json_dict):
         if self.kraken_id:
             self.log_to_db(json_dict)
-        elif self.kraken_id_textbox.get('1.0', tk.END).strip():
+        elif self.kraken_textbox.get('1.0', tk.END).strip():
             self.set_kraken_id()
             self.log_to_db(json_dict)
         else:
@@ -836,12 +1059,13 @@ class MainApplication(tk.Tk):
         con.close()
 
     def generate(self, _=None, initial_json=None, load_from_existing_bool=False):
-        existing_code = self.existing_code_textbox.get("1.0", tk.END).strip()
+        existing_code = self.json_textbox.get("1.0", tk.END).strip()
         if initial_json:
             json_variable = self.default_changes(initial_json)
             self.fill_code_textbox(json_variable)
-            for tup in self.first_grid_element_container[2:]:
-                self.edit_textbox(tup[0], tup[1], json_variable)
+            self.update_date_order_label()
+            for element in self.xpath_dict.keys():
+                self.edit_textbox(self.xpath_dict[element], element, json_variable)
 
         elif existing_code:
             try:
@@ -850,13 +1074,14 @@ class MainApplication(tk.Tk):
                 print("Invalid JSON")
                 return
             if not load_from_existing_bool and self.not_empty():
-                for tup in self.first_grid_element_container[2:]:
-                    json_variable = self.get_text_from_textbox(tup[0], tup[1], json_variable)
+                for element in self.xpath_dict.keys():
+                    json_variable = self.get_text_from_textbox(self.xpath_dict[element], element, json_variable)
             json_variable = self.default_changes(json_variable)
             final_json = self.fill_code_textbox(json_variable)
+            self.update_date_order_label()
             pyperclip.copy(final_json)
-            for tup in self.first_grid_element_container[2:]:
-                self.edit_textbox(tup[0], tup[1], json_variable)
+            for element in self.xpath_dict.keys():
+                self.edit_textbox(self.xpath_dict[element], element, json_variable)
 
             self.log_code(json_variable)
 
@@ -871,13 +1096,15 @@ class MainApplication(tk.Tk):
                 "scrapy_settings": {
                     "LOG_LEVEL": "DEBUG",
                     "COOKIES_ENABLED": False,
-                    "USER_AGENT": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0"
+                    "USER_AGENT": config.user_agent
                 }
             }
-            for tup in self.first_grid_element_container[2:]:
-                json_variable = self.get_text_from_textbox(tup[0], tup[1], json_variable)
+            for element in self.xpath_dict.keys():
+                self.edit_textbox(self.xpath_dict[element], element, json_variable)
+
             json_variable = self.default_changes(json_variable)
             final_json = self.fill_code_textbox(json_variable)
+            self.update_date_order_label()
             pyperclip.copy(final_json)
             self.log_code(json_variable)
         else:
@@ -938,7 +1165,7 @@ class MainApplication(tk.Tk):
     def find_content(self):
         for element in self.second_grid_elements_container[2:]:
             for widget in element:
-                if isinstance(widget, tk.Text):
+                if isinstance(widget, MyText):
                     widget.delete('1.0', tk.END)
         article_url = self.article_url_textbox.get("1.0", tk.END).strip()
         website_response = requests.get(article_url, headers=self.headers, verify=False)
@@ -951,7 +1178,7 @@ class MainApplication(tk.Tk):
     def find_menu_articles(self):
         for element in self.second_grid_elements_container[:2]:
             for widget in element:
-                if isinstance(widget, tk.Text):
+                if isinstance(widget, MyText):
                     widget.delete('1.0', tk.END)
         article_url = self.article_url_textbox.get("1.0", tk.END).strip()
         website_response = requests.get(article_url, headers=self.headers, verify=False)
@@ -977,53 +1204,35 @@ class MainApplication(tk.Tk):
     def exit_handler(self):
         pass
 
-    def toggle_view(self):
-        if self.generate_button.winfo_ismapped():
-            # Forget First View
-            for element in self.first_grid_element_container:
-                for widget in element:
-                    if not isinstance(widget, str):
-                        widget.grid_remove()
-            self.generate_button.grid_remove()
-            self.clear_button.grid_remove()
+    def forget_current_view(self):
+        for widget in self.winfo_children():
+            if widget.view == 'extractor':
+                # widget.grid_remove()
+                pass
 
-            # Load Second View
-            self.article_url_label.grid()
-            self.article_url_textbox.grid()
-            self.find_menu_articles_button.grid()
-            self.find_content_button.grid()
-            for element in self.second_grid_elements_container:
-                for widget in element:
-                    widget.grid()
+    def open_new_view(self, view):
+        for widget in self.winfo_children():
+            if widget.view == view:
+                widget.grid()
 
-        else:
-            # Forget Second View
-            self.article_url_label.grid_remove()
-            self.article_url_textbox.grid_remove()
-            self.find_content_button.grid_remove()
-            self.find_menu_articles_button.grid_remove()
-            for element in self.second_grid_elements_container:
-                for widget in element:
-                    widget.grid_remove()
+    def open_finder_view(self):
+        self.article_url_label.grid()
+        self.article_url_textbox.grid()
+        self.find_menu_articles_button.grid()
+        self.find_content_button.grid()
+        for element in self.second_grid_elements_container:
+            for widget in element:
+                widget.grid()
 
-            # Load First View
-            for element in self.first_grid_element_container:
-                for widget in element:
-                    if not isinstance(widget, str):
-                        widget.grid()
-            self.generate_button.grid()
-            self.clear_button.grid()
-
-    @staticmethod
-    def pack_entries(entry_tuple, curr_row):
-        entry_tuple[2].grid(row=curr_row, column=1, sticky='W', pady=2, padx=(20, 2))
-        curr_row += 1
-        entry_tuple[0].grid(row=curr_row, column=1, sticky='W', pady=2, padx=(20, 2))
-        if len(entry_tuple) > 3:  # if len = 4 or more
-            for i in range(3, len(entry_tuple)):
-                entry_tuple[i].grid(row=curr_row, column=i - 1, sticky='W', pady=2, padx=2)
-        curr_row += 1
-        return curr_row
+    def switch_view(self, view_to_open):
+        if view_to_open == self.current_view:
+            return
+        self.forget_current_view()
+        if view_to_open == 'extractor':
+            self.open_new_view()
+        elif view_to_open == 'finder':
+            self.open_finder_view()
+        self.current_view = view_to_open
 
     @staticmethod
     def join_tuple_string(values_tuple) -> str:
