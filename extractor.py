@@ -4,7 +4,6 @@ import tkinter as tk
 import json
 import webbrowser
 from json import JSONDecodeError
-from pprint import pprint
 from tkinter.font import Font
 import pyperclip
 import requests
@@ -19,6 +18,7 @@ import config
 from tkinter.ttk import *
 import sys
 import urllib3
+from typing import Union
 from custom_widgets import MyText, MyLabel, MyFrame, MyButton, MyCheckbutton
 
 
@@ -656,7 +656,7 @@ class MainApplication(tk.Tk):
                 self.get_all_widgets(widget)
 
     @staticmethod
-    def pack_frame(elements, sticky='NW', padx=2, pady=2):
+    def pack_frame(elements, sticky='NW', padx: Union[int, tuple] = 2, pady=2):
         row = 0
         col = 0
         for element_row in elements:
@@ -906,16 +906,20 @@ class MainApplication(tk.Tk):
             list_keys = list(regex_exists.keys())
             for key in reversed(list_keys):
                 if key == 'match_index':
-                    print(f'match - {string}',)
+                    print(f'match - {string}', )
                     match_search = re.search(r"re:match\(([^,]+),\s*'(.+)',\s*'g'\)", string)
                     print(match_search.groups())
                     regex_list.append({'regex': match_search.group(2), 'command': 'match'})
                     if key == list_keys[-1]:
                         new_xpath = match_search.group(1)
                 elif key == 'replace_index':
-                    print(f'replace - {string}',)
+                    print(f'replace - {string}', )
                     replace_search = re.search(r"re:replace\((.+),\s*'(.+)',\s*'(.+)',\s*'(.+)'", string)
-                    regex_list.append({'command': 'replace', 'from': replace_search.group(2), 'to': replace_search.group(4)})
+                    if len(replace_search.groups()) < 4:
+                        to = ''
+                    else:
+                        to = replace_search.group(4)
+                    regex_list.append({'command': 'replace', 'from': replace_search.group(2), 'to': to})
                     if key == list_keys[-1]:
                         new_xpath = replace_search.group(1)
                 elif key == 'before_index':
@@ -933,7 +937,7 @@ class MainApplication(tk.Tk):
         xpath = self.testing_xpath_textbox.get("1.0", tk.END).strip()
         article = self.testing_article_textbox.get("1.0", tk.END).strip()
         existing_regex, xpath = look_for_regex(xpath)
-        xpath = xpath if re.search(r'.+\/@', xpath) or re.search(r'.+\/text\(\)', xpath) else xpath + '//text()'
+        xpath = xpath if re.search(r'.+/@', xpath) or re.search(r'.+/text\(\)', xpath) else xpath + '//text()'
         website_response = requests.get(article, headers=self.headers, verify=False)
         tree = html.fromstring(website_response.text)
         results = tree.xpath(xpath)
@@ -955,7 +959,7 @@ class MainApplication(tk.Tk):
                     elif rgx['command'] == 'after':
                         for i, result in enumerate(results):
                             index = result.index(rgx['symbol'])
-                            results[i] = result[index+1:]
+                            results[i] = result[index + 1:]
             self.testing_result_label['text'] = f"({len(results)}) - {','.join(results)}"
         else:
             self.testing_result_label['text'] = ""

@@ -1,5 +1,5 @@
-last_change = '09-Nov-2021 09:51'
-side_of_window = 'r'
+last_change = '30-Nov-2021 15:59'
+side_of_window = 'l'
 proxy = "http://ch.proxymesh.com:31280/"
 # other proxies
 # "http://us-wa.proxymesh.com:31280/",
