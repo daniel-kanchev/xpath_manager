@@ -185,9 +185,6 @@ class MainApplication(tk.Tk):
         self.open_finder_button = MyButton(master=self.view_menu_frame, view='menu', text="Finder",
                                            command=lambda: self.switch_view(view_to_open='finder'))
 
-        # Kraken MyButtons
-        self.kraken_load_button = MyButton(master=self.kraken_frame, view='extractor', text="Load",
-                                           command=lambda: self.load_from_kraken(self.kraken_textbox.get('1.0', tk.END), open_source_bool=False))
         self.kraken_clipboard_button = MyButton(master=self.kraken_frame, view='extractor', text="Clipboard",
                                                 command=lambda: self.load_from_kraken(self.clipboard_get()))
         self.open_source_button = MyButton(master=self.kraken_frame, view='extractor', text="Source",
@@ -280,7 +277,9 @@ class MainApplication(tk.Tk):
         self.pubdate_replace_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Replace",
                                                command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:replace(",
                                                                                           after_value=r", 'SYMBOL1', 'g', 'SYMBOL2')"))
-
+        self.word_regex_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Rgx Word",
+                                          command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
+                                                                                     after_value=r", '\d{1,2}\s\w+\s\d{2,4}', 'g')"))
         # Author Xpath MyButtons
         self.copy_author_button = MyButton(master=self.author_frame, view='extractor', text="Copy", command=lambda: self.copy_code(self.author_textbox))
         self.author_single_button = MyButton(master=self.author_frame, view='extractor', text="[1]",
@@ -414,7 +413,7 @@ class MainApplication(tk.Tk):
         # Extractor Frame Lists
         self.view_menu_frame.frame_list = [[self.open_extractor_button, self.open_finder_button]]
         self.kraken_frame.frame_list = [[self.kraken_id_label],
-                                        [self.kraken_textbox, self.kraken_load_button, self.kraken_clipboard_button, self.open_source_button,
+                                        [self.kraken_textbox, self.kraken_clipboard_button, self.open_source_button,
                                          self.load_from_db_button, self.open_items_button]]
         self.json_buttons_frame.frame_list = [[self.code_copy_button, self.load_from_existing_button, self.add_proxy_button, self.allowed_domains_button],
                                               [self.init_wait_button, self.article_wait_button],
@@ -434,8 +433,8 @@ class MainApplication(tk.Tk):
         self.title_frame.frame_list = [[self.title_label],
                                        [self.title_textbox, self.copy_title_button, self.title_h1_button, self.title_single_button]]
         self.pubdate_buttons_frame.frame_list = [[self.copy_pubdate_button, self.meta_button, self.standard_regex_button, self.blank_regex_button,
-                                                  self.pubdate_single_button],
-                                                 [self.pubdate_replace_button]]
+                                                  self.pubdate_replace_button],
+                                                 [self.word_regex_button, self.pubdate_single_button]]
         self.pubdate_frame.frame_list = [[self.pubdate_label], [self.pubdate_textbox, self.pubdate_buttons_frame]]
         self.author_frame.frame_list = [[self.author_label],
                                         [self.author_textbox, self.copy_author_button, self.author_meta_button, self.author_substring_button,
@@ -619,10 +618,12 @@ class MainApplication(tk.Tk):
         print(f"Booted in {round(t2 - t1, 2)} seconds.")
 
     def initiate_connection(self):
-        if os.path.exists(self.shared_db_path):
+        if os.path.isdir('//VT10/xpath_manager'):
             con = sqlite3.connect(self.shared_db_path)
+            print("Shared")
         else:
             con = sqlite3.connect(self.local_db_path)
+            print("Local")
         return con
 
     @staticmethod
@@ -640,14 +641,9 @@ class MainApplication(tk.Tk):
         cur.execute('''CREATE TABLE IF NOT EXISTS body_xpath(xpath text, count number)''')
 
     def set_word_boundaries(self):
-        # this first statement triggers tcl to autoload the library
-        # that defines the variables we want to override.
         self.tk.call('tcl_wordBreakAfter', '', 0)
-
-        # this defines what tcl considers to be a "word". For more
-        # information see http://www.tcl.tk/man/tcl8.5/TclCmd/library.htm#M19
-        self.tk.call('set', 'tcl_wordchars', '[a-zA-Z0-9_.,]')
-        self.tk.call('set', 'tcl_nonwordchars', '[^a-zA-Z0-9_.,]')
+        self.tk.call('set', 'tcl_wordchars', '[a-zA-Z0-9_.,-]')
+        self.tk.call('set', 'tcl_nonwordchars', '[^a-zA-Z0-9_.,-]')
 
     def get_all_widgets(self, root):
         for widget in root.winfo_children():
