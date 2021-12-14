@@ -229,10 +229,15 @@ class MainApplication(tk.Tk):
         # JSON Checkbuttons
         self.open_links_check_bool = tk.IntVar()
         self.open_links_check_bool.set(1)
+
+        self.rdc_check_bool = tk.IntVar()
+        self.rdc_check_bool.set(0)
         self.open_source_checkbutton = MyCheckbutton(master=self.json_checkbutton_frame, view='extractor', text="Open links when loading Kraken",
                                                      variable=self.open_links_check_bool,
                                                      takefocus=False)
-
+        self.rdc_checkbutton = MyCheckbutton(master=self.json_checkbutton_frame, view='extractor', text="RDC",
+                                                     variable=self.rdc_check_bool,
+                                                     takefocus=False)
         # Start URL MyButtons
         self.copy_start_button = MyButton(master=self.start_urls_frame, view='extractor', text="Copy", command=lambda: self.copy_code(self.start_urls_textbox))
         self.open_link_button = MyButton(master=self.start_urls_frame, view='extractor', text='Open Link', command=self.open_start_urls_link)
@@ -418,7 +423,7 @@ class MainApplication(tk.Tk):
         self.json_buttons_frame.frame_list = [[self.code_copy_button, self.load_from_existing_button, self.add_proxy_button, self.allowed_domains_button],
                                               [self.init_wait_button, self.article_wait_button],
                                               [self.date_order_DMY, self.date_order_MDY, self.date_order_YMD, self.date_order_label]]
-        self.json_checkbutton_frame.frame_list = [[self.open_source_checkbutton]]
+        self.json_checkbutton_frame.frame_list = [[self.open_source_checkbutton, self.rdc_checkbutton]]
         self.json_combined_buttons_frame.frame_list = [[self.json_buttons_frame],
                                                        [self.json_checkbutton_frame]]
         self.json_full_frame.frame_list = [[self.json_label],
@@ -853,6 +858,8 @@ class MainApplication(tk.Tk):
             domain = domain[:-1]
         try:
             name = domain.split('//')[1].split('/')[0].replace('www.', '')
+            if self.rdc_check_bool.get():
+                name += ' - RDC AM'
         except IndexError:
             return
         if name:
@@ -1007,14 +1014,14 @@ class MainApplication(tk.Tk):
             print("Invalid URL")
             return
         try:
-
             webbrowser.get("chrome").open(domain)
-            req = requests.get(domain, headers=self.headers, verify=False)
-            new_url = req.url
-            if new_url[-1] != '/':
-                new_url += '/'
-            self.find_sitemap()
-            self.replace_textbox_value(self.start_urls_textbox, new_url)
+            if not self.rdc_check_bool.get():
+                req = requests.get(domain, headers=self.headers, verify=False)
+                new_url = req.url
+                if new_url[-1] != '/':
+                    new_url += '/'
+                self.find_sitemap()
+                self.replace_textbox_value(self.start_urls_textbox, new_url)
         except Exception:
             print(f"Domain could not load - {domain}")
             return
@@ -1079,7 +1086,8 @@ class MainApplication(tk.Tk):
             textbox.insert('1.0', json_var["scrapy_arguments"][xpath_name])
 
     def default_changes(self, json_var):
-        json_var["scrapy_arguments"]["link_id_regex"] = None
+        if "link_id_regex" not in json_var["scrapy_arguments"].keys() and 'articles_xpath' in json_var["scrapy_arguments"].keys() :
+            json_var["scrapy_arguments"]["link_id_regex"] = None
         for element in self.xpath_dict.keys():
             self.edit_textbox(self.xpath_dict[element], element, json_var)
 
