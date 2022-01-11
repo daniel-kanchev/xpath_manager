@@ -1107,7 +1107,7 @@ class MainApplication(tk.Tk):
 
             self.log_code(json_variable)
 
-        elif self.not_empty():
+        else:
             json_variable = {
                 "scrapy_arguments": {
                     "start_urls": "",
@@ -1121,16 +1121,17 @@ class MainApplication(tk.Tk):
                     "USER_AGENT": config.user_agent
                 }
             }
-            for element in self.xpath_dict.keys():
-                self.edit_textbox(self.xpath_dict[element], element, json_variable)
+            if self.not_empty():
+                for element in self.xpath_dict.keys():
+                    json_variable = self.get_text_from_textbox(self.xpath_dict[element], element, json_variable)
 
-            json_variable = self.default_changes(json_variable)
-            final_json = self.fill_code_textbox(json_variable)
-            self.update_date_order_label()
-            pyperclip.copy(final_json)
-            self.log_code(json_variable)
-        else:
-            return
+                json_variable = self.default_changes(json_variable)
+                final_json = self.fill_code_textbox(json_variable)
+                self.update_date_order_label()
+                pyperclip.copy(final_json)
+                self.log_code(json_variable)
+            else:
+                self.fill_code_textbox(json_variable)
 
     def fill_found_textboxes(self, tree, column):
         debug = False
