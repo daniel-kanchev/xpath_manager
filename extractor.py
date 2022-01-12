@@ -75,6 +75,9 @@ class MainApplication(tk.Tk):
         self.author_xpath_found_frame = MyFrame(master=self, view='finder', padding=10)
         self.body_xpath_found_frame = MyFrame(master=self, view='finder', padding=10)
 
+        # Menu Labels
+        self.view_menu_label = MyLabel(master=self.view_menu_frame, view='menu', text="", width=70)
+
         # Extractor Labels
         self.kraken_id_label = MyLabel(master=self.kraken_frame, view='extractor', text="Kraken Link/ID:")
         self.json_label = MyLabel(master=self.json_full_frame, view='extractor', text="JSON:")
@@ -175,7 +178,12 @@ class MainApplication(tk.Tk):
                                               command=lambda: self.switch_view(view_to_open='extractor'))
         self.open_finder_button = MyButton(master=self.view_menu_frame, view='menu', text="Finder",
                                            command=lambda: self.switch_view(view_to_open='finder'))
+        self.sync_button = MyButton(master=self.view_menu_frame, view='menu', text="Sync",
+                                    command=self.sync)
+        self.refresh_db_button = MyButton(master=self.view_menu_frame, view='menu', text="Refresh DB",
+                                    command=self.stats)
 
+        # Kraken Buttons
         self.kraken_clipboard_button = MyButton(master=self.kraken_frame, view='extractor', text="Clipboard",
                                                 command=lambda: self.load_from_kraken(self.clipboard_get()))
         self.open_source_button = MyButton(master=self.kraken_frame, view='extractor', text="Source",
@@ -236,9 +244,9 @@ class MainApplication(tk.Tk):
         self.open_source_checkbutton = MyCheckbutton(master=self.json_checkbutton_frame, view='extractor', text="Auto Open Source",
                                                      variable=self.open_links_check_bool,
                                                      takefocus=False)
-        self.overwrite_domain_checkutton = MyCheckbutton(master=self.json_checkbutton_frame, view='extractor', text="Overwrite Domain",
-                                                         variable=self.overwrite_domain_check_bool,
-                                                         takefocus=False)
+        self.overwrite_domain_checkbutton = MyCheckbutton(master=self.json_checkbutton_frame, view='extractor', text="Overwrite Domain",
+                                                          variable=self.overwrite_domain_check_bool,
+                                                          takefocus=False)
         self.rdc_checkbutton = MyCheckbutton(master=self.json_checkbutton_frame, view='extractor', text="RDC",
                                              variable=self.rdc_check_bool,
                                              takefocus=False)
@@ -259,6 +267,8 @@ class MainApplication(tk.Tk):
         self.article_not_category_button = MyButton(master=self.articles_frame, view='extractor', text="Not Cat",
                                                     command=lambda: self.append_textbox_values(self.articles_textbox, before_value='(',
                                                                                                after_value=")[not(contains(@href, 'ategor'))]"))
+        self.article_cont_href_button = MyButton(master=self.articles_frame, view='extractor', text="Cont Href",
+                                                 command=lambda: self.replace_textbox_value(self.articles_textbox, "//a[contains(@href, 'BLANK')]"))
         self.article_title_button = MyButton(master=self.articles_frame, view='extractor', text="Contains Title",
                                              command=lambda: self.replace_textbox_value(self.articles_textbox, "//*[contains(@class,'title')]/a"))
 
@@ -279,8 +289,8 @@ class MainApplication(tk.Tk):
                                               command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
                                                                                          after_value=r", '\d{1,2}\.\d{1,2}\.\d{2,4}', 'g')"))
         self.reverse_regex_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Rgx 2000.1.1",
-                                              command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
-                                                                                         after_value=r", '\d{2,4}\.\d{1,2}\.\d{1,2}', 'g')"))
+                                             command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
+                                                                                        after_value=r", '\d{2,4}\.\d{1,2}\.\d{1,2}', 'g')"))
         self.blank_regex_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Rgx Blank",
                                            command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
                                                                                       after_value=r", 'REGEX', 'g')"))
@@ -292,6 +302,8 @@ class MainApplication(tk.Tk):
         self.word_regex_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Rgx Word",
                                           command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
                                                                                      after_value=r", '\d{1,2}\s\w+\s\d{2,4}', 'g')"))
+        self.pubdate_copy_without_regex = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Copy NoRgx",
+                                                   command=lambda: pyperclip.copy(self.extract_xpath_from_regex(self.pubdate_textbox.get('1.0', tk.END))))
         # Author Xpath MyButtons
         self.copy_author_button = MyButton(master=self.author_frame, view='extractor', text="Copy", command=lambda: self.copy_code(self.author_textbox))
         self.author_single_button = MyButton(master=self.author_frame, view='extractor', text="[1]",
@@ -303,7 +315,6 @@ class MainApplication(tk.Tk):
                                            command=lambda: self.replace_textbox_value(self.author_textbox, "//meta[contains(@*,'uthor')]/@content"))
         self.author_child_text_button = MyButton(master=self.author_frame, view='extractor', text="Child",
                                                  command=lambda: self.replace_textbox_value(self.author_textbox, '//*[child::text()[contains(.,"Autor")]]'))
-
         # Body Xpath MyButtons
         self.body_single_button = MyButton(master=self.body_buttons_frame, view='extractor', text="[1]",
                                            command=lambda: self.append_textbox_values(self.body_textbox, before_value='(', after_value=')[1]'), )
@@ -314,6 +325,10 @@ class MainApplication(tk.Tk):
                                                        command=lambda: self.append_textbox_values(self.body_textbox,
                                                                                                   after_value=f"[not(contains(@class, "
                                                                                                               f"'{self.clipboard_get().strip()}'))]"))
+        self.body_not_contains_desc_class_button = MyButton(master=self.body_buttons_frame, view='extractor', text="Descendant",
+                                                            command=lambda: self.append_textbox_values(self.body_textbox,
+                                                                                                       after_value=f"[not(descendant::*[contains(@class,"
+                                                                                                                   f"'{self.clipboard_get().strip()}')])]"))
         self.body_not_contains_text_button = MyButton(master=self.body_buttons_frame, view='extractor', text="Not Text",
                                                       command=lambda: self.append_textbox_values(self.body_textbox,
                                                                                                  after_value=f"[not(descendant::text()[contains(.,"
@@ -398,14 +413,14 @@ class MainApplication(tk.Tk):
                                                                                                 self.body_textbox))
 
         # Extractor Frame Lists
-        self.view_menu_frame.frame_list = [[self.open_extractor_button, self.open_finder_button]]
+        self.view_menu_frame.frame_list = [[self.open_extractor_button, self.open_finder_button, self.view_menu_label, self.sync_button, self.refresh_db_button]]
         self.kraken_frame.frame_list = [[self.kraken_id_label],
                                         [self.kraken_textbox, self.kraken_clipboard_button, self.open_source_button,
                                          self.load_from_db_button, self.open_items_button]]
         self.json_buttons_frame.frame_list = [[self.code_copy_button, self.load_from_existing_button, self.load_without_url_button, self.add_proxy_button],
                                               [self.allowed_domains_button, self.pubdate_required_button, self.init_wait_button, self.article_wait_button],
                                               [self.date_order_DMY, self.date_order_MDY, self.date_order_YMD, self.date_order_label]]
-        self.json_checkbutton_frame.frame_list = [[self.open_source_checkbutton, self.overwrite_domain_checkutton, self.rdc_checkbutton]]
+        self.json_checkbutton_frame.frame_list = [[self.open_source_checkbutton, self.overwrite_domain_checkbutton, self.rdc_checkbutton]]
         self.json_combined_buttons_frame.frame_list = [[self.json_buttons_frame],
                                                        [self.json_checkbutton_frame]]
         self.json_full_frame.frame_list = [[self.json_label],
@@ -416,20 +431,21 @@ class MainApplication(tk.Tk):
         self.menu_frame.frame_list = [[self.menu_label],
                                       [self.menu_textbox, self.copy_menu_button, self.menu_category_button]]
         self.articles_frame.frame_list = [[self.articles_label],
-                                          [self.articles_textbox, self.copy_articles_button, self.article_not_category_button, self.article_title_button]]
+                                          [self.articles_textbox, self.copy_articles_button, self.article_title_button, self.article_cont_href_button,
+                                           self.article_not_category_button]]
         self.title_frame.frame_list = [[self.title_label],
                                        [self.title_textbox, self.copy_title_button, self.title_h1_button, self.title_single_button]]
         self.pubdate_buttons_frame.frame_list = [
             [self.copy_pubdate_button, self.meta_button, self.standard_regex_button, self.reverse_regex_button, self.word_regex_button],
-            [self.blank_regex_button, self.pubdate_replace_button, self.pubdate_single_button]]
+            [self.blank_regex_button, self.pubdate_replace_button, self.pubdate_copy_without_regex, self.pubdate_single_button]]
         self.pubdate_frame.frame_list = [[self.pubdate_label], [self.pubdate_textbox, self.pubdate_buttons_frame]]
         self.author_frame.frame_list = [[self.author_label],
                                         [self.author_textbox, self.copy_author_button, self.author_meta_button, self.author_substring_button,
                                          self.author_child_text_button, self.author_single_button]]
         self.body_buttons_frame.frame_list = [
-            [self.copy_body_button, self.body_content_button, self.body_not_contains_class_button, self.body_not_contains_id_button,
-             self.body_not_contains_text_button],
-            [self.body_not_self_button, self.body_single_button]]
+            [self.copy_body_button, self.body_content_button, self.body_not_contains_class_button, self.body_not_contains_desc_class_button,
+             self.body_not_contains_id_button],
+            [self.body_not_contains_text_button, self.body_not_self_button, self.body_single_button]]
         self.body_frame.frame_list = [[self.body_label],
                                       [self.body_textbox, self.body_buttons_frame]]
         self.bottom_buttons_frame.frame_list = [[self.generate_button, self.clear_button]]
@@ -490,38 +506,17 @@ class MainApplication(tk.Tk):
 
         try:
             con = sqlite3.connect(self.shared_db_path)
-            shared_connection = True
             print("Using shared database.")
         except sqlite3.OperationalError:
             con = sqlite3.connect(self.local_db_path)
-            shared_connection = False
             print("Using local database.")
 
         self.create_tables(con)
 
-        if shared_connection and len(sys.argv) > 1 and list(sys.argv)[1] == 'sync':
-            print("Syncing..")
-            synced_entries = 0
-            cur = con.cursor()
-            local_con = sqlite3.connect(self.local_db_path)
-            self.create_tables(local_con)
-            local_cur = local_con.cursor()
-            local_cur.execute("SELECT * FROM log")
-            local_entries = local_cur.fetchall()
-            for entry in local_entries:
-                cur.execute("SELECT * FROM log WHERE id=?", (entry[0],))
-                if not cur.fetchall():
-                    cur.execute("INSERT INTO log VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", entry)
-                    synced_entries += 1
-            if synced_entries:
-                print(f'Added {synced_entries} log(s) to shared database.')
-            local_con.commit()
-            local_con.close()
-
         con.commit()
         con.close()
 
-        self.stats()
+        self.stats(startup=True)
 
         login_link = "https://dashbeta.aiidatapro.net/"
 
@@ -603,7 +598,7 @@ class MainApplication(tk.Tk):
 
     def initiate_connection(self):
         if os.path.isdir('//VT10/xpath_manager'):
-            con = sqlite3.connect(self.shared_db_path)
+            con = sqlite3.connect('//VT10/xpath_manager/log.db')
         else:
             con = sqlite3.connect(self.local_db_path)
         return con
@@ -662,6 +657,39 @@ class MainApplication(tk.Tk):
         else:
             return
 
+    def sync(self):
+        if os.path.isdir('//VT10/xpath_manager'):
+            con = sqlite3.connect(self.shared_db_path)
+            cur = con.cursor()
+            cur.execute("SELECT id FROM log")
+            shared_entries = cur.fetchall()
+        else:
+            print("Couldn't connect to shared database.")
+            return
+
+        print("Syncing..")
+        synced_entries = 0
+        local_con = sqlite3.connect(self.local_db_path)
+        self.create_tables(local_con)
+        local_cur = local_con.cursor()
+        local_cur.execute("SELECT id FROM log")
+        local_entries = local_cur.fetchall()
+        for entry in local_entries:
+            if entry not in shared_entries:
+                entry = entry[0]
+                local_cur.execute("SELECT * FROM log WHERE id=?", (entry, ))
+                new_entry = local_cur.fetchone()
+                cur.execute("INSERT INTO log VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", new_entry)
+                synced_entries += 1
+        if synced_entries:
+            print(f'Added {synced_entries} log(s) to shared database.')
+        else:
+            print('No new entries were added to the shared database.')
+        local_con.commit()
+        local_con.close()
+        con.commit()
+        con.close()
+
     def update_date_order_label(self):
         if self.json_textbox.get("1.0", tk.END).strip():
             existing_json = json.loads(self.json_textbox.get("1.0", tk.END).strip())
@@ -670,8 +698,7 @@ class MainApplication(tk.Tk):
             else:
                 self.date_order_label['text'] = ""
 
-    @staticmethod
-    def copy_code(textbox):
+    def copy_code(self, textbox):
         """
         Desc: Function for the button to copy a text fields
         :param textbox: Textbox whose text should be copied to clipboard
@@ -680,6 +707,7 @@ class MainApplication(tk.Tk):
         value_to_copy = textbox.get("1.0", tk.END).strip()
         if value_to_copy:
             pyperclip.copy(value_to_copy)
+            self.view_menu_label['text'] = "Copied!"
 
     def set_kraken_id(self, kraken_id="", unset=False):
         if kraken_id:
@@ -1203,7 +1231,7 @@ class MainApplication(tk.Tk):
                 widget.delete('1.0', tk.END)
         article_url = self.article_url_textbox.get("1.0", tk.END).strip()
         website_response = requests.get(article_url, headers=self.headers, verify=False)
-        tree = html.fromstring(website_response.text)
+        tree = html.fromstring(website_response.text.encode())
         self.fill_found_textboxes(tree, 'title_xpath')
         self.fill_found_textboxes(tree, 'pubdate_xpath')
         self.fill_found_textboxes(tree, 'author_xpath')
@@ -1259,33 +1287,33 @@ class MainApplication(tk.Tk):
             string_list.append(str(element))
         return ', '.join(string_list)
 
-    def stats(self):
-        def extract_regex(start_string):
-            regex_contains = ['substring', 're:match', 're:replace']
-            result = re.match(r"re:match\((.+),'(.+)','(.+)'\)", start_string)
-            if result:
-                result = result.group(1)
-                if not any(s in result for s in regex_contains):
-                    return result
-                else:
-                    return extract_regex(result)
+    def extract_xpath_from_regex(self, start_string):
+        regex_contains = ['substring', 're:match', 're:replace']
+        result = re.match(r"re:match\((.+),\s+'.+',\s+'.+'\)", start_string)
+        if result:
+            result = result.group(1)
+            if not any(s in result for s in regex_contains):
+                return result
+            else:
+                return self.extract_xpath_from_regex(result)
 
-            result = re.match(r"re:replace\((.+),'(.+)','(.+)','(.+)'\)", start_string)
-            if result:
-                result = result.group(1)
-                if not any(s in result for s in regex_contains):
-                    return result
-                else:
-                    return extract_regex(result)
+        result = re.match(r"re:replace\((.+),\s+'.+',\s+'.+',\s+'.+'\)", start_string)
+        if result:
+            result = result.group(1)
+            if not any(s in result for s in regex_contains):
+                return result
+            else:
+                return self.extract_xpath_from_regex(result)
 
-            result = re.match(r"substring-.+\((.+),'", start_string)
-            if result:
-                result = result.group(1)
-                if not any(s in result for s in regex_contains):
-                    return result
-                else:
-                    return extract_regex(result)
+        result = re.match(r"substring-.+\((.+),\s+'", start_string)
+        if result:
+            result = result.group(1)
+            if not any(s in result for s in regex_contains):
+                return result
+            else:
+                return self.extract_xpath_from_regex(result)
 
+    def stats(self, startup=False):
         def create_dict(db_results, body_xpath=False):
             db_results = [x[0] for x in db_results if x[0]]
             updated_list = []
@@ -1311,7 +1339,7 @@ class MainApplication(tk.Tk):
                         else:
                             updated_list.append(updated_xpath.strip())
                     else:
-                        extracted = extract_regex(updated_xpath)
+                        extracted = self.extract_xpath_from_regex(updated_xpath)
                         if extracted:
                             updated_list.append(extracted)
 
@@ -1324,9 +1352,11 @@ class MainApplication(tk.Tk):
         con = self.initiate_connection()
         cur = con.cursor()
 
-        cur.execute("SELECT * FROM log")
-        print(f"Hello, {login_data.user}")
-        print(f"The database contains {len(cur.fetchall())} entries.")
+        if startup:
+            cur.execute("SELECT * FROM log")
+            print(f"Hello, {login_data.user}")
+            print(f"The database contains {len(cur.fetchall())} entries.")
+
         cur.execute("DELETE FROM title_xpath")
         cur.execute("DELETE FROM pubdate_xpath")
         cur.execute("DELETE FROM author_xpath")
@@ -1352,6 +1382,7 @@ class MainApplication(tk.Tk):
         for entry in results:
             cur.execute("INSERT INTO body_xpath VALUES (?, ?)", (entry[0], entry[1]))
 
+        print('Updated Finder database.')
         con.commit()
         con.close()
 
