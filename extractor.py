@@ -633,8 +633,8 @@ class MainApplication(tk.Tk):
 
     def set_word_boundaries(self):
         self.tk.call('tcl_wordBreakAfter', '', 0)
-        self.tk.call('set', 'tcl_wordchars', '[a-zA-Z0-9_.,-]')
-        self.tk.call('set', 'tcl_nonwordchars', '[^a-zA-Z0-9_.,-]')
+        self.tk.call('set', 'tcl_wordchars', '[a-zA-Z0-9_.-]')
+        self.tk.call('set', 'tcl_nonwordchars', '[^a-zA-Z0-9_.-]')
 
     def get_all_widgets(self, root):
         for widget in root.winfo_children():
