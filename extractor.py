@@ -15,7 +15,6 @@ from datetime import datetime
 import atexit
 import config
 from tkinter.ttk import *
-import sys
 import urllib3
 from typing import Union
 from custom_widgets import MyText, MyLabel, MyFrame, MyButton, MyCheckbutton
@@ -24,25 +23,27 @@ from custom_widgets import MyText, MyLabel, MyFrame, MyButton, MyCheckbutton
 class MainApplication(tk.Tk):
     def __init__(self):
         t1 = time()
-
         super().__init__()
-        print(config.user_agent)
         self.window_title = f"Xpath Extractor ({config.last_change})"
         self.title(self.window_title)
         self.set_word_boundaries()
-        self.background = 'dark grey'
+        self.background = 'light grey'
         self.configure(background=self.background)
         self.current_view = 'extractor'
+        self.general_style = Style()
+        self.general_style.theme_use('clam')
         self.frame_style = Style()
         self.frame_style.configure('TFrame', background=self.background)
         self.checkbutton_style = Style()
         self.checkbutton_style.configure('TCheckbutton', background=self.background)
         self.label_style = Style()
         self.label_style.configure('TLabel', background=self.background, font=('Calibri', 12))
+        self.label_style_bold = Style()
+        self.label_style_bold.configure('Bold.TLabel', background=self.background, font=('Calibri', 12, 'bold'))
         self.button_style = Style()
-        self.button_style.configure('TMyButton', font=('Helvetica', 10))
-        self.button_style.map('TMyButton', foreground=[('active', '!disabled', 'green')],
-                              background=[('active', 'black')], focuscolor='')
+        self.button_style.configure('TButton', font=('Open Sans', 9), width=10)
+        self.button_style_bold = Style()
+        self.button_style_bold.configure('Bold.TButton', font=('Open Sans', 10, 'bold'), width=10)
         self.text_font = Font(family="Calibri", size=12)
         self.date_meta = "(((//meta[contains(@*, 'date')] | //meta[contains(@*, 'time')] | //*[contains(@*, 'datePublished')])[1]/@content) | " \
                          "//time/@datetime)[1]"
@@ -51,6 +52,7 @@ class MainApplication(tk.Tk):
 
         # Extractor Frames
         self.view_menu_frame = MyFrame(master=self, padding=5, view='menu')
+        self.info_frame = MyFrame(master=self, view='extractor')
         self.kraken_frame = MyFrame(master=self, view='extractor')
         self.json_full_frame = MyFrame(master=self, view='extractor')
         self.json_combined_buttons_frame = MyFrame(master=self.json_full_frame, view='extractor')
@@ -66,7 +68,6 @@ class MainApplication(tk.Tk):
         self.body_frame = MyFrame(master=self, view='extractor')
         self.body_buttons_frame = MyFrame(self.body_frame, view='extractor')
         self.bottom_buttons_frame = MyFrame(master=self, view='extractor')
-        self.bottom_info_frame = MyFrame(master=self, view='extractor')
 
         # Finder Frames
         self.article_url_frame = MyFrame(master=self, view='finder', padding=10)
@@ -89,11 +90,21 @@ class MainApplication(tk.Tk):
         self.author_label = MyLabel(master=self.author_frame, view='extractor', text="Author XPath:")
         self.body_label = MyLabel(master=self.body_frame, view='extractor', text="Body XPath:")
         self.date_order_label = MyLabel(master=self.json_buttons_frame, view='extractor', text="")
-        self.last_extractor_edit_label = MyLabel(master=self.bottom_info_frame, view='extractor', text="")
-        self.last_kraken_edit_label = MyLabel(master=self.bottom_info_frame, view='extractor', text="")
-        self.status_label = MyLabel(master=self.bottom_info_frame, view='extractor', text="")
-        self.botname_label = MyLabel(master=self.bottom_info_frame, view='extractor', text="")
-        self.projects_label = MyLabel(master=self.bottom_info_frame, view='extractor', text="")
+        self.last_extractor_user_label = MyLabel(master=self.info_frame, view='extractor', text="Last user(Extractor):", width=20)
+        self.last_kraken_user_label = MyLabel(master=self.info_frame, view='extractor', text="Last user(Kraken):", width=20)
+        self.domain_label = MyLabel(master=self.info_frame, view='extractor', text="Domain:", width=20)
+        self.status_label = MyLabel(master=self.info_frame, view='extractor', text="Status:", width=15)
+        self.projects_label = MyLabel(master=self.info_frame, view='extractor', text="List of Projects:", width=15)
+        self.name_label = MyLabel(master=self.info_frame, view='extractor', text="Name:", width=15)
+        self.botname_label = MyLabel(master=self.info_frame, view='extractor', text="Botname:", width=10)
+
+        self.last_extractor_user_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=35, style='Bold.TLabel')
+        self.last_kraken_user_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=35, style='Bold.TLabel')
+        self.status_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=25, style='Bold.TLabel')
+        self.botname_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=25, style='Bold.TLabel')
+        self.projects_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=25, style='Bold.TLabel')
+        self.domain_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=25, style='Bold.TLabel')
+        self.name_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=25, style='Bold.TLabel')
 
         # Finder Labels
         self.article_url_label = MyLabel(master=self.article_url_frame, view='finder', text="URL:", width=15)
@@ -181,7 +192,7 @@ class MainApplication(tk.Tk):
         self.sync_button = MyButton(master=self.view_menu_frame, view='menu', text="Sync",
                                     command=self.sync)
         self.refresh_db_button = MyButton(master=self.view_menu_frame, view='menu', text="Refresh DB",
-                                    command=self.stats)
+                                          command=self.stats)
 
         # Kraken Buttons
         self.kraken_clipboard_button = MyButton(master=self.kraken_frame, view='extractor', text="Clipboard",
@@ -253,9 +264,9 @@ class MainApplication(tk.Tk):
         # Start URL MyButtons
         self.copy_start_button = MyButton(master=self.start_urls_frame, view='extractor', text="Copy", command=lambda: self.copy_code(self.start_urls_textbox))
         self.open_link_button = MyButton(master=self.start_urls_frame, view='extractor', text='Open Link', command=self.open_start_urls_link)
-        self.open_domain_button = MyButton(master=self.start_urls_frame, view='extractor', text='Open Domain', command=self.open_domain)
+        self.open_domain_button = MyButton(master=self.start_urls_frame, view='extractor', text='Open Dmn', command=self.open_domain)
         self.source_name_button = MyButton(master=self.start_urls_frame, view='extractor', text="Copy Name", command=self.get_source_name)
-        self.source_domain_button = MyButton(master=self.start_urls_frame, view='extractor', text="Copy Domain", command=lambda: self.get_domain(copy=True))
+        self.source_domain_button = MyButton(master=self.start_urls_frame, view='extractor', text="Copy Dmn", command=lambda: self.get_domain(copy=True))
 
         # Menu MyButtons
         self.copy_menu_button = MyButton(master=self.menu_frame, view='extractor', text="Copy", command=lambda: self.copy_code(self.menu_textbox))
@@ -269,7 +280,7 @@ class MainApplication(tk.Tk):
                                                                                                after_value=")[not(contains(@href, 'ategor'))]"))
         self.article_cont_href_button = MyButton(master=self.articles_frame, view='extractor', text="Cont Href",
                                                  command=lambda: self.replace_textbox_value(self.articles_textbox, "//a[contains(@href, 'BLANK')]"))
-        self.article_title_button = MyButton(master=self.articles_frame, view='extractor', text="Contains Title",
+        self.article_title_button = MyButton(master=self.articles_frame, view='extractor', text="Cont Title",
                                              command=lambda: self.replace_textbox_value(self.articles_textbox, "//*[contains(@class,'title')]/a"))
 
         # Title Xpath MyButtons
@@ -285,10 +296,10 @@ class MainApplication(tk.Tk):
         self.pubdate_single_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="[1]",
                                               command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value='(',
                                                                                          after_value=')[1]'))
-        self.standard_regex_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Rgx 1.1.2000",
+        self.standard_regex_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Rgx 1.1.22",
                                               command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
                                                                                          after_value=r", '\d{1,2}\.\d{1,2}\.\d{2,4}', 'g')"))
-        self.reverse_regex_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Rgx 2000.1.1",
+        self.reverse_regex_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Rgx 21.1.1",
                                              command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
                                                                                         after_value=r", '\d{2,4}\.\d{1,2}\.\d{1,2}', 'g')"))
         self.blank_regex_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Rgx Blank",
@@ -319,8 +330,6 @@ class MainApplication(tk.Tk):
         self.body_single_button = MyButton(master=self.body_buttons_frame, view='extractor', text="[1]",
                                            command=lambda: self.append_textbox_values(self.body_textbox, before_value='(', after_value=')[1]'), )
         self.copy_body_button = MyButton(master=self.body_buttons_frame, view='extractor', text="Copy", command=lambda: self.copy_code(self.body_textbox))
-        self.body_content_button = MyButton(master=self.body_buttons_frame, view='extractor', text="Content",
-                                            command=lambda: self.replace_textbox_value(self.body_textbox, "//div[contains(@class, 'content')]"))
         self.body_not_contains_class_button = MyButton(master=self.body_buttons_frame, view='extractor', text="Not Class",
                                                        command=lambda: self.append_textbox_values(self.body_textbox,
                                                                                                   after_value=f"[not(contains(@class, "
@@ -342,8 +351,9 @@ class MainApplication(tk.Tk):
                                                                                         after_value=f"[not(self::{self.clipboard_get().strip()})]"))
 
         # Bottom Frame MyButtons
-        self.clear_button = MyButton(master=self.bottom_buttons_frame, view='extractor', text="Clear All", command=self.clear_all_textboxes)
-        self.generate_button = MyButton(master=self.bottom_buttons_frame, view='extractor', text="Generate JSON!", command=self.generate)
+        self.clear_button = MyButton(master=self.bottom_buttons_frame, view='extractor', text="Clear All", command=self.clear_all_textboxes,
+                                     style='Bold.TButton')
+        self.generate_button = MyButton(master=self.bottom_buttons_frame, view='extractor', text="Generate", command=self.generate, style='Bold.TButton')
 
         # Finder Buttons
         self.find_content_button = MyButton(master=self.article_url_frame, view='finder', text="Find", command=self.find_content)
@@ -413,7 +423,13 @@ class MainApplication(tk.Tk):
                                                                                                 self.body_textbox))
 
         # Extractor Frame Lists
-        self.view_menu_frame.frame_list = [[self.open_extractor_button, self.open_finder_button, self.view_menu_label, self.sync_button, self.refresh_db_button]]
+        self.view_menu_frame.frame_list = [
+            [self.open_extractor_button, self.open_finder_button, self.view_menu_label, self.sync_button, self.refresh_db_button]]
+        self.info_frame.frame_list = [[self.last_kraken_user_label, self.last_kraken_user_var_label,
+                                       self.projects_label, self.projects_var_label],
+                                      [self.last_extractor_user_label, self.last_extractor_user_var_label, self.status_label, self.status_var_label,
+                                       self.botname_label, self.botname_var_label],
+                                      [self.domain_label, self.domain_var_label, self.name_label, self.name_var_label]]
         self.kraken_frame.frame_list = [[self.kraken_id_label],
                                         [self.kraken_textbox, self.kraken_clipboard_button, self.open_source_button,
                                          self.load_from_db_button, self.open_items_button]]
@@ -443,14 +459,12 @@ class MainApplication(tk.Tk):
                                         [self.author_textbox, self.copy_author_button, self.author_meta_button, self.author_substring_button,
                                          self.author_child_text_button, self.author_single_button]]
         self.body_buttons_frame.frame_list = [
-            [self.copy_body_button, self.body_content_button, self.body_not_contains_class_button, self.body_not_contains_desc_class_button,
-             self.body_not_contains_id_button],
-            [self.body_not_contains_text_button, self.body_not_self_button, self.body_single_button]]
+            [self.copy_body_button, self.body_not_contains_class_button, self.body_not_contains_desc_class_button,
+             self.body_not_contains_id_button, self.body_not_contains_text_button],
+            [self.body_not_self_button, self.body_single_button]]
         self.body_frame.frame_list = [[self.body_label],
                                       [self.body_textbox, self.body_buttons_frame]]
         self.bottom_buttons_frame.frame_list = [[self.generate_button, self.clear_button]]
-        self.bottom_info_frame.frame_list = [[self.last_kraken_edit_label], [self.last_extractor_edit_label], [self.status_label], [self.projects_label],
-                                             [self.botname_label], ]
 
         # Finder Frame Lists
         self.article_url_frame.frame_list = [[self.article_url_label, self.article_url_textbox, self.find_content_button]]
@@ -677,7 +691,7 @@ class MainApplication(tk.Tk):
         for entry in local_entries:
             if entry not in shared_entries:
                 entry = entry[0]
-                local_cur.execute("SELECT * FROM log WHERE id=?", (entry, ))
+                local_cur.execute("SELECT * FROM log WHERE id=?", (entry,))
                 new_entry = local_cur.fetchone()
                 cur.execute("INSERT INTO log VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", new_entry)
                 synced_entries += 1
@@ -729,6 +743,48 @@ class MainApplication(tk.Tk):
                 self.kraken_id = ""
                 self.title(self.window_title)
 
+    def color_info_labels(self):
+        kraken_text = self.last_kraken_user_var_label['text']
+        status_text = self.status_var_label['text']
+        botname_text = self.botname_var_label['text']
+        domain_text = self.domain_var_label['text']
+        name_text = self.name_var_label['text']
+
+        if 'Daniel ' in kraken_text or 'Simeon ' in kraken_text or 'Hristo ' in kraken_text:
+            self.last_kraken_user_var_label['foreground'] = 'green'
+        elif 'Mihail ' in kraken_text or 'Lilia ' in kraken_text or 'Tsvetan ' in kraken_text:
+            self.last_kraken_user_var_label['foreground'] = 'orange'
+        elif 'Yasen ' in kraken_text:
+            self.last_kraken_user_var_label['foreground'] = 'dark red'
+        else:
+            self.last_kraken_user_var_label['foreground'] = 'red'
+
+        if status_text == 'Running':
+            self.status_var_label['foreground'] = 'green'
+        elif status_text == 'Custom':
+            self.status_var_label['foreground'] = 'blue'
+        elif status_text == 'Stopped':
+            self.status_var_label['foreground'] = 'red'
+
+        if botname_text == 'siteshtml':
+            self.botname_var_label['foreground'] = 'green'
+        elif botname_text == 'sites_js':
+            self.botname_var_label['foreground'] = 'blue'
+        elif botname_text == 'feeds':
+            self.botname_var_label['foreground'] = 'purple'
+        else:
+            self.botname_var_label['foreground'] = 'red'
+
+        if domain_text == self.get_domain():
+            self.domain_var_label['foreground'] = 'green'
+        else:
+            self.domain_var_label['foreground'] = 'red'
+
+        if name_text == self.get_source_name():
+            self.name_var_label['foreground'] = 'green'
+        else:
+            self.name_var_label['foreground'] = 'red'
+
     def get_link(self):
         """
         Function to correctly format the Kraken link by searching for the ID in the URL
@@ -769,7 +825,7 @@ class MainApplication(tk.Tk):
         result = cur.fetchone()
         con.close()
         if result:
-            self.last_extractor_edit_label['text'] = f"Last Edit: {result[12]} - {result[1]}"
+            self.last_extractor_user_var_label['text'] = f"{result[12]}({result[1][:-3]})"
 
         items_link = link.replace('/edit', '')
         last_editor_xpath = '//tr[td[child::text()[contains(.,"Updated by")]]]/td[2]//text()'
@@ -778,14 +834,18 @@ class MainApplication(tk.Tk):
         active_xpath = '//tr[td[child::text()[contains(.,"Active")]]]/td[2]/i[contains(@class, "true")]'
         botname_xpath = '//tr[td[child::text()[contains(.,"Botname")]]]/td[2]/text()'
         projects_xpath = '//tr[td[child::text()[contains(.,"Projects")]]]/td[2]//li/a/text()'
+        name_xpath = '//tr[td[child::text()[contains(.,"Name")]]]/td[2]/text()'
+        domain_xpath = '//tr[td[child::text()[contains(.,"URL")]]]/td[2]/a/text()'
         items_page_response = self.session.get(items_link)
         tree = html.fromstring(items_page_response.text)
         last_editor = tree.xpath(last_editor_xpath)[1].strip() if len(tree.xpath(last_editor_xpath)) > 2 else "None"
-        last_update = tree.xpath(last_update_xpath)[0]
+        last_update = tree.xpath(last_update_xpath)[0][:-3]
         enabled = bool(tree.xpath(enabled_xpath))
         active = bool(tree.xpath(active_xpath))
         botname = tree.xpath(botname_xpath)[0]
         projects = tree.xpath(projects_xpath)
+        name = tree.xpath(name_xpath)[0]
+        domain = tree.xpath(domain_xpath)[0]
         if enabled:
             if active:
                 status = "Running"
@@ -796,10 +856,12 @@ class MainApplication(tk.Tk):
                 status = "Custom"
             else:
                 status = "Stopped"
-        self.last_kraken_edit_label['text'] = f"Last Kraken Edit: {last_editor} - {last_update}"
-        self.status_label['text'] = f"Status: {status}"
-        self.projects_label['text'] = f"Projects: {','.join(projects)}"
-        self.botname_label['text'] = f"Botname: {botname}"
+        self.last_kraken_user_var_label['text'] = f"{last_editor}({last_update})"
+        self.status_var_label['text'] = status
+        self.projects_var_label['text'] = ','.join(projects)
+        self.botname_var_label['text'] = botname
+        self.name_var_label['text'] = name
+        self.domain_var_label['text'] = domain
         # Extract Xpath from Kraken page
         xpath = "//input[@name='feed_properties']/@value"
         link = link.strip()
@@ -854,7 +916,7 @@ class MainApplication(tk.Tk):
 
         if result:
             self.set_kraken_id(result[0])
-            self.last_extractor_edit_label['text'] = f"Last Edit: {result[12]} - {result[1]}"
+            self.last_extractor_user_var_label['text'] = f"Last Edit: {result[12]} - {result[1]}"
             settings = result[10].replace("'", '"').replace("False", '"False"').replace("True",
                                                                                         '"True"')  # Format Bool Values to not crash JSON
             # Create a new var and load database values into it
@@ -986,12 +1048,15 @@ class MainApplication(tk.Tk):
         for widget in self.all_widgets:
             if isinstance(widget, MyText):
                 widget.delete("1.0", tk.END)
-        self.last_kraken_edit_label['text'] = ""
-        self.last_extractor_edit_label['text'] = ""
+        self.last_kraken_user_var_label['text'] = ""
+        self.last_extractor_user_var_label['text'] = ""
         self.date_order_label['text'] = ""
-        self.status_label['text'] = ""
-        self.projects_label['text'] = ""
-        self.botname_label['text'] = ""
+        self.status_var_label['text'] = ""
+        self.projects_var_label['text'] = ""
+        self.botname_var_label['text'] = ""
+        self.domain_var_label['text'] = ""
+        self.name_var_label['text'] = ""
+        self.view_menu_label['text'] = ""
 
     @staticmethod
     def sort_json(json_object):
@@ -1107,6 +1172,7 @@ class MainApplication(tk.Tk):
         con.close()
 
     def generate(self, _=None, initial_json=None, load_from_existing_bool=False, leave_current_url=False):
+
         existing_code = self.json_textbox.get("1.0", tk.END).strip()
         if initial_json:
             json_variable = self.default_changes(initial_json)
@@ -1114,6 +1180,7 @@ class MainApplication(tk.Tk):
             self.update_date_order_label()
             for element in self.xpath_dict.keys():
                 self.edit_textbox(self.xpath_dict[element], element, json_variable)
+            self.color_info_labels()
 
         elif existing_code:
             try:
@@ -1133,6 +1200,7 @@ class MainApplication(tk.Tk):
             for element in self.xpath_dict.keys():
                 self.edit_textbox(self.xpath_dict[element], element, json_variable)
 
+            self.color_info_labels()
             self.log_code(json_variable)
 
         else:
@@ -1183,6 +1251,8 @@ class MainApplication(tk.Tk):
         elif column == 'body_xpath':
             cur.execute("SELECT xpath FROM body_xpath ORDER BY count DESC")
             element = self.body_xpath_found_frame.frame_list
+        else:
+            element = None
 
         if debug:
             print('statement executed')
@@ -1289,7 +1359,7 @@ class MainApplication(tk.Tk):
 
     def extract_xpath_from_regex(self, start_string):
         regex_contains = ['substring', 're:match', 're:replace']
-        result = re.match(r"re:match\((.+),\s+'.+',\s+'.+'\)", start_string)
+        result = re.match(r"re:match\((.+),\s*'.+',\s*'.+'\)", start_string)
         if result:
             result = result.group(1)
             if not any(s in result for s in regex_contains):
@@ -1297,7 +1367,7 @@ class MainApplication(tk.Tk):
             else:
                 return self.extract_xpath_from_regex(result)
 
-        result = re.match(r"re:replace\((.+),\s+'.+',\s+'.+',\s+'.+'\)", start_string)
+        result = re.match(r"re:replace\((.+),\s*'.+',\s*'.+',\s*'.+'\)", start_string)
         if result:
             result = result.group(1)
             if not any(s in result for s in regex_contains):
@@ -1305,7 +1375,7 @@ class MainApplication(tk.Tk):
             else:
                 return self.extract_xpath_from_regex(result)
 
-        result = re.match(r"substring-.+\((.+),\s+'", start_string)
+        result = re.match(r"substring-.+\((.+),\s*'", start_string)
         if result:
             result = result.group(1)
             if not any(s in result for s in regex_contains):
