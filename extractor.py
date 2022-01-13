@@ -100,11 +100,11 @@ class MainApplication(tk.Tk):
 
         self.last_extractor_user_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=35, style='Bold.TLabel')
         self.last_kraken_user_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=35, style='Bold.TLabel')
-        self.status_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=25, style='Bold.TLabel')
-        self.botname_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=25, style='Bold.TLabel')
-        self.projects_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=25, style='Bold.TLabel')
-        self.domain_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=25, style='Bold.TLabel')
-        self.name_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=25, style='Bold.TLabel')
+        self.domain_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=35, style='Bold.TLabel')
+        self.status_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=20, style='Bold.TLabel')
+        self.projects_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=20, style='Bold.TLabel')
+        self.name_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=20, style='Bold.TLabel')
+        self.botname_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=20, style='Bold.TLabel')
 
         # Finder Labels
         self.article_url_label = MyLabel(master=self.article_url_frame, view='finder', text="URL:", width=15)
