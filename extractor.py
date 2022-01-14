@@ -77,7 +77,7 @@ class MainApplication(tk.Tk):
         self.body_xpath_found_frame = MyFrame(master=self, view='finder', padding=10)
 
         # Menu Labels
-        self.view_menu_label = MyLabel(master=self.view_menu_frame, view='menu', text="", width=70)
+        self.info_label = MyLabel(master=self.view_menu_frame, view='menu', text="", width=70, justify=tk.CENTER, style='Bold.TLabel')
 
         # Extractor Labels
         self.kraken_id_label = MyLabel(master=self.kraken_frame, view='extractor', text="Kraken Link/ID:")
@@ -424,7 +424,7 @@ class MainApplication(tk.Tk):
 
         # Extractor Frame Lists
         self.view_menu_frame.frame_list = [
-            [self.open_extractor_button, self.open_finder_button, self.view_menu_label, self.sync_button, self.refresh_db_button]]
+            [self.open_extractor_button, self.open_finder_button, self.info_label, self.sync_button, self.refresh_db_button]]
         self.info_frame.frame_list = [[self.last_kraken_user_label, self.last_kraken_user_var_label,
                                        self.projects_label, self.projects_var_label],
                                       [self.last_extractor_user_label, self.last_extractor_user_var_label, self.status_label, self.status_var_label,
@@ -622,8 +622,8 @@ class MainApplication(tk.Tk):
         cur = con.cursor()
         cur.execute('''CREATE TABLE IF NOT EXISTS log
                        (id text, date text, start_urls text, menu_xpath text, articles_xpath text, title_xpath text, 
-                       pubdate_xpath text, date_order text, author_xpath text, body_xpath text, settings text, 
-                       full_json text, user text)''')
+                       pubdate_xpath text, date_order text, author_xpath text, body_xpath text, settings text, domain text, name text, status text,
+                       projects text, botname text, full_json text, user text)''')
         cur.execute('''CREATE TABLE IF NOT EXISTS menu_xpath(xpath text, count number)''')
         cur.execute('''CREATE TABLE IF NOT EXISTS articles_xpath(xpath text, count number)''')
         cur.execute('''CREATE TABLE IF NOT EXISTS title_xpath(xpath text, count number)''')
@@ -660,10 +660,13 @@ class MainApplication(tk.Tk):
             if keyword in existing_json[initial_key].keys():
                 if existing_json[initial_key][keyword] == value:
                     del existing_json[initial_key][keyword]
+                    self.info_label['text'] = f"{keyword} removed."
                 else:
                     existing_json[initial_key][keyword] = value
+                    self.info_label['text'] = f"{keyword} set to {value}."
             else:
                 existing_json[initial_key][keyword] = value
+                self.info_label['text'] = f"{keyword} set to {value}."
             self.json_textbox.delete("1.0", tk.END)
             self.json_textbox.insert("1.0", json.dumps(existing_json, indent=2))
             if keyword == 'date_order':
@@ -681,7 +684,6 @@ class MainApplication(tk.Tk):
             print("Couldn't connect to shared database.")
             return
 
-        print("Syncing..")
         synced_entries = 0
         local_con = sqlite3.connect(self.local_db_path)
         self.create_tables(local_con)
@@ -693,12 +695,13 @@ class MainApplication(tk.Tk):
                 entry = entry[0]
                 local_cur.execute("SELECT * FROM log WHERE id=?", (entry,))
                 new_entry = local_cur.fetchone()
-                cur.execute("INSERT INTO log VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", new_entry)
+                cur.execute("INSERT INTO log VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", new_entry)
                 synced_entries += 1
         if synced_entries:
             print(f'Added {synced_entries} log(s) to shared database.')
         else:
             print('No new entries were added to the shared database.')
+        self.info_label['text'] = "Databases synced."
         local_con.commit()
         local_con.close()
         con.commit()
@@ -721,7 +724,7 @@ class MainApplication(tk.Tk):
         value_to_copy = textbox.get("1.0", tk.END).strip()
         if value_to_copy:
             pyperclip.copy(value_to_copy)
-            self.view_menu_label['text'] = "Copied!"
+            self.info_label['text'] = "Value copied."
 
     def set_kraken_id(self, kraken_id="", unset=False):
         if kraken_id:
@@ -804,6 +807,7 @@ class MainApplication(tk.Tk):
         :param open_source_bool: Bool indicating whether the source link should be opened in a browser tab
         :return:
         """
+        self.info_label["text"] = "Opening source..."
         self.clear_all_textboxes()
         self.kraken_textbox.delete('1.0', tk.END)
         self.kraken_textbox.insert('1.0', link)
@@ -821,11 +825,11 @@ class MainApplication(tk.Tk):
         # Show if/who/when edited the source last
         con = self.initiate_connection()
         cur = con.cursor()
-        cur.execute('SELECT * FROM log WHERE id=?', (self.kraken_id,))
+        cur.execute('SELECT date, user FROM log WHERE id=?', (self.kraken_id,))
         result = cur.fetchone()
         con.close()
         if result:
-            self.last_extractor_user_var_label['text'] = f"{result[12]}({result[1][:-3]})"
+            self.last_extractor_user_var_label['text'] = f"{result[1]}({result[0][:-3]})"
 
         items_link = link.replace('/edit', '')
         last_editor_xpath = '//tr[td[child::text()[contains(.,"Updated by")]]]/td[2]//text()'
@@ -881,6 +885,7 @@ class MainApplication(tk.Tk):
             print("Incorrect Login Details")
             return
         self.generate(initial_json=generated_json)  # Pass JSON to generate function
+        self.info_label["text"] = "Source loaded."
 
     @staticmethod
     def open_link(link):
@@ -916,19 +921,32 @@ class MainApplication(tk.Tk):
 
         if result:
             self.set_kraken_id(result[0])
-            self.last_extractor_user_var_label['text'] = f"Last Edit: {result[12]} - {result[1]}"
+            self.last_extractor_user_var_label['text'] = f"{result[-1]}({result[1]})"
             settings = result[10].replace("'", '"').replace("False", '"False"').replace("True",
                                                                                         '"True"')  # Format Bool Values to not crash JSON
             # Create a new var and load database values into it
             json_var = {'scrapy_settings': json.loads(settings), 'scrapy_arguments': {}}
-            json_var['scrapy_arguments']['start_urls'] = result[2]
-            json_var['scrapy_arguments']['menu_xpath'] = result[3]
-            json_var['scrapy_arguments']['articles_xpath'] = result[4]
-            json_var['scrapy_arguments']['title_xpath'] = result[5]
-            json_var['scrapy_arguments']['pubdate_xpath'] = result[6]
-            json_var['scrapy_arguments']['date_order'] = result[7]
-            json_var['scrapy_arguments']['author_xpath'] = result[8]
-            json_var['scrapy_arguments']['body_xpath'] = result[9]
+            if result[2]:
+                json_var['scrapy_arguments']['start_urls'] = result[2]
+            if result[3]:
+                json_var['scrapy_arguments']['menu_xpath'] = result[3]
+            if result[4]:
+                json_var['scrapy_arguments']['articles_xpath'] = result[4]
+            if result[5]:
+                json_var['scrapy_arguments']['title_xpath'] = result[5]
+            if result[6]:
+                json_var['scrapy_arguments']['pubdate_xpath'] = result[6]
+            if result[7]:
+                json_var['scrapy_arguments']['date_order'] = result[7]
+            if result[8]:
+                json_var['scrapy_arguments']['author_xpath'] = result[8]
+            if result[9]:
+                json_var['scrapy_arguments']['body_xpath'] = result[9]
+            self.domain_var_label['text'] = result[11]
+            self.name_var_label['text'] = result[12]
+            self.status_var_label['text'] = result[13]
+            self.projects_var_label['text'] = result[14]
+            self.botname_var_label['text'] = result[15]
             self.generate(initial_json=json_var)
         else:
             self.clear_all_textboxes()  # Clear all textboxes to indicate entry doesn't exist
@@ -1056,7 +1074,7 @@ class MainApplication(tk.Tk):
         self.botname_var_label['text'] = ""
         self.domain_var_label['text'] = ""
         self.name_var_label['text'] = ""
-        self.view_menu_label['text'] = ""
+        self.info_label['text'] = ""
 
     @staticmethod
     def sort_json(json_object):
@@ -1153,21 +1171,26 @@ class MainApplication(tk.Tk):
         date_order = json_var['scrapy_arguments']['date_order'] if 'date_order' in json_var['scrapy_arguments'].keys() else ""
         author_xpath = json_var['scrapy_arguments']['author_xpath'] if 'author_xpath' in json_var['scrapy_arguments'].keys() else ""
         body_xpath = json_var['scrapy_arguments']['body_xpath'] if 'body_xpath' in json_var['scrapy_arguments'].keys() else ""
+        domain = self.domain_var_label['text']
+        name = self.name_var_label['text']
+        status = self.status_var_label['text']
+        projects = self.projects_var_label['text']
+        botname = self.botname_var_label['text']
 
         cur.execute("SELECT id FROM log WHERE id=?", (self.kraken_id,))
         if len(cur.fetchall()):
             print(f"Updated Source {self.kraken_id}")
             cur.execute(
                 "UPDATE log SET date=?, start_urls=?, menu_xpath=?, articles_xpath=?, title_xpath=?, pubdate_xpath=?, date_order=?, author_xpath=?, "
-                "body_xpath=?, settings=?, full_json=?, user=? WHERE id=?",
+                "body_xpath=?, settings=?, domain=?, name=?, status=?, projects=?, botname=?, full_json=?, user=? WHERE id=?",
                 (current_time, start_urls, menu_xpath, articles_xpath, title_xpath, pubdate_xpath, date_order, author_xpath, body_xpath,
-                 str(json_var['scrapy_settings']), str(json_var), user, self.kraken_id))
+                 str(json_var['scrapy_settings']), domain, name, status, projects, botname, str(json_var), user, self.kraken_id))
         else:
             print(f"Adding Source {self.kraken_id}")
-            cur.execute("INSERT INTO log VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            cur.execute("INSERT INTO log VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (self.kraken_id, current_time, start_urls, menu_xpath, articles_xpath, title_xpath, pubdate_xpath, date_order, author_xpath,
                          body_xpath,
-                         str(json_var['scrapy_settings']), str(json_var), user))
+                         str(json_var['scrapy_settings']), domain, name, status, projects, botname, str(json_var), user))
         con.commit()
         con.close()
 
@@ -1202,6 +1225,7 @@ class MainApplication(tk.Tk):
 
             self.color_info_labels()
             self.log_code(json_variable)
+            self.info_label['text'] = "JSON copied."
 
         else:
             json_variable = {
@@ -1226,6 +1250,7 @@ class MainApplication(tk.Tk):
                 self.update_date_order_label()
                 pyperclip.copy(final_json)
                 self.log_code(json_variable)
+                self.info_label['text'] = "JSON copied."
             else:
                 self.fill_code_textbox(json_variable)
 
@@ -1423,7 +1448,7 @@ class MainApplication(tk.Tk):
         cur = con.cursor()
 
         if startup:
-            cur.execute("SELECT * FROM log")
+            cur.execute("SELECT id FROM log")
             print(f"Hello, {login_data.user}")
             print(f"The database contains {len(cur.fetchall())} entries.")
 
@@ -1452,6 +1477,8 @@ class MainApplication(tk.Tk):
         for entry in results:
             cur.execute("INSERT INTO body_xpath VALUES (?, ?)", (entry[0], entry[1]))
 
+        if not startup:
+            self.info_label['text'] = "Tables refreshed."
         print('Updated Finder database.')
         con.commit()
         con.close()
