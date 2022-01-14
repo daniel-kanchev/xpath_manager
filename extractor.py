@@ -77,7 +77,7 @@ class MainApplication(tk.Tk):
         self.body_xpath_found_frame = MyFrame(master=self, view='finder', padding=10)
 
         # Menu Labels
-        self.info_label = MyLabel(master=self.view_menu_frame, view='menu', text="", width=70, justify=tk.CENTER, style='Bold.TLabel')
+        self.info_label = MyLabel(master=self.view_menu_frame, view='menu', text="", width=70, justify=tk.CENTER, style='Bold.TLabel', anchor='center')
 
         # Extractor Labels
         self.kraken_id_label = MyLabel(master=self.kraken_frame, view='extractor', text="Kraken Link/ID:")
