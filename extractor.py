@@ -780,7 +780,7 @@ class MainApplication(tk.Tk):
         else:
             self.domain_var_label['foreground'] = 'red'
 
-        if name_text == self.get_source_name():
+        if name_text == self.get_source_name(copy=False):
             self.name_var_label['foreground'] = 'green'
         else:
             self.name_var_label['foreground'] = 'red'
