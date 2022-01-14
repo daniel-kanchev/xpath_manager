@@ -12,7 +12,6 @@ import os
 import sqlite3
 from time import time
 from datetime import datetime
-import atexit
 import config
 from tkinter import ttk
 import urllib3
@@ -101,7 +100,7 @@ class MainApplication(tk.Tk):
         self.name_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=20, style='Bold.TLabel')
         self.botname_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=20, style='Bold.TLabel')
         self.var_labels = [self.date_order_label, self.last_extractor_user_var_label, self.last_kraken_user_var_label, self.domain_var_label,
-                           self.status_var_label,self.projects_var_label, self.name_var_label, self.botname_var_label, self.info_label]
+                           self.status_var_label, self.projects_var_label, self.name_var_label, self.botname_var_label, self.info_label]
 
         # Finder Labels
         self.finder_article_label = MyLabel(master=self.article_url_frame, view='finder', text="URL:", width=15)
@@ -775,7 +774,7 @@ class MainApplication(tk.Tk):
         name_xpath = '//tr[td[child::text()[contains(.,"Name")]]]/td[2]/text()'
         domain_xpath = '//tr[td[child::text()[contains(.,"URL")]]]/td[2]/a/text()'
         try:
-            items_page_response = self.session.get(link)
+            items_page_response = self.session.get(items_link)
         except Exception:
             print("Couldn't access Kraken")
             return
