@@ -206,7 +206,9 @@ class MainApplication(tk.Tk):
                                                                                                                                     keyword='date_order', value='MDY'))
 
         # JSON Checkbuttons
-        self.open_links_check_bool = self.overwrite_domain_check_bool = self.rdc_check_bool = tk.IntVar()
+        self.open_links_check_bool = tk.IntVar()
+        self.overwrite_domain_check_bool = tk.IntVar()
+        self.rdc_check_bool = tk.IntVar()
 
         # Set starting values
         self.open_links_check_bool.set(1)
@@ -1205,7 +1207,7 @@ class MainApplication(tk.Tk):
         con.close()
 
         final_result = []
-        number_of_textboxes = 5
+        number_of_textboxes = len(self.finder_title_frame.frame_list)
         if debug:
             print('trying each xpath')
         for xpath in xpath_list:
