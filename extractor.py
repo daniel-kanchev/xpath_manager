@@ -16,7 +16,7 @@ import config
 from tkinter import ttk
 import urllib3
 from typing import Union
-from custom_widgets import MyText, MyLabel, MyFrame, MyButton, MyCheckbutton
+from custom_widgets import MyText, MyLabel, MyFrame, MyButton, MyCheckbutton, MyRadiobutton
 
 
 class MainApplication(tk.Tk):
@@ -34,6 +34,7 @@ class MainApplication(tk.Tk):
         self.frame_style.configure('TFrame', background=self.background)
         self.checkbutton_style.configure('TCheckbutton', background=self.background)
         self.label_style.configure('TLabel', background=self.background, font=('Calibri', 12))
+        self.label_style.configure('TRadiobutton', background=self.background, font=('Calibri', 12))
         self.label_style_bold.configure('Bold.TLabel', background=self.background, font=('Calibri', 12, 'bold'))
         self.button_style.configure('TButton', font=('Open Sans', 9), width=10)
         self.button_style_bold.configure('Bold.TButton', font=('Open Sans', 10, 'bold'), width=10)
@@ -64,6 +65,8 @@ class MainApplication(tk.Tk):
         self.bottom_buttons_frame = MyFrame(master=self, view='extractor')
 
         # Finder Frames (Order chosen here)
+
+        self.finder_filter_frame = MyFrame(master=self, view='finder', padding=10)
         self.article_url_frame = MyFrame(master=self, view='finder', padding=10)
         self.finder_title_frame = MyFrame(master=self, view='finder', padding=10)
         self.finder_pubdate_frame = MyFrame(master=self, view='finder', padding=10)
@@ -103,6 +106,7 @@ class MainApplication(tk.Tk):
                            self.status_var_label, self.projects_var_label, self.name_var_label, self.botname_var_label, self.info_label]
 
         # Finder Labels
+        self.finder_filter_label = MyLabel(master=self.finder_filter_frame, view='finder', text="Multiple Results Filter:", width=25)
         self.finder_article_label = MyLabel(master=self.article_url_frame, view='finder', text="URL:", width=15)
         self.finder_title_label = MyLabel(master=self.finder_title_frame, view='finder', text="Title XPath:", width=15)
         self.finder_pubdate_label = MyLabel(master=self.finder_pubdate_frame, view='finder', text="Pubdate XPath:", width=15)
@@ -353,6 +357,12 @@ class MainApplication(tk.Tk):
         self.body_xpath_select_button_4 = MyButton(master=self.finder_body_frame, view='finder', text="Select",
                                                    command=lambda: self.from_textbox_to_textbox(self.finder_body_xpath_4, self.body_textbox), padding=0)
 
+        # Finder RadioButtons
+        self.finder_filter = tk.StringVar()
+        self.finder_filter_include_radio = MyRadiobutton(master=self.finder_filter_frame, view='finder', text='Include', value='include', variable=self.finder_filter,
+                                                         takefocus=False)
+        self.finder_filter_remove_radio = MyRadiobutton(master=self.finder_filter_frame, view='finder', text='Remove', value='remove', variable=self.finder_filter, takefocus=False)
+
         # Extractor Frame Lists
         self.view_menu_frame.frame_list = [
             [self.open_extractor_button, self.open_finder_button, self.info_label, self.sync_button, self.refresh_db_button]
@@ -424,10 +434,12 @@ class MainApplication(tk.Tk):
         ]
 
         # Finder Frame Lists
+        self.finder_filter_frame.frame_list = [
+            [self.finder_filter_label, self.finder_filter_include_radio, self.finder_filter_remove_radio]
+        ]
         self.article_url_frame.frame_list = [
             [self.finder_article_label, self.finder_article_textbox, self.find_content_button]
         ]
-
         self.finder_title_frame.frame_list = [
             [self.finder_title_label, self.finder_title_xpath_1, self.title_xpath_select_button_1, self.finder_title_result_1],
             [0, self.finder_title_xpath_2, self.title_xpath_select_button_2, self.finder_title_result_2],
@@ -695,6 +707,8 @@ class MainApplication(tk.Tk):
             self.last_kraken_user_var_label['foreground'] = 'orange'
         elif 'Yasen ' in kraken_text:
             self.last_kraken_user_var_label['foreground'] = 'dark red'
+        elif 'Petyo ' in kraken_text:
+            self.last_kraken_user_var_label['foreground'] = 'pink'
         else:
             self.last_kraken_user_var_label['foreground'] = 'red'
 
@@ -1173,6 +1187,7 @@ class MainApplication(tk.Tk):
                 self.fill_code_textbox(json_variable)
 
     def fill_found_textboxes(self, tree, column):
+        print(self.finder_filter.get())
         debug = False
         if debug:
             print("Starting connection")
@@ -1213,19 +1228,18 @@ class MainApplication(tk.Tk):
         for xpath in xpath_list:
             xpath_to_use = xpath if '@content' in xpath or '@datetime' in xpath or '/text()' in xpath else xpath + '//text()'
             try:
-                number_of_results = len(tree.xpath(xpath))
                 text_results = tree.xpath(xpath_to_use)
-            except Exception:
-                continue
+                number_of_results = len(text_results)
 
-            try:
-                if number_of_results:
-                    dict_to_append = {'xpath': xpath, 'result': f"({number_of_results}) - "
-                                                                f"{','.join(x.strip() for x in text_results if isinstance(x, str) and x.strip())}"}
-                    if dict_to_append['result'] not in [x['result'] for x in final_result]:
-                        final_result.append(dict_to_append)
-                        if len(final_result) == number_of_textboxes:
-                            break
+                if not number_of_results or (self.finder_filter.get() == 'remove' and number_of_results > 1):
+                    continue
+
+                dict_to_append = {'xpath': xpath, 'result': f"({number_of_results}) - "
+                                                            f"{','.join(x.strip() for x in text_results if isinstance(x, str) and x.strip())}"}
+                if dict_to_append['result'] not in [x['result'] for x in final_result]:
+                    final_result.append(dict_to_append)
+                    if len(final_result) == number_of_textboxes:
+                        break
             except Exception:
                 continue
         if debug:
@@ -1274,11 +1288,6 @@ class MainApplication(tk.Tk):
         for widget in self.all_widgets:
             if widget.view == view:
                 widget.grid()
-
-    def open_finder_view(self):
-        self.finder_article_label.grid()
-        self.finder_article_textbox.grid()
-        self.find_content_button.grid()
 
     def switch_view(self, view_to_open):
         if view_to_open == self.current_view:
