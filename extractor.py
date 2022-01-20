@@ -267,7 +267,7 @@ class MainApplication(tk.Tk):
                                            command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
                                                                                       after_value=r", 'REGEX', 'g')"))
 
-        date_meta = "(((//meta[contains(@*, 'date')] | //meta[contains(@*, 'time')] | //*[contains(@*, 'datePublished')])[1]/@content) | //time/@datetime)[1]"
+        self.date_meta = "(((//meta[contains(@*, 'date')] | //meta[contains(@*, 'time')] | //*[contains(@*, 'datePublished')])[1]/@content) | //time/@datetime)[1]"
         self.meta_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Meta",
                                     command=lambda: self.replace_textbox_value(self.pubdate_textbox, date_meta))
         self.pubdate_replace_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Replace",
@@ -960,7 +960,7 @@ class MainApplication(tk.Tk):
             return domain
 
     def find_sitemap(self):
-        xpath = "(//*[contains(@href, 'site')][contains(@href, 'map')] | //*[contains(@href, 'map')][contains(@href, 'web')])[1]/@href"
+        xpath = "(//*[contains(@href, 'site') or contains(@href, 'Site')][contains(@href, 'map')] | //*[contains(@href, 'map')][contains(@href, 'web')])[1]/@href"
         domain = self.get_domain()
         try:
             sitemap_response = requests.get(domain, headers=self.headers, verify=False)
@@ -1339,6 +1339,8 @@ class MainApplication(tk.Tk):
             body_contains = ['//node()', '/text()', ']//p', "'row'", "//div[contains(@class,'content')", '::img', '//article', '//figure/', '//main',
                              '//figcaption', "//div[contains(@class,'-content')]", '//section/']
             for xpath in db_results:
+                if xpath == self.date_meta:
+                    continue
                 split_xpath_list = xpath.split('|')
                 for updated_xpath in split_xpath_list:
                     updated_xpath = updated_xpath.replace(' ', '')
