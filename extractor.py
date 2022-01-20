@@ -6,7 +6,7 @@ from json import JSONDecodeError
 from tkinter.font import Font
 import pyperclip
 import requests
-from lxml import html
+from lxml import html, etree
 import login_data
 import os
 import sqlite3
@@ -44,6 +44,7 @@ class MainApplication(tk.Tk):
         self.shared_db_path = r'\\VT10\xpath_manager\log.db'
         self.local_db_path = 'log.db'
         self.all_widgets = []
+        self.last_tree = {'link': '', 'tree': ''}
 
         # Extractor Frames (Order chosen here)
         self.view_menu_frame = MyFrame(master=self, padding=5, view='menu')
@@ -269,7 +270,7 @@ class MainApplication(tk.Tk):
 
         self.date_meta = "(((//meta[contains(@*, 'date')] | //meta[contains(@*, 'time')] | //*[contains(@*, 'datePublished')])[1]/@content) | //time/@datetime)[1]"
         self.meta_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Meta",
-                                    command=lambda: self.replace_textbox_value(self.pubdate_textbox, date_meta))
+                                    command=lambda: self.replace_textbox_value(self.pubdate_textbox, self.date_meta))
         self.pubdate_replace_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Replace",
                                                command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:replace(",
                                                                                           after_value=r", 'SYMBOL1', 'g', 'SYMBOL2')"))
@@ -511,7 +512,6 @@ class MainApplication(tk.Tk):
                 }
                 response = self.session.post(login_link, data=payload, headers=session_headers)
                 session_headers['cookie'] = '; '.join([x.name + '=' + x.value for x in response.cookies])
-                print("Logged in!")
             except Exception:
                 print("Couldn't login")
 
@@ -688,7 +688,6 @@ class MainApplication(tk.Tk):
                 except IndexError:
                     print("No ID found")
                     return
-                print(self.kraken_id)
                 self.title(f"{self.kraken_id} - {self.window_title}")
             else:
                 self.kraken_id = ""
@@ -974,8 +973,6 @@ class MainApplication(tk.Tk):
                     sitemap_link = domain[:-1] + sitemap[0]
                 webbrowser.get("chrome").open(sitemap_link)
                 print(f"Sitemap - {sitemap_link}")
-            else:
-                print(f"No sitemap at {domain}")
         except Exception as e:
             print(e.args)
             print(f"Site does not load - {domain}")
@@ -1060,7 +1057,7 @@ class MainApplication(tk.Tk):
             textbox.insert('1.0', json_var["scrapy_arguments"][xpath_name])
 
     def default_changes(self, json_var):
-        if "link_id_regex" not in json_var["scrapy_arguments"].keys() and 'articles_xpath' in json_var["scrapy_arguments"].keys():
+        if "link_id_regex" not in json_var["scrapy_arguments"].keys():
             json_var["scrapy_arguments"]["link_id_regex"] = None
         for element in self.xpath_dict.keys():
             self.edit_textbox(self.xpath_dict[element], element, json_var)
@@ -1188,13 +1185,8 @@ class MainApplication(tk.Tk):
 
     def fill_found_textboxes(self, tree, column):
         debug = False
-        if debug:
-            print("Starting connection")
         con = self.initiate_connection()
         cur = con.cursor()
-
-        if debug:
-            print(column)
 
         if column == 'title_xpath':
             cur.execute("SELECT xpath FROM title_xpath ORDER BY count DESC")
@@ -1211,38 +1203,27 @@ class MainApplication(tk.Tk):
         else:
             element = None
 
-        if debug:
-            print('statement executed')
-
         xpath_list = cur.fetchall()
         xpath_list = [x[0] for x in xpath_list]
-        if debug:
-            print('fetched all xpath from db')
         con.close()
 
         final_result = []
         number_of_textboxes = len(self.finder_title_frame.frame_list)
-        if debug:
-            print('trying each xpath')
         for xpath in xpath_list:
-            xpath_to_use = xpath if '@content' in xpath or '@datetime' in xpath or '/text()' in xpath else xpath + '//text()'
-            try:
-                text_results = tree.xpath(xpath_to_use)
-                number_of_results = len(tree.xpath(xpath))
+            xpath_to_use = xpath if xpath.split('/')[-1][0] == '@' or '/text()' in xpath else xpath + '//text()'
+            text_results = tree.xpath(xpath_to_use)
+            number_of_results = len(tree.xpath(xpath))
 
-                if not number_of_results or (self.finder_filter.get() == 'remove' and number_of_results > 1):
-                    continue
-
-                dict_to_append = {'xpath': xpath, 'result': f"({number_of_results}) - "
-                                                            f"{','.join(x.strip() for x in text_results if isinstance(x, str) and x.strip())}"}
-                if dict_to_append['result'] not in [x['result'] for x in final_result]:
-                    final_result.append(dict_to_append)
-                    if len(final_result) == number_of_textboxes:
-                        break
-            except Exception:
+            if not number_of_results or (self.finder_filter.get() == 'remove' and number_of_results > 1):
                 continue
-        if debug:
-            print('filling texboxes with results')
+
+            dict_to_append = {'xpath': xpath, 'result': f"({number_of_results}) - "
+                                                        f"{','.join(x.strip() for x in text_results if isinstance(x, str) and x.strip())}"}
+            if dict_to_append['result'] not in [x['result'] for x in final_result]:
+                final_result.append(dict_to_append)
+                if len(final_result) == number_of_textboxes:
+                    break
+
         for i, entry in enumerate(final_result):
             if debug:
                 print(entry)
@@ -1256,8 +1237,13 @@ class MainApplication(tk.Tk):
             if widget.view == 'finder' and isinstance(widget, MyText) and widget.master != self.article_url_frame:
                 widget.delete('1.0', tk.END)
         article_url = self.finder_article_textbox.get("1.0", tk.END).strip()
-        website_response = requests.get(article_url, headers=self.headers, verify=False)
-        tree = html.fromstring(website_response.text.encode())
+        if self.last_tree['link'] == article_url:
+            tree = self.last_tree['tree']
+        else:
+            website_response = requests.get(article_url, headers=self.headers, verify=False)
+            tree = html.fromstring(website_response.text.encode())
+            self.last_tree['link'] = article_url
+            self.last_tree['tree'] = tree
         self.fill_found_textboxes(tree, 'title_xpath')
         self.fill_found_textboxes(tree, 'pubdate_xpath')
         self.fill_found_textboxes(tree, 'author_xpath')
@@ -1332,36 +1318,75 @@ class MainApplication(tk.Tk):
                 return self.extract_xpath_from_regex(result)
 
     def stats(self, startup=False):
-        def create_dict(db_results, body_xpath=False):
+        def create_dict(db_results, html_tree, body_xpath=False):
             db_results = [x[0] for x in db_results if x[0]]
             updated_list = []
+            low_qual = 0
+            date_meta = 0
+            bad_regex = 0
+            body_contains_count = 0
+            xpath_error = 0
             regex_contains = ['substring', 're:match', 're:replace']
-            body_contains = ['//node()', '/text()', ']//p', "'row'", "//div[contains(@class,'content')", '::img', '//article', '//figure/', '//main',
-                             '//figcaption', "//div[contains(@class,'-content')]", '//section/']
+            body_contains = ['//node()', '/text()', ']//p', "'row'", '::img', '//article/', '//figure/', '//main/',
+                             '//figcaption/', "//div[contains(@class,'-content')]", '//section/', "//div[contains(@class,'content')]", '@src', 'orcontains']
             for xpath in db_results:
-                if xpath == self.date_meta:
+                if xpath == self.date_meta or "//meta[contains(@*, 'time')]" in xpath:
+                    date_meta += 1
                     continue
-                split_xpath_list = xpath.split('|')
+
+                if xpath.startswith('(') and xpath.endswith(')[1]') and '|' in xpath:
+                    xpath = xpath[1:-4]
+
+                if "' | '" not in xpath:
+                    split_xpath_list = xpath.split('|')
+                else:
+                    split_xpath_list = [xpath]
+
                 for updated_xpath in split_xpath_list:
                     updated_xpath = updated_xpath.replace(' ', '')
+
+                    if any(s in updated_xpath for s in regex_contains):
+                        updated_xpath = self.extract_xpath_from_regex(updated_xpath)
+                        if not updated_xpath:
+                            bad_regex += 1
+                            continue
+
+                    if body_xpath:
+                        if any(s in updated_xpath for s in body_contains):
+                            body_contains_count += 1
+                            continue
+
+                        if updated_xpath.endswith('/p'):
+                            updated_xpath = updated_xpath[:-2]
+
+                        if '/node()' in updated_xpath:
+                            updated_xpath = updated_xpath.split('/node()')[0]
+
+                        while updated_xpath and updated_xpath[-1] == '/':
+                            updated_xpath = updated_xpath[:-1]
+
                     if '@' not in updated_xpath and updated_xpath.count('/') < 3:
+                        low_qual += 1
                         continue
-                    if updated_xpath.endswith('/'):
-                        updated_xpath = updated_xpath[:-1]
-                    if not any(s in updated_xpath for s in regex_contains):
-                        if body_xpath:
-                            if updated_xpath.endswith('/p'):
-                                updated_xpath = updated_xpath[:-2]
-                            if '/node()' in updated_xpath:
-                                updated_xpath = updated_xpath.split('/node()')[0]
-                            if not any(s in updated_xpath for s in body_contains):
-                                updated_list.append(updated_xpath.strip())
-                        else:
-                            updated_list.append(updated_xpath.strip())
-                    else:
-                        extracted = self.extract_xpath_from_regex(updated_xpath)
-                        if extracted:
-                            updated_list.append(extracted)
+
+                    updated_list.append(updated_xpath.strip())
+
+            list_to_remove = []
+
+            for xpath in updated_list:
+                try:
+                    html_tree.xpath(xpath)
+                except etree.XPathError:
+                    xpath_error += 1
+                    list_to_remove.append(xpath)
+
+            updated_list = [x for x in updated_list if x not in list_to_remove]
+
+            # print('low_qual:', low_qual)
+            # print('date_meta:', date_meta)
+            # print('bad_regex:', bad_regex)
+            # print('body_contains_count:', body_contains_count)
+            # print('xpath_error:', xpath_error)
 
             created_dict = dict()
             for i in updated_list:
@@ -1382,23 +1407,26 @@ class MainApplication(tk.Tk):
         cur.execute("DELETE FROM author_xpath")
         cur.execute("DELETE FROM body_xpath")
 
+        website_response = requests.get('http://example.python-scraping.com/places/default/index/0', verify=False)
+        tree = html.fromstring(website_response.text.encode())
+
         cur.execute("SELECT title_xpath FROM log")
-        results = create_dict(cur.fetchall())
+        results = create_dict(cur.fetchall(), html_tree=tree)
         for entry in results:
             cur.execute("INSERT INTO title_xpath VALUES (?, ?)", (entry[0], entry[1]))
 
         cur.execute("SELECT pubdate_xpath FROM log")
-        results = create_dict(cur.fetchall())
+        results = create_dict(cur.fetchall(), html_tree=tree)
         for entry in results:
             cur.execute("INSERT INTO pubdate_xpath VALUES (?, ?)", (entry[0], entry[1]))
 
         cur.execute("SELECT author_xpath FROM log")
-        results = create_dict(cur.fetchall())
+        results = create_dict(cur.fetchall(), html_tree=tree)
         for entry in results:
             cur.execute("INSERT INTO author_xpath VALUES (?, ?)", (entry[0], entry[1]))
 
         cur.execute("SELECT body_xpath FROM log")
-        results = create_dict(cur.fetchall(), body_xpath=True)
+        results = create_dict(cur.fetchall(), html_tree=tree, body_xpath=True)
         for entry in results:
             cur.execute("INSERT INTO body_xpath VALUES (?, ?)", (entry[0], entry[1]))
 
