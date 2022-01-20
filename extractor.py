@@ -362,7 +362,7 @@ class MainApplication(tk.Tk):
         self.finder_filter_include_radio = MyRadiobutton(master=self.finder_filter_frame, view='finder', text='Include', value='include', variable=self.finder_filter,
                                                          takefocus=False)
         self.finder_filter_remove_radio = MyRadiobutton(master=self.finder_filter_frame, view='finder', text='Remove', value='remove', variable=self.finder_filter, takefocus=False)
-
+        self.finder_filter_remove_radio.invoke()
         # Extractor Frame Lists
         self.view_menu_frame.frame_list = [
             [self.open_extractor_button, self.open_finder_button, self.info_label, self.sync_button, self.refresh_db_button]
@@ -1187,7 +1187,6 @@ class MainApplication(tk.Tk):
                 self.fill_code_textbox(json_variable)
 
     def fill_found_textboxes(self, tree, column):
-        print(self.finder_filter.get())
         debug = False
         if debug:
             print("Starting connection")
@@ -1229,7 +1228,7 @@ class MainApplication(tk.Tk):
             xpath_to_use = xpath if '@content' in xpath or '@datetime' in xpath or '/text()' in xpath else xpath + '//text()'
             try:
                 text_results = tree.xpath(xpath_to_use)
-                number_of_results = len(text_results)
+                number_of_results = len(tree.xpath(xpath))
 
                 if not number_of_results or (self.finder_filter.get() == 'remove' and number_of_results > 1):
                     continue
