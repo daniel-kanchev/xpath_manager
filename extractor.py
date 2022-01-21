@@ -707,7 +707,7 @@ class MainApplication(tk.Tk):
         elif 'Yasen ' in kraken_text:
             self.last_kraken_user_var_label['foreground'] = 'dark red'
         elif 'Petyo ' in kraken_text:
-            self.last_kraken_user_var_label['foreground'] = 'pink'
+            self.last_kraken_user_var_label['foreground'] = 'purple'
         else:
             self.last_kraken_user_var_label['foreground'] = 'red'
 
@@ -1184,24 +1184,24 @@ class MainApplication(tk.Tk):
                 self.fill_code_textbox(json_variable)
 
     def fill_found_textboxes(self, tree, column):
-        debug = False
         con = self.initiate_connection()
         cur = con.cursor()
 
         if column == 'title_xpath':
             cur.execute("SELECT xpath FROM title_xpath ORDER BY count DESC")
             element = self.finder_title_frame.frame_list
+
         elif column == 'pubdate_xpath':
             cur.execute("SELECT xpath FROM pubdate_xpath ORDER BY count DESC")
             element = self.finder_pubdate_frame.frame_list
+
         elif column == 'author_xpath':
             cur.execute("SELECT xpath FROM author_xpath ORDER BY count DESC")
             element = self.finder_author_frame.frame_list
-        elif column == 'body_xpath':
+
+        else:
             cur.execute("SELECT xpath FROM body_xpath ORDER BY count DESC")
             element = self.finder_body_frame.frame_list
-        else:
-            element = None
 
         xpath_list = cur.fetchall()
         xpath_list = [x[0] for x in xpath_list]
@@ -1210,23 +1210,23 @@ class MainApplication(tk.Tk):
         final_result = []
         number_of_textboxes = len(self.finder_title_frame.frame_list)
         for xpath in xpath_list:
-            xpath_to_use = xpath if xpath.split('/')[-1][0] == '@' or '/text()' in xpath else xpath + '//text()'
-            text_results = tree.xpath(xpath_to_use)
-            number_of_results = len(tree.xpath(xpath))
+            try:
+                xpath_to_use = xpath if '/@' in xpath or 'text()' in xpath else xpath + '//text()'
+                text_results = tree.xpath(xpath_to_use)
+                number_of_results = len(tree.xpath(xpath))
 
-            if not number_of_results or (self.finder_filter.get() == 'remove' and number_of_results > 1):
-                continue
+                if not number_of_results or (self.finder_filter.get() == 'remove' and number_of_results != 1):
+                    continue
 
-            dict_to_append = {'xpath': xpath, 'result': f"({number_of_results}) - "
-                                                        f"{','.join(x.strip() for x in text_results if isinstance(x, str) and x.strip())}"}
-            if dict_to_append['result'] not in [x['result'] for x in final_result]:
-                final_result.append(dict_to_append)
-                if len(final_result) == number_of_textboxes:
-                    break
+                dict_to_append = {'xpath': xpath, 'result': f"({number_of_results}) - {','.join(x.strip() for x in text_results if isinstance(x, str) and x.strip())}"}
+                if dict_to_append['result'] not in [x['result'] for x in final_result]:
+                    final_result.append(dict_to_append)
+                    if len(final_result) == number_of_textboxes:
+                        break
+            except Exception:
+                print('broken xpath:', xpath)
 
         for i, entry in enumerate(final_result):
-            if debug:
-                print(entry)
             element[i][-3].delete('1.0', tk.END)
             element[i][-3].insert('1.0', entry['xpath'])
             element[i][-1].delete('1.0', tk.END)
@@ -1328,7 +1328,7 @@ class MainApplication(tk.Tk):
             xpath_error = 0
             regex_contains = ['substring', 're:match', 're:replace']
             body_contains = ['//node()', '/text()', ']//p', "'row'", '::img', '//article/', '//figure/', '//main/',
-                             '//figcaption/', "//div[contains(@class,'-content')]", '//section/', "//div[contains(@class,'content')]", '@src', 'orcontains']
+                             '//figcaption/', "//div[contains(@class,'-content')]", '//section/', "//div[contains(@class,'content')]", '@src', 'orcontains', 'string(']
             for xpath in db_results:
                 if xpath == self.date_meta or "//meta[contains(@*, 'time')]" in xpath:
                     date_meta += 1
