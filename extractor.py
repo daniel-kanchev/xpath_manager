@@ -13,6 +13,7 @@ from typing import Union
 
 import pyperclip
 import requests
+from requests.auth import HTTPProxyAuth
 import urllib3
 from lxml import html, etree
 
@@ -25,7 +26,19 @@ class MainApplication(tk.Tk):
     def __init__(self):
         t1 = time.time()
         super().__init__()
-        self.window_title = f"Xpath Extractor ({config.last_change})"
+        self.kraken_id = ""
+        self.shared_db_path = r'\\VT10\xpath_manager\log.db'
+        self.local_db_path = 'log.db'
+        self.all_widgets = []
+        self.last_tree = {'link': '', 'tree': ''}
+        self.settings_json = config.settings_json
+        self.session = requests.Session()
+        self.headers = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0"
+        }
+        self.window_title = f"XPath Extractor"
         self.title(self.window_title)
         self.set_word_boundaries()
         self.background = 'light grey'
@@ -41,12 +54,6 @@ class MainApplication(tk.Tk):
         self.button_style.configure('TButton', font=('Open Sans', 9), width=10)
         self.button_style_bold.configure('Bold.TButton', font=('Open Sans', 10, 'bold'), width=10)
         self.text_font = Font(family="Calibri", size=12)
-
-        self.kraken_id = ""
-        self.shared_db_path = r'\\VT10\xpath_manager\log.db'
-        self.local_db_path = 'log.db'
-        self.all_widgets = []
-        self.last_tree = {'link': '', 'tree': ''}
 
         # Extractor Frames (Order chosen here)
         self.view_menu_frame = MyFrame(master=self, padding=5, view='menu')
@@ -68,7 +75,6 @@ class MainApplication(tk.Tk):
         self.bottom_buttons_frame = MyFrame(master=self, view='extractor')
 
         # Finder Frames (Order chosen here)
-
         self.finder_filter_frame = MyFrame(master=self, view='finder', padding=10)
         self.article_url_frame = MyFrame(master=self, view='finder', padding=10)
         self.finder_title_frame = MyFrame(master=self, view='finder', padding=10)
@@ -191,7 +197,8 @@ class MainApplication(tk.Tk):
         self.load_without_url_button = MyButton(master=self.json_buttons_frame, view='extractor', text="Load (-URL)",
                                                 command=lambda: self.generate(load_from_existing_bool=True, leave_current_url=True))
         self.add_proxy_button = MyButton(master=self.json_buttons_frame, view='extractor', text="Proxy", command=lambda: self.edit_json(initial_key="scrapy_settings",
-                                                                                                                                        keyword="HTTP_PROXY", value=config.proxy))
+                                                                                                                                        keyword="HTTP_PROXY",
+                                                                                                                                        value=config.proxy_for_source))
         self.allowed_domains_button = MyButton(master=self.json_buttons_frame, view='extractor', text="Alw. Dom.", command=lambda: self.edit_json(initial_key="scrapy_arguments",
                                                                                                                                                   keyword="allowed_domains",
                                                                                                                                                   value=self.get_source_name(
@@ -468,70 +475,57 @@ class MainApplication(tk.Tk):
             [0, self.finder_body_xpath_4, self.body_xpath_select_button_4, self.finder_body_result_4],
         ]
 
-        self.session = requests.Session()
-        with open('settings.json') as f1:
-            self.settings_json = json.load(f1)
-        self.settings_json["USER_AGENT"] = config.user_agent
-
-        try:
-            con = sqlite3.connect(self.shared_db_path)
-            print("Using shared database.")
-        except sqlite3.OperationalError:
-            con = sqlite3.connect(self.local_db_path)
-            print("Using local database.")
-
+        con = self.initiate_connection()
         self.create_tables(con)
         con.commit()
         con.close()
-
+        self.create_files()
         self.update_finder_tables(startup=True)
-
-        login_link = "https://dashbeta.aiidatapro.net/"
-        self.headers = {'Connection': 'close', 'User-Agent': config.user_agent}
-        session_headers = {
-            'accept': 'text/html,application/xhtml+xml,application/xml',
-            'user-agent': config.user_agent
-        }
-
-        # self.export_stats()
-
-        if not os.path.exists('./login_data.py'):
-            with open('login_data.py', 'w') as login_file:
-                login_file.write('username = "USERNAME_HERE"\npassword = "PASSWORD_HERE"\nuser="Default"')
-                print("Fill in your login details in login_data.py!")
-        else:
-            try:
-                self.session.get(login_link, headers=session_headers)
-                if 'csrftoken' in self.session.cookies:
-                    # Django 1.6 and up
-                    csrftoken = self.session.cookies['csrftoken']
-                else:
-                    csrftoken = self.session.cookies['csrf']
-                session_headers['cookie'] = '; '.join([x.name + '=' + x.value for x in self.session.cookies])
-                session_headers['content-type'] = 'application/x-www-form-urlencoded'
-                payload = {
-                    'username': login_data.username,
-                    'password': login_data.password,
-                    'csrfmiddlewaretoken': csrftoken
-                }
-                response = self.session.post(login_link, data=payload, headers=session_headers)
-                session_headers['cookie'] = '; '.join([x.name + '=' + x.value for x in response.cookies])
-            except Exception:
-                print("Couldn't login")
-
+        self.login()
+        self.export_stats()
+        self.update_old_sources()
+        self.get_all_widgets(self)
+        self.pack_widgets()
+        self.window_setup()
+        self.bind_all("<Key>", self.on_key_release, "+")
+        self.lift()
         chrome_path = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
         webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        t2 = time.time()
+        print(f"Booted in {round(t2 - t1, 2)} seconds.")
 
-        # self.update_old_sources()
-        self.get_all_widgets(self)
+    @staticmethod
+    def create_files():
+        if not os.path.exists('./login_data.py'):
+            username = "USERNAME_HERE"
+            password = "PASSWORD_HERE"
+            proxy_user = "USERNAME_HERE"
+            proxy_password = "PASSWORD_HERE"
+            user = "Default"
+            with open('login_data.py', 'w') as login_file:
+                login_file.write("username = " + username + "\n")
+                login_file.write("password = " + password + "\n")
+                login_file.write("proxy_user = " + proxy_user + "\n")
+                login_file.write("proxy_password = " + proxy_password + "\n")
+                login_file.write("user = " + user + "\n")
 
-        for widget in self.all_widgets:
-            if isinstance(widget, MyText):
-                widget['undo'] = True
-                widget['bg'] = 'white'
-                widget['font'] = self.text_font
+        if not os.path.exists('./config.py'):
+            side_of_window = 'r'
+            proxy_for_source = "http://ch.proxymesh.com:31280/"
+            user_agent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/88.0"
+            settings_json = {
+                "LOG_LEVEL": "DEBUG",
+                "COOKIES_ENABLED": False,
+                "USER_AGENT": user_agent
+            }
+            with open('config.py', 'w') as config_file:
+                config_file.write("side_of_window = " + side_of_window + "\n")
+                config_file.write("proxy_for_source = " + proxy_for_source + "\n")
+                config_file.write("user_agent = " + user_agent + "\n")
+                config_file.write("settings_json = " + repr(settings_json) + "\n")
 
+    def pack_widgets(self):
         row = 0
         for widget in self.all_widgets:
             if isinstance(widget, MyFrame):
@@ -543,12 +537,10 @@ class MainApplication(tk.Tk):
                 if widget in self.winfo_children():
                     widget.grid(row=row, column=0, sticky='W', padx=20, pady=0)
                     row += 1
-
-        # Forget unneeded elements at start
-        for widget in self.winfo_children():
-            if widget.view != 'extractor' and widget.view != 'menu':
+            if hasattr(widget, 'view') and widget.view != 'extractor' and widget.view != 'menu':
                 widget.grid_remove()
 
+    def window_setup(self):
         width = 960
         height = 1080
         starting_height = 0
@@ -556,12 +548,45 @@ class MainApplication(tk.Tk):
             starting_width = self.winfo_screenwidth() - width - 6
         else:
             starting_width = 0
-
         self.geometry('%dx%d+%d+%d' % (width, height, starting_width, starting_height))
-        self.bind_all("<Key>", self.on_key_release, "+")
-        self.lift()
-        t2 = time.time()
-        print(f"Booted in {round(t2 - t1, 2)} seconds.")
+
+    def login(self):
+        if not os.path.exists('./login_data.py'):
+            with open('login_data.py', 'w') as login_file:
+                login_file.write('username = "USERNAME_HERE"\npassword = "PASSWORD_HERE"\nuser="Default"\nproxy_username="USERNAME_HERE"\nproxy_password="PASSWORD_HERE"')
+                print("Fill in your login details in login_data.py!")
+            return
+
+        login_link = "https://dashbeta.aiidatapro.net/"
+        try:
+            http_proxy = f"http://{login_data.proxy_user}:{login_data.proxy_password}@vpn.aiidatapro.com:3128"
+            https_proxy = f"http://{login_data.proxy_user}:{login_data.proxy_password}@vpn.aiidatapro.com:3128"
+            proxies = {
+                "http": http_proxy,
+                "https": https_proxy
+            }
+            self.session.trust_env = False
+            self.session.proxies = proxies
+            self.session.auth = HTTPProxyAuth(login_data.proxy_user, login_data.proxy_password)
+
+            self.session.get(login_link, headers=self.headers)
+            if 'csrftoken' in self.session.cookies:
+                # Django 1.6 and up
+                csrftoken = self.session.cookies['csrftoken']
+            else:
+                csrftoken = self.session.cookies['csrf']
+            self.headers['cookie'] = '; '.join([x.name + '=' + x.value for x in self.session.cookies])
+            self.headers['content-type'] = 'application/x-www-form-urlencoded'
+            payload = {
+                'username': login_data.username,
+                'password': login_data.password,
+                'csrfmiddlewaretoken': csrftoken
+            }
+            response = self.session.post(login_link, data=payload, headers=self.headers)
+            self.headers['cookie'] = '; '.join([x.name + '=' + x.value for x in response.cookies])
+        except Exception as e:
+            print(e)
+            print("Couldn't login")
 
     def initiate_connection(self):
         if os.path.isdir('//VT10/xpath_manager'):
@@ -591,6 +616,10 @@ class MainApplication(tk.Tk):
 
     def get_all_widgets(self, root):
         for widget in root.winfo_children():
+            if isinstance(widget, MyText):
+                widget['undo'] = True
+                widget['bg'] = 'white'
+                widget['font'] = self.text_font
             self.all_widgets.append(widget)
             if widget.winfo_children():
                 self.get_all_widgets(widget)
@@ -1125,7 +1154,6 @@ class MainApplication(tk.Tk):
         con.close()
 
     def generate(self, _=None, initial_json=None, load_from_existing_bool=False, leave_current_url=False):
-
         existing_code = self.json_textbox.get("1.0", tk.END).strip()
         if initial_json:
             json_variable = self.default_changes(initial_json)
@@ -1165,11 +1193,7 @@ class MainApplication(tk.Tk):
                     "title_xpath": "",
                     "body_xpath": ""
                 },
-                "scrapy_settings": {
-                    "LOG_LEVEL": "DEBUG",
-                    "COOKIES_ENABLED": False,
-                    "USER_AGENT": config.user_agent
-                }
+                "scrapy_settings": self.settings_json
             }
             if self.not_empty():
                 for element in self.xpath_dict.keys():
@@ -1423,7 +1447,6 @@ class MainApplication(tk.Tk):
         con.close()
 
     def export_stats(self):
-
         def fetch_user_stats(user, user2=''):
             con = self.initiate_connection()
             cursor = con.cursor()
