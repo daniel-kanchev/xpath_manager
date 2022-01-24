@@ -1,27 +1,29 @@
-import re
-import tkinter as tk
 import json
+import os
+import re
+import sqlite3
+import time
+import tkinter as tk
 import webbrowser
+from datetime import datetime
 from json import JSONDecodeError
+from tkinter import ttk
 from tkinter.font import Font
+from typing import Union
+
 import pyperclip
 import requests
-from lxml import html, etree
-import login_data
-import os
-import sqlite3
-from time import time
-from datetime import datetime
-import config
-from tkinter import ttk
 import urllib3
-from typing import Union
+from lxml import html, etree
+
+import config
+import login_data
 from custom_widgets import MyText, MyLabel, MyFrame, MyButton, MyCheckbutton, MyRadiobutton
 
 
 class MainApplication(tk.Tk):
     def __init__(self):
-        t1 = time()
+        t1 = time.time()
         super().__init__()
         self.window_title = f"Xpath Extractor ({config.last_change})"
         self.title(self.window_title)
@@ -175,7 +177,7 @@ class MainApplication(tk.Tk):
         self.open_extractor_button = MyButton(master=self.view_menu_frame, view='menu', text="Extractor", command=lambda: self.switch_view(view_to_open='extractor'))
         self.open_finder_button = MyButton(master=self.view_menu_frame, view='menu', text="Finder", command=lambda: self.switch_view(view_to_open='finder'))
         self.sync_button = MyButton(master=self.view_menu_frame, view='menu', text="Sync", command=self.sync)
-        self.refresh_db_button = MyButton(master=self.view_menu_frame, view='menu', text="Refresh DB", command=self.stats)
+        self.refresh_db_button = MyButton(master=self.view_menu_frame, view='menu', text="Refresh DB", command=self.update_finder_tables)
 
         # Kraken Buttons
         self.kraken_clipboard_button = MyButton(master=self.kraken_frame, view='extractor', text="Clipboard", command=lambda: self.load_from_kraken(self.clipboard_get()))
@@ -482,7 +484,7 @@ class MainApplication(tk.Tk):
         con.commit()
         con.close()
 
-        self.stats(startup=True)
+        self.update_finder_tables(startup=True)
 
         login_link = "https://dashbeta.aiidatapro.net/"
         self.headers = {'Connection': 'close', 'User-Agent': config.user_agent}
@@ -490,6 +492,8 @@ class MainApplication(tk.Tk):
             'accept': 'text/html,application/xhtml+xml,application/xml',
             'user-agent': config.user_agent
         }
+
+        # self.export_stats()
 
         if not os.path.exists('./login_data.py'):
             with open('login_data.py', 'w') as login_file:
@@ -519,6 +523,7 @@ class MainApplication(tk.Tk):
         webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+        # self.update_old_sources()
         self.get_all_widgets(self)
 
         for widget in self.all_widgets:
@@ -555,7 +560,7 @@ class MainApplication(tk.Tk):
         self.geometry('%dx%d+%d+%d' % (width, height, starting_width, starting_height))
         self.bind_all("<Key>", self.on_key_release, "+")
         self.lift()
-        t2 = time()
+        t2 = time.time()
         print(f"Booted in {round(t2 - t1, 2)} seconds.")
 
     def initiate_connection(self):
@@ -678,11 +683,8 @@ class MainApplication(tk.Tk):
         if kraken_id:
             self.kraken_id = kraken_id
             self.title(f"{kraken_id} - {self.window_title}")
-        elif unset:
-            self.kraken_id = ""
-            self.title(self.window_title)
         else:
-            if self.kraken_textbox.get('1.0', tk.END).strip():
+            if not unset and self.kraken_textbox.get('1.0', tk.END).strip():
                 try:
                     self.kraken_id = re.findall(r'\d+', self.kraken_textbox.get('1.0', tk.END).strip())[-1]
                 except IndexError:
@@ -1082,7 +1084,6 @@ class MainApplication(tk.Tk):
             self.log_to_db(json_dict)
         else:
             print("No ID found, logging skipped")
-            return
 
     def log_to_db(self, json_var):
         con = self.initiate_connection()
@@ -1215,7 +1216,7 @@ class MainApplication(tk.Tk):
                 text_results = tree.xpath(xpath_to_use)
                 number_of_results = len(tree.xpath(xpath))
 
-                if not number_of_results or (self.finder_filter.get() == 'remove' and number_of_results != 1):
+                if not text_results or (self.finder_filter.get() == 'remove' and number_of_results != 1):
                     continue
 
                 dict_to_append = {'xpath': xpath, 'result': f"({number_of_results}) - {','.join(x.strip() for x in text_results if isinstance(x, str) and x.strip())}"}
@@ -1241,7 +1242,8 @@ class MainApplication(tk.Tk):
             tree = self.last_tree['tree']
         else:
             website_response = requests.get(article_url, headers=self.headers, verify=False)
-            tree = html.fromstring(website_response.text.encode())
+            website_response.encoding = 'UTF-8'
+            tree = html.fromstring(website_response.text)
             self.last_tree['link'] = article_url
             self.last_tree['tree'] = tree
         self.fill_found_textboxes(tree, 'title_xpath')
@@ -1317,21 +1319,15 @@ class MainApplication(tk.Tk):
             else:
                 return self.extract_xpath_from_regex(result)
 
-    def stats(self, startup=False):
+    def update_finder_tables(self, startup=False):
         def create_dict(db_results, html_tree, body_xpath=False):
             db_results = [x[0] for x in db_results if x[0]]
             updated_list = []
-            low_qual = 0
-            date_meta = 0
-            bad_regex = 0
-            body_contains_count = 0
-            xpath_error = 0
             regex_contains = ['substring', 're:match', 're:replace']
             body_contains = ['//node()', '/text()', ']//p', "'row'", '::img', '//article/', '//figure/', '//main/',
                              '//figcaption/', "//div[contains(@class,'-content')]", '//section/', "//div[contains(@class,'content')]", '@src', 'orcontains', 'string(']
             for xpath in db_results:
                 if xpath == self.date_meta or "//meta[contains(@*, 'time')]" in xpath:
-                    date_meta += 1
                     continue
 
                 if xpath.startswith('(') and xpath.endswith(')[1]') and '|' in xpath:
@@ -1348,12 +1344,10 @@ class MainApplication(tk.Tk):
                     if any(s in updated_xpath for s in regex_contains):
                         updated_xpath = self.extract_xpath_from_regex(updated_xpath)
                         if not updated_xpath:
-                            bad_regex += 1
                             continue
 
                     if body_xpath:
                         if any(s in updated_xpath for s in body_contains):
-                            body_contains_count += 1
                             continue
 
                         if updated_xpath.endswith('/p'):
@@ -1366,7 +1360,6 @@ class MainApplication(tk.Tk):
                             updated_xpath = updated_xpath[:-1]
 
                     if '@' not in updated_xpath and updated_xpath.count('/') < 3:
-                        low_qual += 1
                         continue
 
                     updated_list.append(updated_xpath.strip())
@@ -1377,16 +1370,9 @@ class MainApplication(tk.Tk):
                 try:
                     html_tree.xpath(xpath)
                 except etree.XPathError:
-                    xpath_error += 1
                     list_to_remove.append(xpath)
 
             updated_list = [x for x in updated_list if x not in list_to_remove]
-
-            # print('low_qual:', low_qual)
-            # print('date_meta:', date_meta)
-            # print('bad_regex:', bad_regex)
-            # print('body_contains_count:', body_contains_count)
-            # print('xpath_error:', xpath_error)
 
             created_dict = dict()
             for i in updated_list:
@@ -1433,6 +1419,102 @@ class MainApplication(tk.Tk):
         if not startup:
             self.info_label['text'] = "Tables refreshed."
 
+        con.commit()
+        con.close()
+
+    def export_stats(self):
+
+        def fetch_user_stats(user, user2=''):
+            con = self.initiate_connection()
+            cursor = con.cursor()
+            stats = {
+                'title_xpath': {},
+                'pubdate_xpath': {},
+                'author_xpath': {},
+                'body_xpath': {},
+            }
+            cursor.execute("SELECT title_xpath, pubdate_xpath, author_xpath, body_xpath FROM log WHERE user=? OR user=?", (user, user2))
+            results = cursor.fetchall()
+            for entry in results:
+                if entry[0] and entry[0] in stats['title_xpath']:
+                    stats['title_xpath'][entry[0]] += 1
+                else:
+                    stats['title_xpath'][entry[0]] = 1
+
+                if entry[1] and entry[1] in stats['pubdate_xpath']:
+                    stats['pubdate_xpath'][entry[1]] += 1
+                else:
+                    stats['pubdate_xpath'][entry[1]] = 1
+
+                if entry[2] and entry[2] in stats['author_xpath']:
+                    stats['author_xpath'][entry[2]] += 1
+                else:
+                    stats['author_xpath'][entry[2]] = 1
+
+                if entry[3] and entry[3] in stats['body_xpath']:
+                    stats['body_xpath'][entry[3]] += 1
+                else:
+                    stats['body_xpath'][entry[3]] = 1
+
+            for key in stats.keys():
+                stats[key] = sorted(stats[key].items(), key=lambda x: x[1], reverse=True)[:20]
+
+            lines = [f'\n{user}\n']
+            for key in stats.keys():
+                lines.append(f'\n{key}:\n')
+                for xpath in stats[key]:
+                    lines.append(f'{xpath[0]}: {xpath[1]}\n')
+
+            with open('stats.txt', 'a') as file:
+                file.writelines(lines)
+                file.close()
+
+        with open('stats.txt', 'w') as f:
+            f.close()
+
+        fetch_user_stats(user="Daniel")
+        fetch_user_stats(user="Simeon")
+        fetch_user_stats(user="Hristo", user2="Bat Icho")
+
+    def update_old_sources(self):
+        con = self.initiate_connection()
+        cur = con.cursor()
+
+        cur.execute("SELECT id FROM log WHERE domain IS NULL")
+        id_list = [x[0] for x in cur.fetchall()]
+
+        enabled_xpath = '//tr[td[child::text()[contains(.,"Enabled")]]]/td[2]/i[contains(@class, "true")]'
+        active_xpath = '//tr[td[child::text()[contains(.,"Active")]]]/td[2]/i[contains(@class, "true")]'
+        botname_xpath = '//tr[td[child::text()[contains(.,"Botname")]]]/td[2]/text()'
+        projects_xpath = '//tr[td[child::text()[contains(.,"Projects")]]]/td[2]//li/a/text()'
+        name_xpath = '//tr[td[child::text()[contains(.,"Name")]]]/td[2]/text()'
+        domain_xpath = '//tr[td[child::text()[contains(.,"URL")]]]/td[2]/a/text()'
+
+        for source_id in id_list[:100]:
+            print(source_id)
+            link = f"http://kraken.aiidatapro.net/items/{source_id}/"
+            items_page_response = self.session.get(link)
+            tree = html.fromstring(items_page_response.text)
+            enabled = bool(tree.xpath(enabled_xpath))
+            active = bool(tree.xpath(active_xpath))
+            botname = tree.xpath(botname_xpath)[0]
+            projects = tree.xpath(projects_xpath)
+            projects = ','.join(projects)
+            name = tree.xpath(name_xpath)[0]
+            domain = tree.xpath(domain_xpath)[0]
+            if enabled:
+                if active:
+                    status = "Running"
+                else:
+                    status = "Enabled, but not Active(?)"
+            else:
+                if active:
+                    status = "Custom"
+                else:
+                    status = "Stopped"
+            print(domain, name, projects, status, botname)
+            cur.execute("UPDATE log SET domain=?, name=?, projects=?, status=?, botname=? WHERE id=?", (domain, name, projects, status, botname, source_id))
+            time.sleep(1)
         con.commit()
         con.close()
 
