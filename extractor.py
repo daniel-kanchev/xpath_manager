@@ -16,15 +16,13 @@ import requests
 from requests.auth import HTTPProxyAuth
 import urllib3
 from lxml import html, etree
-import dropbox
 import atexit
 
 import config
 import login_data
 from custom_widgets import MyText, MyLabel, MyFrame, MyButton, MyCheckbutton, MyRadiobutton
+import dropbox_methods
 
-# TODO: Maint script - Find all with no body/starturl
-# TODO: Maint script - Find siteshtml/sitesjs with no articles/title
 # TODO: Junk Finder
 # TODO: Images Finder
 # TODO: Finder stats - Make a ‘voluntarily removed’ and ‘involuntarily removed’ xpath in a .txt, along with % of xpath removed in both ways
@@ -48,7 +46,6 @@ class MainApplication(tk.Tk):
         self.last_tree = {'link': '', 'tree': ''}
         self.session = requests.Session()
         self.headers = config.default_login_header
-        self.dbx = dropbox.Dropbox(login_data.dropbox_access_token)
         self.title(config.window_title)
         self.set_word_boundaries()
         self.configure(background=config.background)
@@ -190,7 +187,7 @@ class MainApplication(tk.Tk):
         # View Menu Buttons
         self.open_extractor_button = MyButton(master=self.view_menu_frame, view='menu', text="Extractor", command=lambda: self.switch_view(view_to_open='extractor'))
         self.open_finder_button = MyButton(master=self.view_menu_frame, view='menu', text="Finder", command=lambda: self.switch_view(view_to_open='finder'))
-        self.sync_button = MyButton(master=self.view_menu_frame, view='menu', text="Sync", command=self.download_db())
+        self.sync_button = MyButton(master=self.view_menu_frame, view='menu', text="Sync", command=dropbox_methods.download_db)
         self.refresh_db_button = MyButton(master=self.view_menu_frame, view='menu', text="Refresh DB", command=self.update_finder_tables)
 
         # Kraken Buttons
@@ -483,7 +480,7 @@ class MainApplication(tk.Tk):
             [0, self.finder_body_xpath_4, self.body_xpath_select_button_4, self.finder_body_result_4],
         ]
 
-        self.download_db()
+        dropbox_methods.download_db()
         self.login()
         self.update_finder_tables(startup=True)
 
@@ -497,23 +494,10 @@ class MainApplication(tk.Tk):
         chrome_path = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
         webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        atexit.register(self.upload_db)
+        atexit.register(dropbox_methods.upload_db)
 
         t2 = time.time()
         print(f"Booted in {round(t2 - t1, 2)} seconds.")
-
-    def download_db(self):
-        print("Downloading database..")
-        self.dbx.files_download_to_file(path=f'/{config.db_path}', download_path=f'./{config.db_path}')
-        while not os.path.exists(config.db_path):
-            time.sleep(1)
-        print("Download finished.")
-
-    def upload_db(self):
-        print("Uploading database..")
-        with open('log.db', 'rb') as f:
-            self.dbx.files_upload(f.read(), '/log.db', mode=dropbox.files.WriteMode.overwrite)
-        print("Upload finished.")
 
     def pack_widgets(self):
         row = 0
@@ -1161,13 +1145,10 @@ class MainApplication(tk.Tk):
         else:
             cur.execute("SELECT xpath FROM body_xpath ORDER BY count DESC")
             element = self.finder_body_frame.frame_list
-        print(column)
-        print("element set")
         xpath_list = cur.fetchall()
         xpath_list = [x[0] for x in xpath_list]
         con.close()
 
-        print("xpath fetched")
         final_result = []
         number_of_textboxes = len(self.finder_title_frame.frame_list)
         for xpath in xpath_list:
@@ -1186,7 +1167,6 @@ class MainApplication(tk.Tk):
                         break
             except Exception:
                 print('broken xpath:', xpath)
-        print('xpath setting finished')
         for i, entry in enumerate(final_result):
             element[i][-3].delete('1.0', tk.END)
             element[i][-3].insert('1.0', entry['xpath'])
