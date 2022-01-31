@@ -16,10 +16,27 @@ import requests
 from requests.auth import HTTPProxyAuth
 import urllib3
 from lxml import html, etree
+import dropbox
+import atexit
 
 import config
 import login_data
 from custom_widgets import MyText, MyLabel, MyFrame, MyButton, MyCheckbutton, MyRadiobutton
+
+# TODO: Maint script - Find all with no body/starturl
+# TODO: Maint script - Find siteshtml/sitesjs with no articles/title
+# TODO: Junk Finder
+# TODO: Images Finder
+# TODO: Finder stats - Make a ‘voluntarily removed’ and ‘involuntarily removed’ xpath in a .txt, along with % of xpath removed in both ways
+# TODO: PyLint
+# TODO: Remove magic numbers
+# TODO: Segment files
+# TODO: Get scraping log from Kraken
+# TODO: Settings Page
+# TODO: Custom Clipboard
+# TODO: Popular Regex
+# TODO: Tooltips
+# TODO: Documentation
 
 
 class MainApplication(tk.Tk):
@@ -27,33 +44,25 @@ class MainApplication(tk.Tk):
         t1 = time.time()
         super().__init__()
         self.kraken_id = ""
-        self.shared_db_path = r'\\VT10\xpath_manager\log.db'
-        self.local_db_path = 'log.db'
         self.all_widgets = []
         self.last_tree = {'link': '', 'tree': ''}
-        self.settings_json = config.settings_json
         self.session = requests.Session()
-        self.headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml',
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0"
-        }
-        self.window_title = f"XPath Extractor"
-        self.title(self.window_title)
+        self.headers = config.default_login_header
+        self.dbx = dropbox.Dropbox(login_data.dropbox_access_token)
+        self.title(config.window_title)
         self.set_word_boundaries()
-        self.background = 'light grey'
-        self.configure(background=self.background)
+        self.configure(background=config.background)
         self.current_view = 'extractor'
         self.general_style = self.frame_style = self.checkbutton_style = self.label_style = self.label_style_bold = self.button_style = self.button_style_bold = ttk.Style()
         self.general_style.theme_use('clam')
-        self.frame_style.configure('TFrame', background=self.background)
-        self.checkbutton_style.configure('TCheckbutton', background=self.background)
-        self.label_style.configure('TLabel', background=self.background, font=('Calibri', 12))
-        self.label_style.configure('TRadiobutton', background=self.background, font=('Calibri', 12))
-        self.label_style_bold.configure('Bold.TLabel', background=self.background, font=('Calibri', 12, 'bold'))
-        self.button_style.configure('TButton', font=('Open Sans', 9), width=10)
-        self.button_style_bold.configure('Bold.TButton', font=('Open Sans', 10, 'bold'), width=10)
-        self.text_font = Font(family="Calibri", size=12)
+        self.frame_style.configure('TFrame', background=config.background)
+        self.checkbutton_style.configure('TCheckbutton', background=config.background)
+        self.label_style.configure('TLabel', background=config.background, font=(config.label_font, 12))
+        self.label_style.configure('TRadiobutton', background=config.background, font=(config.label_font, 12))
+        self.label_style_bold.configure('Bold.TLabel', background=config.background, font=(config.label_font, 12, 'bold'))
+        self.button_style.configure('TButton', font=(config.button_font, 9), width=10)
+        self.button_style_bold.configure('Bold.TButton', font=(config.button_font, 10, 'bold'), width=10)
+        self.text_font = Font(family=config.label_font, size=12)
 
         # Extractor Frames (Order chosen here)
         self.view_menu_frame = MyFrame(master=self, padding=5, view='menu')
@@ -145,7 +154,6 @@ class MainApplication(tk.Tk):
 
         # Finder Textboxes
         self.finder_article_textbox = MyText(master=self.article_url_frame, view='finder', height=1, width=81)
-
         self.finder_title_xpath_1 = MyText(master=self.finder_title_frame, view='finder', height=1, width=40)
         self.finder_title_xpath_2 = MyText(master=self.finder_title_frame, view='finder', height=1, width=40)
         self.finder_title_xpath_3 = MyText(master=self.finder_title_frame, view='finder', height=1, width=40)
@@ -182,12 +190,12 @@ class MainApplication(tk.Tk):
         # View Menu Buttons
         self.open_extractor_button = MyButton(master=self.view_menu_frame, view='menu', text="Extractor", command=lambda: self.switch_view(view_to_open='extractor'))
         self.open_finder_button = MyButton(master=self.view_menu_frame, view='menu', text="Finder", command=lambda: self.switch_view(view_to_open='finder'))
-        self.sync_button = MyButton(master=self.view_menu_frame, view='menu', text="Sync", command=self.sync)
+        self.sync_button = MyButton(master=self.view_menu_frame, view='menu', text="Sync", command=self.download_db())
         self.refresh_db_button = MyButton(master=self.view_menu_frame, view='menu', text="Refresh DB", command=self.update_finder_tables)
 
         # Kraken Buttons
-        self.kraken_clipboard_button = MyButton(master=self.kraken_frame, view='extractor', text="Clipboard", command=lambda: self.load_from_kraken(self.clipboard_get()))
-        self.open_source_button = MyButton(master=self.kraken_frame, view='extractor', text="Source", command=lambda: self.open_link(self.kraken_textbox.get('1.0', tk.END)))
+        self.kraken_clipboard_button = MyButton(master=self.kraken_frame, view='extractor', text="Clipboard", command=lambda: self.load_from_kraken(self.clipboard_get().strip()))
+        self.open_source_button = MyButton(master=self.kraken_frame, view='extractor', text="Source", command=lambda: self.open_link(self.get_strip(self.kraken_textbox)))
         self.load_from_db_button = MyButton(master=self.kraken_frame, view='extractor', text="DB Load", command=self.load_from_db)
         self.open_items_button = MyButton(master=self.kraken_frame, view='extractor', text="Items", command=self.open_items_page)
 
@@ -287,7 +295,7 @@ class MainApplication(tk.Tk):
                                           command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
                                                                                      after_value=r", '\d{1,2}\s\w+\s\d{2,4}', 'g')"))
         self.pubdate_copy_without_regex = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Copy NoRgx",
-                                                   command=lambda: pyperclip.copy(self.extract_xpath_from_regex(self.pubdate_textbox.get('1.0', tk.END))))
+                                                   command=lambda: pyperclip.copy(self.extract_xpath_from_regex(self.get_strip(self.pubdate_textbox))))
 
         # Author Xpath Buttons
         self.copy_author_button = MyButton(master=self.author_frame, view='extractor', text="Copy", command=lambda: self.copy_code(self.author_textbox))
@@ -475,14 +483,12 @@ class MainApplication(tk.Tk):
             [0, self.finder_body_xpath_4, self.body_xpath_select_button_4, self.finder_body_result_4],
         ]
 
-        con = self.initiate_connection()
-        self.create_tables(con)
-        con.commit()
-        con.close()
-        self.update_finder_tables(startup=True)
+        self.download_db()
         self.login()
-        # self.export_stats()
+        self.update_finder_tables(startup=True)
+
         # self.update_old_sources()
+
         self.get_all_widgets(self)
         self.pack_widgets()
         self.window_setup()
@@ -491,8 +497,23 @@ class MainApplication(tk.Tk):
         chrome_path = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
         webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        atexit.register(self.upload_db)
+
         t2 = time.time()
         print(f"Booted in {round(t2 - t1, 2)} seconds.")
+
+    def download_db(self):
+        print("Downloading database..")
+        self.dbx.files_download_to_file(path=f'/{config.db_path}', download_path=f'./{config.db_path}')
+        while not os.path.exists(config.db_path):
+            time.sleep(1)
+        print("Download finished.")
+
+    def upload_db(self):
+        print("Uploading database..")
+        with open('log.db', 'rb') as f:
+            self.dbx.files_upload(f.read(), '/log.db', mode=dropbox.files.WriteMode.overwrite)
+        print("Upload finished.")
 
     def pack_widgets(self):
         row = 0
@@ -557,27 +578,6 @@ class MainApplication(tk.Tk):
             print(e)
             print("Couldn't login")
 
-    def initiate_connection(self):
-        if os.path.isdir('//VT10/xpath_manager'):
-            con = sqlite3.connect('//VT10/xpath_manager/log.db')
-        else:
-            con = sqlite3.connect(self.local_db_path)
-        return con
-
-    @staticmethod
-    def create_tables(con):
-        cur = con.cursor()
-        cur.execute('''CREATE TABLE IF NOT EXISTS log
-                       (id text, date text, start_urls text, menu_xpath text, articles_xpath text, title_xpath text, 
-                       pubdate_xpath text, date_order text, author_xpath text, body_xpath text, settings text, domain text, name text, status text,
-                       projects text, botname text, full_json text, user text)''')
-        cur.execute('''CREATE TABLE IF NOT EXISTS menu_xpath(xpath text, count number)''')
-        cur.execute('''CREATE TABLE IF NOT EXISTS articles_xpath(xpath text, count number)''')
-        cur.execute('''CREATE TABLE IF NOT EXISTS title_xpath(xpath text, count number)''')
-        cur.execute('''CREATE TABLE IF NOT EXISTS pubdate_xpath(xpath text, count number)''')
-        cur.execute('''CREATE TABLE IF NOT EXISTS author_xpath(xpath text, count number)''')
-        cur.execute('''CREATE TABLE IF NOT EXISTS body_xpath(xpath text, count number)''')
-
     def set_word_boundaries(self):
         self.tk.call('tcl_wordBreakAfter', '', 0)
         self.tk.call('set', 'tcl_wordchars', '[a-zA-Z0-9_.-]')
@@ -606,8 +606,8 @@ class MainApplication(tk.Tk):
             col = 0
 
     def edit_json(self, initial_key, keyword, value):
-        if self.json_textbox.get("1.0", tk.END).strip():
-            existing_json = json.loads(self.json_textbox.get("1.0", tk.END).strip())
+        if self.get_strip(self.json_textbox):
+            existing_json = json.loads(self.get_strip(self.json_textbox))
             if keyword in existing_json[initial_key].keys():
                 if existing_json[initial_key][keyword] == value:
                     del existing_json[initial_key][keyword]
@@ -625,42 +625,9 @@ class MainApplication(tk.Tk):
         else:
             return
 
-    def sync(self):
-        if os.path.isdir('//VT10/xpath_manager'):
-            con = sqlite3.connect(self.shared_db_path)
-            cur = con.cursor()
-            cur.execute("SELECT id FROM log")
-            shared_entries = cur.fetchall()
-        else:
-            print("Couldn't connect to shared database.")
-            return
-
-        synced_entries = 0
-        local_con = sqlite3.connect(self.local_db_path)
-        self.create_tables(local_con)
-        local_cur = local_con.cursor()
-        local_cur.execute("SELECT id FROM log")
-        local_entries = local_cur.fetchall()
-        for entry in local_entries:
-            if entry not in shared_entries:
-                entry = entry[0]
-                local_cur.execute("SELECT * FROM log WHERE id=?", (entry,))
-                new_entry = local_cur.fetchone()
-                cur.execute("INSERT INTO log VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", new_entry)
-                synced_entries += 1
-        if synced_entries:
-            print(f'Added {synced_entries} log(s) to shared database.')
-        else:
-            print('No new entries were added to the shared database.')
-        self.info_label['text'] = "Databases synced."
-        local_con.commit()
-        local_con.close()
-        con.commit()
-        con.close()
-
     def update_date_order_label(self):
-        if self.json_textbox.get("1.0", tk.END).strip():
-            existing_json = json.loads(self.json_textbox.get("1.0", tk.END).strip())
+        if self.get_strip(self.json_textbox):
+            existing_json = json.loads(self.get_strip(self.json_textbox))
             if 'date_order' in existing_json['scrapy_arguments'].keys():
                 self.date_order_label['text'] = existing_json['scrapy_arguments']['date_order']
             else:
@@ -672,7 +639,7 @@ class MainApplication(tk.Tk):
         :param textbox: Textbox whose text should be copied to clipboard
         :return:
         """
-        value_to_copy = textbox.get("1.0", tk.END).strip()
+        value_to_copy = self.get_strip(textbox)
         if value_to_copy:
             pyperclip.copy(value_to_copy)
             self.info_label['text'] = "Value copied."
@@ -680,18 +647,18 @@ class MainApplication(tk.Tk):
     def set_kraken_id(self, kraken_id="", unset=False):
         if kraken_id:
             self.kraken_id = kraken_id
-            self.title(f"{kraken_id} - {self.window_title}")
+            self.title(f"{kraken_id} - {config.window_title}")
         else:
-            if not unset and self.kraken_textbox.get('1.0', tk.END).strip():
+            if not unset and self.get_strip(self.kraken_textbox):
                 try:
-                    self.kraken_id = re.findall(r'\d+', self.kraken_textbox.get('1.0', tk.END).strip())[-1]
+                    self.kraken_id = re.findall(r'\d+', self.get_strip(self.kraken_textbox))[-1]
                 except IndexError:
                     print("No ID found")
                     return
-                self.title(f"{self.kraken_id} - {self.window_title}")
+                self.title(f"{self.kraken_id} - {config.window_title}")
             else:
                 self.kraken_id = ""
-                self.title(self.window_title)
+                self.title(config.window_title)
 
     def color_info_labels(self):
         kraken_text = self.last_kraken_user_var_label['text']
@@ -771,7 +738,7 @@ class MainApplication(tk.Tk):
         self.kraken_textbox.insert('1.0', link)
 
         # Show if/who/when edited the source last
-        con = self.initiate_connection()
+        con = sqlite3.connect(config.db_path)
         cur = con.cursor()
         cur.execute('SELECT date, user FROM log WHERE id=?', (self.kraken_id,))
         result = cur.fetchone()
@@ -849,18 +816,18 @@ class MainApplication(tk.Tk):
         :return:
         """
 
-        con = self.initiate_connection()
+        con = sqlite3.connect(config.db_path)
         cur = con.cursor()
 
-        if not self.kraken_textbox.get('1.0', tk.END).strip():
+        if not self.get_strip(self.kraken_textbox):
             return
 
-        kraken_id = re.search(r'\d+', self.kraken_textbox.get('1.0', tk.END))
+        kraken_id = re.search(r'\d+', self.get_strip(self.kraken_textbox))
         if kraken_id:
             cur.execute('SELECT * FROM log WHERE id=?', (kraken_id.group(),))
             result = cur.fetchone()
         else:
-            cur.execute("SELECT * FROM log WHERE start_urls LIKE '%'||?||'%'", (self.kraken_textbox.get('1.0', tk.END).strip(),))
+            cur.execute("SELECT * FROM log WHERE start_urls LIKE '%'||?||'%'", (self.get_strip(self.kraken_textbox),))
             result = cur.fetchone()
 
         con.close()
@@ -899,14 +866,14 @@ class MainApplication(tk.Tk):
 
     def open_items_page(self):
         # Function to open the "View Item" page of the source in Kraken
-        if self.kraken_textbox.get('1.0', tk.END).strip():
+        if self.get_strip(self.kraken_textbox):
             link = self.get_link().replace('/edit', '')
             webbrowser.get("chrome").open(link)
         else:
             return
 
     def get_source_name(self, copy=True):
-        domain = self.start_urls_textbox.get("1.0", tk.END).strip()
+        domain = self.get_strip(self.start_urls_textbox)
         if domain and domain[-1] == '/':
             domain = domain[:-1]
         try:
@@ -920,9 +887,8 @@ class MainApplication(tk.Tk):
                 pyperclip.copy(name)
             return name
 
-    @staticmethod
-    def append_textbox_values(textbox, before_value="", after_value=""):
-        current_value = textbox.get("1.0", tk.END)
+    def append_textbox_values(self, textbox, before_value="", after_value=""):
+        current_value = self.get_strip(textbox)
         textbox.delete("1.0", tk.END)
         textbox.insert("1.0", f'{before_value.strip()}{current_value.strip()}{after_value.strip()}')
 
@@ -931,9 +897,8 @@ class MainApplication(tk.Tk):
         textbox.delete("1.0", tk.END)
         textbox.insert("1.0", value)
 
-    @staticmethod
-    def from_textbox_to_textbox(textbox1, textbox2):
-        value = textbox1.get('1.0', tk.END).strip()
+    def from_textbox_to_textbox(self, textbox1, textbox2):
+        value = self.get_strip(textbox1)
         if not value:
             return
         pyperclip.copy(value)
@@ -941,7 +906,7 @@ class MainApplication(tk.Tk):
         textbox2.insert('1.0', value)
 
     def open_start_urls_link(self):
-        links = self.start_urls_textbox.get("1.0", tk.END).split(';')
+        links = self.get_strip(self.start_urls_textbox).split(';')
         if links:
             for link in links:
                 link = link.strip()
@@ -949,10 +914,10 @@ class MainApplication(tk.Tk):
                 webbrowser.get("chrome").open(link)
 
     def get_domain(self, copy=False):
-        link = self.start_urls_textbox.get("1.0", tk.END).strip()
+        link = self.get_strip(self.start_urls_textbox)
         if not link.startswith('http'):
             link = 'http://' + link
-        domain = "/".join(link.split('/')[:3]) + '/'
+        domain = "/".join(link.split(';')[0].split('/')[:3]) + '/'
         if copy:
             pyperclip.copy(domain)
         else:
@@ -1029,18 +994,18 @@ class MainApplication(tk.Tk):
         return new_dict
 
     def not_empty(self):
-        return bool(self.start_urls_textbox.get("1.0", tk.END).strip() or
-                    self.menu_textbox.get("1.0", tk.END).strip() or
-                    self.articles_textbox.get("1.0", tk.END).strip() or
-                    self.title_textbox.get("1.0", tk.END).strip() or
-                    self.pubdate_textbox.get("1.0", tk.END).strip() or
-                    self.author_textbox.get("1.0", tk.END).strip() or
-                    self.body_textbox.get("1.0", tk.END).strip())
+        return bool(self.get_strip(self.start_urls_textbox) or
+                    self.get_strip(self.menu_textbox) or
+                    self.get_strip(self.articles_textbox) or
+                    self.get_strip(self.title_textbox) or
+                    self.get_strip(self.pubdate_textbox) or
+                    self.get_strip(self.author_textbox) or
+                    self.get_strip(self.body_textbox))
 
     def get_text_from_textbox(self, textbox, xpath_name, json_var):
-        if textbox.get("1.0", tk.END).strip():
+        if self.get_strip(textbox):
             # .replace(re.sub(r'\S\|\S'), ' | ')
-            xpath = textbox.get("1.0", tk.END).strip().replace('"', "'")
+            xpath = self.get_strip(textbox).replace('"', "'")
             string_for_remove = ["concat( ' ', ", " ' ' ), concat( ' ', ", ", ' ' )"]
             for s in string_for_remove:
                 xpath = xpath.replace(s, '')
@@ -1063,9 +1028,9 @@ class MainApplication(tk.Tk):
             self.edit_textbox(self.xpath_dict[element], element, json_var)
 
         if "scrapy_settings" in json_var.keys():
-            json_var["scrapy_settings"].update(self.settings_json)
+            json_var["scrapy_settings"].update(config.settings_json)
         else:
-            json_var["scrapy_settings"] = self.settings_json
+            json_var["scrapy_settings"] = config.settings_json
         return self.sort_json(json_var)
 
     def fill_code_textbox(self, json_var):
@@ -1077,14 +1042,14 @@ class MainApplication(tk.Tk):
     def log_code(self, json_dict):
         if self.kraken_id:
             self.log_to_db(json_dict)
-        elif self.kraken_textbox.get('1.0', tk.END).strip():
+        elif self.get_strip(self.kraken_textbox):
             self.set_kraken_id()
             self.log_to_db(json_dict)
         else:
             print("No ID found, logging skipped")
 
     def log_to_db(self, json_var):
-        con = self.initiate_connection()
+        con = sqlite3.connect(config.db_path)
         cur = con.cursor()
 
         current_time = datetime.now().strftime("%d-%b-%Y %H:%M:%S")
@@ -1123,7 +1088,7 @@ class MainApplication(tk.Tk):
         con.close()
 
     def generate(self, _=None, initial_json=None, load_from_existing_bool=False, leave_current_url=False):
-        existing_code = self.json_textbox.get("1.0", tk.END).strip()
+        existing_code = self.get_strip(self.json_textbox)
         if initial_json:
             json_variable = self.default_changes(initial_json)
             self.fill_code_textbox(json_variable)
@@ -1136,7 +1101,7 @@ class MainApplication(tk.Tk):
             try:
                 json_variable = json.loads(existing_code)
                 if leave_current_url:
-                    json_variable['scrapy_arguments']['start_urls'] = self.start_urls_textbox.get('1.0', tk.END).strip()
+                    json_variable['scrapy_arguments']['start_urls'] = self.get_strip(self.start_urls_textbox)
             except JSONDecodeError:
                 print("Invalid JSON")
                 return
@@ -1162,7 +1127,7 @@ class MainApplication(tk.Tk):
                     "title_xpath": "",
                     "body_xpath": ""
                 },
-                "scrapy_settings": self.settings_json
+                "scrapy_settings": config.settings_json
             }
             if self.not_empty():
                 for element in self.xpath_dict.keys():
@@ -1178,7 +1143,7 @@ class MainApplication(tk.Tk):
                 self.fill_code_textbox(json_variable)
 
     def fill_found_textboxes(self, tree, column):
-        con = self.initiate_connection()
+        con = sqlite3.connect(config.db_path)
         cur = con.cursor()
 
         if column == 'title_xpath':
@@ -1196,11 +1161,13 @@ class MainApplication(tk.Tk):
         else:
             cur.execute("SELECT xpath FROM body_xpath ORDER BY count DESC")
             element = self.finder_body_frame.frame_list
-
+        print(column)
+        print("element set")
         xpath_list = cur.fetchall()
         xpath_list = [x[0] for x in xpath_list]
         con.close()
 
+        print("xpath fetched")
         final_result = []
         number_of_textboxes = len(self.finder_title_frame.frame_list)
         for xpath in xpath_list:
@@ -1219,7 +1186,7 @@ class MainApplication(tk.Tk):
                         break
             except Exception:
                 print('broken xpath:', xpath)
-
+        print('xpath setting finished')
         for i, entry in enumerate(final_result):
             element[i][-3].delete('1.0', tk.END)
             element[i][-3].insert('1.0', entry['xpath'])
@@ -1230,7 +1197,7 @@ class MainApplication(tk.Tk):
         for widget in self.all_widgets:
             if widget.view == 'finder' and isinstance(widget, MyText) and widget.master != self.article_url_frame:
                 widget.delete('1.0', tk.END)
-        article_url = self.finder_article_textbox.get("1.0", tk.END).strip()
+        article_url = self.get_strip(self.finder_article_textbox)
         if self.last_tree['link'] == article_url:
             tree = self.last_tree['tree']
         else:
@@ -1332,7 +1299,7 @@ class MainApplication(tk.Tk):
                     split_xpath_list = [xpath]
 
                 for updated_xpath in split_xpath_list:
-                    updated_xpath = updated_xpath.replace(' ', '')
+                    updated_xpath = re.sub(r"contains\(@(\w+),\s+'([^']+)'", r"contains(@\g<1>,'\g<2>'", updated_xpath).strip()
 
                     if any(s in updated_xpath for s in regex_contains):
                         updated_xpath = self.extract_xpath_from_regex(updated_xpath)
@@ -1373,7 +1340,7 @@ class MainApplication(tk.Tk):
 
             return sorted(created_dict.items(), key=lambda d: d[1], reverse=True)
 
-        con = self.initiate_connection()
+        con = sqlite3.connect(config.db_path)
         cur = con.cursor()
 
         if startup:
@@ -1415,61 +1382,12 @@ class MainApplication(tk.Tk):
         con.commit()
         con.close()
 
-    def export_stats(self):
-        def fetch_user_stats(user, user2=''):
-            con = self.initiate_connection()
-            cursor = con.cursor()
-            stats = {
-                'title_xpath': {},
-                'pubdate_xpath': {},
-                'author_xpath': {},
-                'body_xpath': {},
-            }
-            cursor.execute("SELECT title_xpath, pubdate_xpath, author_xpath, body_xpath FROM log WHERE user=? OR user=?", (user, user2))
-            results = cursor.fetchall()
-            for entry in results:
-                if entry[0] and entry[0] in stats['title_xpath']:
-                    stats['title_xpath'][entry[0]] += 1
-                else:
-                    stats['title_xpath'][entry[0]] = 1
-
-                if entry[1] and entry[1] in stats['pubdate_xpath']:
-                    stats['pubdate_xpath'][entry[1]] += 1
-                else:
-                    stats['pubdate_xpath'][entry[1]] = 1
-
-                if entry[2] and entry[2] in stats['author_xpath']:
-                    stats['author_xpath'][entry[2]] += 1
-                else:
-                    stats['author_xpath'][entry[2]] = 1
-
-                if entry[3] and entry[3] in stats['body_xpath']:
-                    stats['body_xpath'][entry[3]] += 1
-                else:
-                    stats['body_xpath'][entry[3]] = 1
-
-            for key in stats.keys():
-                stats[key] = sorted(stats[key].items(), key=lambda x: x[1], reverse=True)[:20]
-
-            lines = [f'\n{user}\n']
-            for key in stats.keys():
-                lines.append(f'\n{key}:\n')
-                for xpath in stats[key]:
-                    lines.append(f'{xpath[0]}: {xpath[1]}\n')
-
-            with open('stats.txt', 'a') as file:
-                file.writelines(lines)
-                file.close()
-
-        with open('stats.txt', 'w') as f:
-            f.close()
-
-        fetch_user_stats(user="Daniel")
-        fetch_user_stats(user="Simeon")
-        fetch_user_stats(user="Hristo", user2="Bat Icho")
+    @staticmethod
+    def get_strip(widget):
+        return widget.get('1.0', 'end-1c').strip()
 
     def update_old_sources(self):
-        con = self.initiate_connection()
+        con = sqlite3.connect(config.db_path)
         cur = con.cursor()
 
         cur.execute("SELECT id FROM log WHERE domain IS NULL")
