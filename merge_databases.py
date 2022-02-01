@@ -1,6 +1,7 @@
 import sqlite3
 
 
+# TODO: Turn into class?
 def sync(db_from_path, db_to_path):
     def sync_new(db_from_path, db_to_path):
         db_from = sqlite3.connect(db_from_path)
@@ -10,16 +11,12 @@ def sync(db_from_path, db_to_path):
         cur_to = db_to.cursor()
 
         ids_from = [item_id[0] for item_id in cur_from.execute("SELECT id FROM log").fetchall()]
-        print(len(ids_from))
-
         ids_to = [item_id[0] for item_id in cur_to.execute("SELECT id FROM log").fetchall()]
-        print(len(ids_to))
 
         ids_to_add = []
         for item_id in ids_from:
             if item_id not in ids_to:
                 ids_to_add.append(item_id)
-        print(len(ids_to_add))
 
         if not ids_to_add:
             return
@@ -63,8 +60,10 @@ def sync(db_from_path, db_to_path):
         db_to_row.close()
         db_from_row.close()
 
+    print("Merging..")
     sync_new(db_from_path, db_to_path)
     sync_updated(db_from_path, db_to_path)
+    print("Merged.")
 
 
 if __name__ == "__main__":

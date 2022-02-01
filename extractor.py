@@ -24,8 +24,6 @@ from custom_widgets import MyText, MyLabel, MyFrame, MyButton, MyCheckbutton, My
 import dropbox_methods
 
 
-# TODO: Write logic for junk and images finders
-# TODO: Finder stats - Make a ‘voluntarily removed’ and ‘involuntarily removed’ xpath in a .txt, along with % of xpath removed in both ways
 # TODO: PyLint
 # TODO: Remove magic numbers
 # TODO: Segment files
@@ -537,7 +535,7 @@ class MainApplication(tk.Tk):
             [0, self.finder_junk_xpath_4, self.junk_xpath_add_button_4, self.finder_junk_result_4],
         ]
 
-        dropbox_methods.download_db()
+        dropbox_methods.download_db(config.local_db_path)
         self.login()
         self.update_finder_tables(startup=True)
 
@@ -551,7 +549,7 @@ class MainApplication(tk.Tk):
 
         webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(config.chrome_path))
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        atexit.register(dropbox_methods.upload_db)
+        atexit.register(dropbox_methods.merge_and_upload)
 
         t2 = time.time()
         print(f"Booted in {round(t2 - t1, 2)} seconds.")
@@ -779,7 +777,7 @@ class MainApplication(tk.Tk):
         self.kraken_textbox.insert('1.0', link)
 
         # Show if/who/when edited the source last
-        con = sqlite3.connect(config.db_path)
+        con = sqlite3.connect(config.local_db_path)
         cur = con.cursor()
         cur.execute('SELECT date, user FROM log WHERE id=?', (self.kraken_id,))
         result = cur.fetchone()
@@ -857,7 +855,7 @@ class MainApplication(tk.Tk):
         :return:
         """
 
-        con = sqlite3.connect(config.db_path)
+        con = sqlite3.connect(config.local_db_path)
         cur = con.cursor()
 
         if not self.get_strip(self.kraken_textbox):
@@ -1100,7 +1098,7 @@ class MainApplication(tk.Tk):
             print("No ID found, logging skipped")
 
     def log_to_db(self, json_var):
-        con = sqlite3.connect(config.db_path)
+        con = sqlite3.connect(config.local_db_path)
         cur = con.cursor()
 
         current_time = datetime.now().strftime("%d-%b-%Y %H:%M:%S")
@@ -1194,7 +1192,7 @@ class MainApplication(tk.Tk):
                 self.fill_code_textbox(json_variable)
 
     def fill_found_textboxes(self, tree, column):
-        con = sqlite3.connect(config.db_path)
+        con = sqlite3.connect(config.local_db_path)
         cur = con.cursor()
 
         if column == 'title_xpath':
@@ -1277,7 +1275,7 @@ class MainApplication(tk.Tk):
             tree = html.fromstring(website_response.text)
             self.last_tree['link'] = article_url
             self.last_tree['tree'] = tree
-        con = sqlite3.connect(config.db_path)
+        con = sqlite3.connect(config.local_db_path)
         cur = con.cursor()
         results = cur.execute("SELECT xpath FROM junk ORDER BY count DESC").fetchall()
         con.close()
@@ -1294,7 +1292,7 @@ class MainApplication(tk.Tk):
             except etree.XPathError:
                 continue
             if corrected_number_of_results < usual_number_of_results:
-                final_result.append([xpath, usual_number_of_results-corrected_number_of_results])
+                final_result.append([xpath, usual_number_of_results - corrected_number_of_results])
                 if len(final_result) == number_of_textboxes:
                     break
 
@@ -1373,7 +1371,7 @@ class MainApplication(tk.Tk):
                 return self.extract_xpath_from_regex(result)
 
     def create_dict(self, column, html_tree):
-        con = sqlite3.connect(config.db_path)
+        con = sqlite3.connect(config.local_db_path)
         cur = con.cursor()
         if column == 'title_xpath':
             db_results = cur.execute("SELECT title_xpath FROM log").fetchall()
@@ -1510,7 +1508,7 @@ class MainApplication(tk.Tk):
         con.close()
 
     def update_finder_tables(self, startup=False):
-        con = sqlite3.connect(config.db_path)
+        con = sqlite3.connect(config.local_db_path)
         cur = con.cursor()
         if startup:
             cur.execute("SELECT id FROM log")
@@ -1541,7 +1539,7 @@ class MainApplication(tk.Tk):
         return widget.get('1.0', 'end-1c').strip()
 
     def update_old_sources(self):
-        con = sqlite3.connect(config.db_path)
+        con = sqlite3.connect(config.local_db_path)
         cur = con.cursor()
 
         cur.execute("SELECT id FROM log WHERE domain IS NULL")
