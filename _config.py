@@ -14,3 +14,4 @@ window_title = "XPath Extractor"
 background = "light grey"
 label_font = "Calibri"
 button_font = "Open Sans"
+chrome_path = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'

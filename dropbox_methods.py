@@ -22,5 +22,11 @@ def upload_db():
 
 
 if __name__ == "__main__":
-    upload_db()
-    download_db()
+    choice = 0
+    while choice != 'u' and choice != 'd':
+        choice = input("Do you wish to upload or download the database?(upload - u, download - d)\n:")
+
+    if choice == 'u':
+        upload_db()
+    else:
+        download_db()

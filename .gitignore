@@ -5,7 +5,7 @@ login_data.py
 config.py
 *.db
 .git/
-stats.txt
+*.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -23,8 +23,8 @@ import login_data
 from custom_widgets import MyText, MyLabel, MyFrame, MyButton, MyCheckbutton, MyRadiobutton
 import dropbox_methods
 
-# TODO: Junk Finder
-# TODO: Images Finder
+
+# TODO: Write logic for junk and images finders
 # TODO: Finder stats - Make a ‘voluntarily removed’ and ‘involuntarily removed’ xpath in a .txt, along with % of xpath removed in both ways
 # TODO: PyLint
 # TODO: Remove magic numbers
@@ -87,6 +87,9 @@ class MainApplication(tk.Tk):
         self.finder_pubdate_frame = MyFrame(master=self, view='finder', padding=10)
         self.finder_author_frame = MyFrame(master=self, view='finder', padding=10)
         self.finder_body_frame = MyFrame(master=self, view='finder', padding=10)
+        self.finder_image_frame = MyFrame(master=self, view='finder', padding=10)
+        self.junk_xpath_body_frame = MyFrame(master=self, view='finder', padding=10)
+        self.finder_junk_frame = MyFrame(master=self, view='finder', padding=10)
 
         # Menu Labels
         self.info_label = MyLabel(master=self.view_menu_frame, view='menu', text="", width=70, justify=tk.CENTER, style='Bold.TLabel', anchor='center')
@@ -127,6 +130,9 @@ class MainApplication(tk.Tk):
         self.finder_pubdate_label = MyLabel(master=self.finder_pubdate_frame, view='finder', text="Pubdate XPath:", width=15)
         self.finder_author_label = MyLabel(master=self.finder_author_frame, view='finder', text="Author XPath:", width=15)
         self.finder_body_label = MyLabel(master=self.finder_body_frame, view='finder', text="Body XPath:", width=15)
+        self.finder_image_label = MyLabel(master=self.finder_image_frame, view='finder', text="Image XPath:", width=15)
+        self.junk_body_label = MyLabel(master=self.junk_xpath_body_frame, view='finder', text="Body to clean:", width=15)
+        self.finder_junk_label = MyLabel(master=self.finder_junk_frame, view='finder', text="Junk found:", width=15)
 
         # Extractor Textboxes
         self.kraken_textbox = MyText(master=self.kraken_frame, view='extractor', height=1, width=60)
@@ -151,6 +157,7 @@ class MainApplication(tk.Tk):
 
         # Finder Textboxes
         self.finder_article_textbox = MyText(master=self.article_url_frame, view='finder', height=1, width=81)
+        self.finder_junk_textbox = MyText(master=self.junk_xpath_body_frame, view='finder', height=1, width=81)
         self.finder_title_xpath_1 = MyText(master=self.finder_title_frame, view='finder', height=1, width=40)
         self.finder_title_xpath_2 = MyText(master=self.finder_title_frame, view='finder', height=1, width=40)
         self.finder_title_xpath_3 = MyText(master=self.finder_title_frame, view='finder', height=1, width=40)
@@ -183,6 +190,22 @@ class MainApplication(tk.Tk):
         self.finder_body_result_2 = MyText(master=self.finder_body_frame, view='finder', height=1, width=40)
         self.finder_body_result_3 = MyText(master=self.finder_body_frame, view='finder', height=1, width=40)
         self.finder_body_result_4 = MyText(master=self.finder_body_frame, view='finder', height=1, width=40)
+        self.finder_image_xpath_1 = MyText(master=self.finder_image_frame, view='finder', height=1, width=40)
+        self.finder_image_xpath_2 = MyText(master=self.finder_image_frame, view='finder', height=1, width=40)
+        self.finder_image_xpath_3 = MyText(master=self.finder_image_frame, view='finder', height=1, width=40)
+        self.finder_image_xpath_4 = MyText(master=self.finder_image_frame, view='finder', height=1, width=40)
+        self.finder_image_result_1 = MyText(master=self.finder_image_frame, view='finder', height=1, width=40)
+        self.finder_image_result_2 = MyText(master=self.finder_image_frame, view='finder', height=1, width=40)
+        self.finder_image_result_3 = MyText(master=self.finder_image_frame, view='finder', height=1, width=40)
+        self.finder_image_result_4 = MyText(master=self.finder_image_frame, view='finder', height=1, width=40)
+        self.finder_junk_xpath_1 = MyText(master=self.finder_junk_frame, view='finder', height=1, width=40)
+        self.finder_junk_xpath_2 = MyText(master=self.finder_junk_frame, view='finder', height=1, width=40)
+        self.finder_junk_xpath_3 = MyText(master=self.finder_junk_frame, view='finder', height=1, width=40)
+        self.finder_junk_xpath_4 = MyText(master=self.finder_junk_frame, view='finder', height=1, width=40)
+        self.finder_junk_result_1 = MyText(master=self.finder_junk_frame, view='finder', height=1, width=40)
+        self.finder_junk_result_2 = MyText(master=self.finder_junk_frame, view='finder', height=1, width=40)
+        self.finder_junk_result_3 = MyText(master=self.finder_junk_frame, view='finder', height=1, width=40)
+        self.finder_junk_result_4 = MyText(master=self.finder_junk_frame, view='finder', height=1, width=40)
 
         # View Menu Buttons
         self.open_extractor_button = MyButton(master=self.view_menu_frame, view='menu', text="Extractor", command=lambda: self.switch_view(view_to_open='extractor'))
@@ -334,7 +357,8 @@ class MainApplication(tk.Tk):
         self.generate_button = MyButton(master=self.bottom_buttons_frame, view='extractor', text="Generate", command=self.generate, style='Bold.TButton')
 
         # Finder Buttons
-        self.find_content_button = MyButton(master=self.article_url_frame, view='finder', text="Find", command=self.find_content)
+        self.find_content_button = MyButton(master=self.article_url_frame, view='finder', text="Find", command=self.find_content, padding=0)
+        self.find_junk_button = MyButton(master=self.junk_xpath_body_frame, view='finder', text="Find", command=self.find_junk, padding=0)
 
         self.title_xpath_select_button_1 = MyButton(master=self.finder_title_frame, view='finder', text="Select",
                                                     command=lambda: self.from_textbox_to_textbox(self.finder_title_xpath_1, self.title_textbox), padding=0)
@@ -372,12 +396,30 @@ class MainApplication(tk.Tk):
         self.body_xpath_select_button_4 = MyButton(master=self.finder_body_frame, view='finder', text="Select",
                                                    command=lambda: self.from_textbox_to_textbox(self.finder_body_xpath_4, self.body_textbox), padding=0)
 
+        self.image_xpath_add_button_1 = MyButton(master=self.finder_image_frame, view='finder', text="Add",
+                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_1, self.body_textbox, append_with_pipe=True), padding=0)
+        self.image_xpath_add_button_2 = MyButton(master=self.finder_image_frame, view='finder', text="Add",
+                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_2, self.body_textbox, append_with_pipe=True), padding=0)
+        self.image_xpath_add_button_3 = MyButton(master=self.finder_image_frame, view='finder', text="Add",
+                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_3, self.body_textbox, append_with_pipe=True), padding=0)
+        self.image_xpath_add_button_4 = MyButton(master=self.finder_image_frame, view='finder', text="Add",
+                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_4, self.body_textbox, append_with_pipe=True), padding=0)
+
+        self.junk_xpath_add_button_1 = MyButton(master=self.finder_junk_frame, view='finder', text="Add",
+                                                command=lambda: self.from_textbox_to_textbox(self.finder_junk_xpath_1, self.body_textbox, append=True), padding=0)
+        self.junk_xpath_add_button_2 = MyButton(master=self.finder_junk_frame, view='finder', text="Add",
+                                                command=lambda: self.from_textbox_to_textbox(self.finder_junk_xpath_2, self.body_textbox, append=True), padding=0)
+        self.junk_xpath_add_button_3 = MyButton(master=self.finder_junk_frame, view='finder', text="Add",
+                                                command=lambda: self.from_textbox_to_textbox(self.finder_junk_xpath_3, self.body_textbox, append=True), padding=0)
+        self.junk_xpath_add_button_4 = MyButton(master=self.finder_junk_frame, view='finder', text="Add",
+                                                command=lambda: self.from_textbox_to_textbox(self.finder_junk_xpath_4, self.body_textbox, append=True), padding=0)
         # Finder RadioButtons
         self.finder_filter = tk.StringVar()
         self.finder_filter_include_radio = MyRadiobutton(master=self.finder_filter_frame, view='finder', text='Include', value='include', variable=self.finder_filter,
                                                          takefocus=False)
         self.finder_filter_remove_radio = MyRadiobutton(master=self.finder_filter_frame, view='finder', text='Remove', value='remove', variable=self.finder_filter, takefocus=False)
         self.finder_filter_remove_radio.invoke()
+
         # Extractor Frame Lists
         self.view_menu_frame.frame_list = [
             [self.open_extractor_button, self.open_finder_button, self.info_label, self.sync_button, self.refresh_db_button]
@@ -479,8 +521,23 @@ class MainApplication(tk.Tk):
             [0, self.finder_body_xpath_3, self.body_xpath_select_button_3, self.finder_body_result_3],
             [0, self.finder_body_xpath_4, self.body_xpath_select_button_4, self.finder_body_result_4],
         ]
+        self.finder_image_frame.frame_list = [
+            [self.finder_image_label, self.finder_image_xpath_1, self.image_xpath_add_button_1, self.finder_image_result_1],
+            [0, self.finder_image_xpath_2, self.image_xpath_add_button_2, self.finder_image_result_2],
+            [0, self.finder_image_xpath_3, self.image_xpath_add_button_3, self.finder_image_result_3],
+            [0, self.finder_image_xpath_4, self.image_xpath_add_button_4, self.finder_image_result_4],
+        ]
+        self.junk_xpath_body_frame.frame_list = [
+            [self.junk_body_label, self.finder_junk_textbox, self.find_junk_button]
+        ]
+        self.finder_junk_frame.frame_list = [
+            [self.finder_junk_label, self.finder_junk_xpath_1, self.junk_xpath_add_button_1, self.finder_junk_result_1],
+            [0, self.finder_junk_xpath_2, self.junk_xpath_add_button_2, self.finder_junk_result_2],
+            [0, self.finder_junk_xpath_3, self.junk_xpath_add_button_3, self.finder_junk_result_3],
+            [0, self.finder_junk_xpath_4, self.junk_xpath_add_button_4, self.finder_junk_result_4],
+        ]
 
-        dropbox_methods.download_db()
+        # dropbox_methods.download_db()
         self.login()
         self.update_finder_tables(startup=True)
 
@@ -491,10 +548,10 @@ class MainApplication(tk.Tk):
         self.window_setup()
         self.bind_all("<Key>", self.on_key_release, "+")
         self.lift()
-        chrome_path = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
-        webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
+
+        webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(config.chrome_path))
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        atexit.register(dropbox_methods.upload_db)
+        # atexit.register(dropbox_methods.upload_db)
 
         t2 = time.time()
         print(f"Booted in {round(t2 - t1, 2)} seconds.")
@@ -881,13 +938,23 @@ class MainApplication(tk.Tk):
         textbox.delete("1.0", tk.END)
         textbox.insert("1.0", value)
 
-    def from_textbox_to_textbox(self, textbox1, textbox2):
+    def from_textbox_to_textbox(self, textbox1, textbox2, append=False, append_with_pipe=False):
         value = self.get_strip(textbox1)
         if not value:
             return
-        pyperclip.copy(value)
-        textbox2.delete('1.0', tk.END)
-        textbox2.insert('1.0', value)
+
+        if append:
+            original_value = self.get_strip(textbox2)
+            textbox2.delete('1.0', tk.END)
+            textbox2.insert('1.0', f"{original_value}{value}")
+        elif append_with_pipe:
+            original_value = self.get_strip(textbox2)
+            textbox2.delete('1.0', tk.END)
+            textbox2.insert('1.0', f"{original_value} | {value}")
+        else:
+            textbox2.delete('1.0', tk.END)
+            textbox2.insert('1.0', value)
+            pyperclip.copy(value)
 
     def open_start_urls_link(self):
         links = self.get_strip(self.start_urls_textbox).split(';')
@@ -1142,6 +1209,9 @@ class MainApplication(tk.Tk):
             cur.execute("SELECT xpath FROM author_xpath ORDER BY count DESC")
             element = self.finder_author_frame.frame_list
 
+        elif column == 'image_xpath':
+            cur.execute("SELECT xpath FROM image_xpath ORDER BY count DESC")
+            element = self.finder_image_frame.frame_list
         else:
             cur.execute("SELECT xpath FROM body_xpath ORDER BY count DESC")
             element = self.finder_body_frame.frame_list
@@ -1157,11 +1227,11 @@ class MainApplication(tk.Tk):
                 text_results = tree.xpath(xpath_to_use)
                 number_of_results = len(tree.xpath(xpath))
 
-                if not text_results or (self.finder_filter.get() == 'remove' and number_of_results != 1):
+                if (column != 'image_xpath' and not text_results) or (self.finder_filter.get() == 'remove' and number_of_results != 1) or number_of_results < 1:
                     continue
 
                 dict_to_append = {'xpath': xpath, 'result': f"({number_of_results}) - {','.join(x.strip() for x in text_results if isinstance(x, str) and x.strip())}"}
-                if dict_to_append['result'] not in [x['result'] for x in final_result]:
+                if column == 'image_xpath' or dict_to_append['result'] not in [x['result'] for x in final_result]:
                     final_result.append(dict_to_append)
                     if len(final_result) == number_of_textboxes:
                         break
@@ -1190,6 +1260,49 @@ class MainApplication(tk.Tk):
         self.fill_found_textboxes(tree, 'pubdate_xpath')
         self.fill_found_textboxes(tree, 'author_xpath')
         self.fill_found_textboxes(tree, 'body_xpath')
+        self.fill_found_textboxes(tree, 'image_xpath')
+
+    def find_junk(self):
+        for widget in self.finder_junk_frame.frame_list:
+            if isinstance(widget, MyText):
+                widget.delete('1.0', tk.END)
+        body = self.get_strip(self.finder_junk_textbox)
+        article_url = self.get_strip(self.finder_article_textbox)
+        element = self.finder_junk_frame.frame_list
+        if self.last_tree['link'] == article_url:
+            tree = self.last_tree['tree']
+        else:
+            website_response = requests.get(article_url, headers=self.headers, verify=False)
+            website_response.encoding = 'UTF-8'
+            tree = html.fromstring(website_response.text)
+            self.last_tree['link'] = article_url
+            self.last_tree['tree'] = tree
+        con = sqlite3.connect(config.db_path)
+        cur = con.cursor()
+        results = cur.execute("SELECT xpath FROM junk ORDER BY count DESC").fetchall()
+        con.close()
+        results = [x[0] for x in results]
+        final_result = []
+        number_of_textboxes = len(self.finder_junk_frame.frame_list)
+        usual_number_of_results = len(tree.xpath(body))
+        if not usual_number_of_results:
+            return
+        for xpath in results:
+            new_xpath = body + xpath
+            try:
+                corrected_number_of_results = len(tree.xpath(new_xpath))
+            except etree.XPathError:
+                continue
+            if corrected_number_of_results < usual_number_of_results:
+                final_result.append([xpath, usual_number_of_results-corrected_number_of_results])
+                if len(final_result) == number_of_textboxes:
+                    break
+
+        for i, entry in enumerate(final_result):
+            element[i][-3].delete('1.0', tk.END)
+            element[i][-3].insert('1.0', entry[0])
+            element[i][-1].delete('1.0', tk.END)
+            element[i][-1].insert('1.0', f'Removes {entry[1]} elements.')
 
     @staticmethod
     def on_key_release(event):
@@ -1259,70 +1372,146 @@ class MainApplication(tk.Tk):
             else:
                 return self.extract_xpath_from_regex(result)
 
-    def update_finder_tables(self, startup=False):
-        def create_dict(db_results, html_tree, body_xpath=False):
-            db_results = [x[0] for x in db_results if x[0]]
-            updated_list = []
-            regex_contains = ['substring', 're:match', 're:replace']
-            body_contains = ['//node()', '/text()', ']//p', "'row'", '::img', '//article/', '//figure/', '//main/',
-                             '//figcaption/', "//div[contains(@class,'-content')]", '//section/', "//div[contains(@class,'content')]", '@src', 'orcontains', 'string(']
-            for xpath in db_results:
-                if xpath == self.date_meta or "//meta[contains(@*, 'time')]" in xpath:
-                    continue
+    def create_dict(self, column, html_tree):
+        con = sqlite3.connect(config.db_path)
+        cur = con.cursor()
+        if column == 'title_xpath':
+            db_results = cur.execute("SELECT title_xpath FROM log").fetchall()
+        elif column == 'pubdate_xpath':
+            db_results = cur.execute("SELECT pubdate_xpath FROM log").fetchall()
+        elif column == 'author_xpath':
+            db_results = cur.execute("SELECT author_xpath FROM log").fetchall()
+        else:
+            db_results = cur.execute("SELECT body_xpath FROM log").fetchall()
+        db_results = [x[0] for x in db_results if x[0]]
+        xpath_list = []
+        images_list = []
+        junk_list = []
+        regex_contains = ['substring', 're:match', 're:replace']
+        image_contains = ['img', 'image', 'featured', 'thumb', 'figure']
+        body_contains = ['/text()', "'row'", '::img', '//article/', '//main/', 'figcaption', "//div[contains(@class,'-content')]", '//section/',
+                         "//div[contains(@class,'content')]", '@src', 'string(']
+        date_contains = "//meta[contains(@*, 'time')]"
+        for xpath in db_results:
+            if column == 'pubdate_xpath' and date_contains in xpath:
+                continue
 
-                if xpath.startswith('(') and xpath.endswith(')[1]') and '|' in xpath:
-                    xpath = xpath[1:-4]
+            # Removes (xpath | xpath)[1] issues
+            if '|' in xpath and xpath.startswith('(') and xpath.endswith(')[1]'):
+                xpath = xpath[1:-4]
 
-                if "' | '" not in xpath:
-                    split_xpath_list = xpath.split('|')
-                else:
-                    split_xpath_list = [xpath]
+            if "' | '" not in xpath:
+                split_xpath_list = xpath.split('|')
+            else:
+                split_xpath_list = [xpath]
 
-                for updated_xpath in split_xpath_list:
-                    updated_xpath = re.sub(r"contains\(@(\w+),\s+'([^']+)'", r"contains(@\g<1>,'\g<2>'", updated_xpath).strip()
+            for updated_xpath in split_xpath_list:
+                # Remove spaces from contains
+                updated_xpath = re.sub(r"contains\(@(\w+),\s+'([^']+)'", r"contains(@\g<1>,'\g<2>'", updated_xpath).strip()
 
-                    if any(s in updated_xpath for s in regex_contains):
-                        updated_xpath = self.extract_xpath_from_regex(updated_xpath)
-                        if not updated_xpath:
-                            continue
+                if any(s in updated_xpath for s in regex_contains):
+                    updated_xpath = self.extract_xpath_from_regex(updated_xpath)
+                    if not updated_xpath:
+                        continue
 
-                    if body_xpath:
-                        if any(s in updated_xpath for s in body_contains):
-                            continue
+                if column == 'body_xpath':
+                    if any(s in updated_xpath for s in body_contains):
+                        continue
 
+                    else:
                         if updated_xpath.endswith('/p'):
                             updated_xpath = updated_xpath[:-2]
 
                         if '/node()' in updated_xpath:
-                            updated_xpath = updated_xpath.split('/node()')[0]
+                            body_and_junk = updated_xpath.split('/node()')
+                            updated_xpath = body_and_junk[0]
+                            junk_list.append(body_and_junk[1])
+
+                        if any(s in updated_xpath for s in image_contains):
+                            images_list.append(updated_xpath)
+                            continue
 
                         while updated_xpath and updated_xpath[-1] == '/':
                             updated_xpath = updated_xpath[:-1]
 
-                    if '@' not in updated_xpath and updated_xpath.count('/') < 3:
-                        continue
+                if '@' not in updated_xpath and updated_xpath.count('/') < 3:
+                    continue
 
-                    updated_list.append(updated_xpath.strip())
+                xpath_list.append(updated_xpath.strip())
 
+        list_to_remove = []
+        for xpath in xpath_list:
+            try:
+                html_tree.xpath(xpath)
+            except etree.XPathError:
+                list_to_remove.append(xpath)
+
+        xpath_list = [x for x in xpath_list if x not in list_to_remove]
+
+        if column == 'body_xpath':
             list_to_remove = []
-
-            for xpath in updated_list:
+            for xpath in images_list:
                 try:
                     html_tree.xpath(xpath)
                 except etree.XPathError:
                     list_to_remove.append(xpath)
 
-            updated_list = [x for x in updated_list if x not in list_to_remove]
+            images_list = [x for x in images_list if x not in list_to_remove and ' or ' not in x and ' and ' not in x]
+            images_dict = dict()
+            for x in images_list:
+                images_dict[x] = images_dict.get(x, 0) + 1
+            results = sorted(images_dict.items(), key=lambda d: d[1], reverse=True)
+            for entry in results:
+                cur.execute("INSERT INTO image_xpath VALUES (?, ?)", (entry[0], entry[1]))
 
-            created_dict = dict()
-            for i in updated_list:
-                created_dict[i] = created_dict.get(i, 0) + 1
+            revised_junk_list = []
+            for item in junk_list:
+                if not item:
+                    continue
+                if '] [not' in item:
+                    item = item.replace('] [not', '][not')
+                items = item.split('][not')
+                for split_item in items:
+                    if ' or ' in split_item or ' and ' in split_item:
+                        continue
+                    if not split_item.startswith('[not'):
+                        split_item = '[not' + split_item
+                    if not split_item.endswith(']'):
+                        split_item += ']'
+                    revised_junk_list.append(split_item)
 
-            return sorted(created_dict.items(), key=lambda d: d[1], reverse=True)
+            junk_dict = dict()
+            for x in revised_junk_list:
+                junk_dict[x] = junk_dict.get(x, 0) + 1
+            results = sorted(junk_dict.items(), key=lambda d: d[1], reverse=True)
+            for entry in results:
+                cur.execute("INSERT INTO junk VALUES (?, ?)", (entry[0], entry[1]))
 
+        created_dict = dict()
+        for x in xpath_list:
+            created_dict[x] = created_dict.get(x, 0) + 1
+
+        results = sorted(created_dict.items(), key=lambda d: d[1], reverse=True)
+
+        if column == 'title_xpath':
+            for entry in results:
+                cur.execute("INSERT INTO title_xpath VALUES (?, ?)", (entry[0], entry[1]))
+        elif column == 'pubdate_xpath':
+            for entry in results:
+                cur.execute("INSERT INTO pubdate_xpath VALUES (?, ?)", (entry[0], entry[1]))
+        elif column == 'author_xpath':
+            for entry in results:
+                cur.execute("INSERT INTO author_xpath VALUES (?, ?)", (entry[0], entry[1]))
+        elif column == 'body_xpath':
+            for entry in results:
+                cur.execute("INSERT INTO body_xpath VALUES (?, ?)", (entry[0], entry[1]))
+
+        con.commit()
+        con.close()
+
+    def update_finder_tables(self, startup=False):
         con = sqlite3.connect(config.db_path)
         cur = con.cursor()
-
         if startup:
             cur.execute("SELECT id FROM log")
             print(f"Hello, {login_data.user}")
@@ -1332,35 +1521,20 @@ class MainApplication(tk.Tk):
         cur.execute("DELETE FROM pubdate_xpath")
         cur.execute("DELETE FROM author_xpath")
         cur.execute("DELETE FROM body_xpath")
-
+        cur.execute("DELETE FROM image_xpath")
+        cur.execute("DELETE FROM junk")
+        con.commit()
+        con.close()
         website_response = requests.get('http://example.python-scraping.com/places/default/index/0', verify=False)
         tree = html.fromstring(website_response.text.encode())
 
-        cur.execute("SELECT title_xpath FROM log")
-        results = create_dict(cur.fetchall(), html_tree=tree)
-        for entry in results:
-            cur.execute("INSERT INTO title_xpath VALUES (?, ?)", (entry[0], entry[1]))
-
-        cur.execute("SELECT pubdate_xpath FROM log")
-        results = create_dict(cur.fetchall(), html_tree=tree)
-        for entry in results:
-            cur.execute("INSERT INTO pubdate_xpath VALUES (?, ?)", (entry[0], entry[1]))
-
-        cur.execute("SELECT author_xpath FROM log")
-        results = create_dict(cur.fetchall(), html_tree=tree)
-        for entry in results:
-            cur.execute("INSERT INTO author_xpath VALUES (?, ?)", (entry[0], entry[1]))
-
-        cur.execute("SELECT body_xpath FROM log")
-        results = create_dict(cur.fetchall(), html_tree=tree, body_xpath=True)
-        for entry in results:
-            cur.execute("INSERT INTO body_xpath VALUES (?, ?)", (entry[0], entry[1]))
+        self.create_dict('title_xpath', html_tree=tree)
+        self.create_dict('pubdate_xpath', html_tree=tree)
+        self.create_dict('author_xpath', html_tree=tree)
+        self.create_dict('body_xpath', html_tree=tree)
 
         if not startup:
             self.info_label['text'] = "Tables refreshed."
-
-        con.commit()
-        con.close()
 
     @staticmethod
     def get_strip(widget):
@@ -1371,7 +1545,7 @@ class MainApplication(tk.Tk):
         cur = con.cursor()
 
         cur.execute("SELECT id FROM log WHERE domain IS NULL")
-        id_list = [x[0] for x in cur.fetchall()]
+        id_list = [x[0] for x in cur.fetchall() if x[0].strip() and x[0][:2] != '71' and x[0][:2] != '72']
 
         enabled_xpath = '//tr[td[child::text()[contains(.,"Enabled")]]]/td[2]/i[contains(@class, "true")]'
         active_xpath = '//tr[td[child::text()[contains(.,"Active")]]]/td[2]/i[contains(@class, "true")]'
@@ -1380,13 +1554,15 @@ class MainApplication(tk.Tk):
         name_xpath = '//tr[td[child::text()[contains(.,"Name")]]]/td[2]/text()'
         domain_xpath = '//tr[td[child::text()[contains(.,"URL")]]]/td[2]/a/text()'
 
-        for source_id in id_list[:100]:
+        for source_id in id_list[:50]:
             print(source_id)
             link = f"http://kraken.aiidatapro.net/items/{source_id}/"
             items_page_response = self.session.get(link)
             tree = html.fromstring(items_page_response.text)
             enabled = bool(tree.xpath(enabled_xpath))
             active = bool(tree.xpath(active_xpath))
+            if not tree.xpath(botname_xpath):
+                continue
             botname = tree.xpath(botname_xpath)[0]
             projects = tree.xpath(projects_xpath)
             projects = ','.join(projects)
@@ -1404,7 +1580,6 @@ class MainApplication(tk.Tk):
                     status = "Stopped"
             print(domain, name, projects, status, botname)
             cur.execute("UPDATE log SET domain=?, name=?, projects=?, status=?, botname=? WHERE id=?", (domain, name, projects, status, botname, source_id))
-            time.sleep(1)
         con.commit()
         con.close()
 
