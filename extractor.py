@@ -537,7 +537,7 @@ class MainApplication(tk.Tk):
             [0, self.finder_junk_xpath_4, self.junk_xpath_add_button_4, self.finder_junk_result_4],
         ]
 
-        # dropbox_methods.download_db()
+        dropbox_methods.download_db()
         self.login()
         self.update_finder_tables(startup=True)
 
@@ -551,7 +551,7 @@ class MainApplication(tk.Tk):
 
         webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(config.chrome_path))
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        # atexit.register(dropbox_methods.upload_db)
+        atexit.register(dropbox_methods.upload_db)
 
         t2 = time.time()
         print(f"Booted in {round(t2 - t1, 2)} seconds.")
