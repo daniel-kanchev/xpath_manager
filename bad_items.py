@@ -1,9 +1,10 @@
 import sqlite3
+
 import config
 
 
 def find_bad_items():
-    con = sqlite3.connect(config.db_path)
+    con = sqlite3.connect(config.local_db_path)
     con.row_factory = sqlite3.Row
     cur = con.cursor()
     # TODO: name not in domain

@@ -7,10 +7,10 @@ settings_json = {'LOG_LEVEL': 'DEBUG', 'COOKIES_ENABLED': False, 'USER_AGENT': u
 db_path = 'log.db'
 local_db_path = 'local_log.db'
 default_login_header = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml',
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0"
-        }
+    'Accept': 'text/html,application/xhtml+xml,application/xml',
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'User-Agent': "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0"
+}
 window_title = "XPath Extractor"
 background = "light grey"
 label_font = "Calibri"
