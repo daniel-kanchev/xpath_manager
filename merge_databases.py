@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime
 
 
 # TODO: Turn into class?
@@ -33,6 +34,15 @@ def sync(db_from_path, db_to_path):
         db_from.close()
 
     def sync_updated(db_from_path, db_to_path):
+        def array_to_dict(array):
+            final_dict = {}
+            for item in array:
+                final_dict[item['id']] = {
+                    'json': item['full_json'],
+                    'date': datetime.strptime(item['date'], '%d-%b-%Y %H:%M:%S')
+                }
+            return final_dict
+
         db_from_row = sqlite3.connect(db_from_path)
         db_from_row.row_factory = sqlite3.Row
         cur_from_row = db_from_row.cursor()
@@ -41,20 +51,21 @@ def sync(db_from_path, db_to_path):
         db_to_row.row_factory = sqlite3.Row
         cur_to_row = db_to_row.cursor()
 
-        json_from = cur_from_row.execute("SELECT id,full_json FROM log").fetchall()
-        json_to = cur_to_row.execute("SELECT id,full_json FROM log").fetchall()
+        json_from = cur_from_row.execute("SELECT id,date,full_json FROM log").fetchall()
+        json_to = cur_to_row.execute("SELECT id, date, full_json FROM log").fetchall()
+        dict_to = array_to_dict(json_to)
+        dict_from = array_to_dict(json_from)
 
-        for from_item in json_from:
-            for to_item in json_to:
-                if from_item['id'] == to_item['id'] and from_item['full_json'] != to_item['full_json']:
-                    new = cur_from_row.execute("SELECT * FROM log WHERE id=?", (from_item['id'],)).fetchone()
-                    cur_to_row.execute("UPDATE log SET date=?, start_urls=?, menu_xpath=?, articles_xpath=?, title_xpath=?, pubdate_xpath=?, "
-                                       "date_order=?, author_xpath=?,body_xpath=?, settings=?, domain=?, name=?, status=?, projects=?, botname=?,"
-                                       " full_json=?, user=? WHERE id=?",
-                                       (new['date'], new['start_urls'], new['menu_xpath'], new['articles_xpath'], new['title_xpath'], new['pubdate_xpath'], new['date_order'],
-                                        new['author_xpath'], new['body_xpath'], new['settings'], new['domain'], new['name'], new['status'],
-                                        new['projects'], new['botname'], new['full_json'], new['user'], from_item['id']))
-                    print(f"Updated entry {from_item['id']}")
+        for item_id in dict_from.keys():
+            if dict_from[item_id]['json'] != dict_to[item_id]['json'] and dict_from[item_id]['date'] > dict_to[item_id]['date']:
+                new = cur_from_row.execute("SELECT * FROM log WHERE id=?", (item_id,)).fetchone()
+                cur_to_row.execute("UPDATE log SET date=?, start_urls=?, menu_xpath=?, articles_xpath=?, title_xpath=?, pubdate_xpath=?, "
+                                   "date_order=?, author_xpath=?,body_xpath=?, settings=?, domain=?, name=?, status=?, projects=?, botname=?,"
+                                   " full_json=?, user=? WHERE id=?",
+                                   (new['date'], new['start_urls'], new['menu_xpath'], new['articles_xpath'], new['title_xpath'], new['pubdate_xpath'], new['date_order'],
+                                    new['author_xpath'], new['body_xpath'], new['settings'], new['domain'], new['name'], new['status'],
+                                    new['projects'], new['botname'], new['full_json'], new['user'], item_id))
+                print(f"Updated entry {item_id}")
 
         db_to_row.commit()
         db_to_row.close()
