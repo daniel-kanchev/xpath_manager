@@ -536,8 +536,9 @@ class MainApplication(tk.Tk):
         ]
 
         dropbox_methods.download_db(config.local_db_path)
-        self.login()
+        self.create_finder_tables()
         self.update_finder_tables(startup=True)
+        self.login()
 
         # self.update_old_sources()
 
@@ -549,10 +550,39 @@ class MainApplication(tk.Tk):
 
         webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(config.chrome_path))
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        atexit.register(dropbox_methods.merge_and_upload)
+        atexit.register(self.exit_handler)
 
         t2 = time.time()
         print(f"Booted in {round(t2 - t1, 2)} seconds.")
+
+    def create_finder_tables(self):
+        con = sqlite3.connect(config.local_db_path)
+        cur = con.cursor()
+        cur.execute("CREATE TABLE IF NOT EXISTS title_xpath (xpath TEXT, count NUMBER)")
+        cur.execute("CREATE TABLE IF NOT EXISTS pubdate_xpath (xpath TEXT, count NUMBER)")
+        cur.execute("CREATE TABLE IF NOT EXISTS author_xpath (xpath TEXT, count NUMBER)")
+        cur.execute("CREATE TABLE IF NOT EXISTS body_xpath (xpath TEXT, count NUMBER)")
+        cur.execute("CREATE TABLE IF NOT EXISTS image_xpath (xpath TEXT, count NUMBER)")
+        cur.execute("CREATE TABLE IF NOT EXISTS junk (xpath TEXT, count NUMBER)")
+        con.commit()
+        con.close()
+
+    @staticmethod
+    def delete_finder_tables():
+        con = sqlite3.connect(config.local_db_path)
+        cur = con.cursor()
+        cur.execute("DELETE FROM title_xpath")
+        cur.execute("DELETE FROM pubdate_xpath")
+        cur.execute("DELETE FROM author_xpath")
+        cur.execute("DELETE FROM body_xpath")
+        cur.execute("DELETE FROM image_xpath")
+        cur.execute("DELETE FROM junk")
+        con.commit()
+        con.close()
+
+    def exit_handler(self):
+        self.delete_finder_tables()
+        dropbox_methods.merge_and_upload()
 
     def pack_widgets(self):
         row = 0
@@ -1508,21 +1538,16 @@ class MainApplication(tk.Tk):
         con.close()
 
     def update_finder_tables(self, startup=False):
-        con = sqlite3.connect(config.local_db_path)
-        cur = con.cursor()
         if startup:
+            con = sqlite3.connect(config.local_db_path)
+            cur = con.cursor()
             cur.execute("SELECT id FROM log")
             print(f"Hello, {login_data.user}")
             print(f"The database contains {len(cur.fetchall())} entries.")
+            con.close()
+        else:
+            self.delete_finder_tables()
 
-        cur.execute("DELETE FROM title_xpath")
-        cur.execute("DELETE FROM pubdate_xpath")
-        cur.execute("DELETE FROM author_xpath")
-        cur.execute("DELETE FROM body_xpath")
-        cur.execute("DELETE FROM image_xpath")
-        cur.execute("DELETE FROM junk")
-        con.commit()
-        con.close()
         website_response = requests.get('http://example.python-scraping.com/places/default/index/0', verify=False)
         tree = html.fromstring(website_response.text.encode())
 
