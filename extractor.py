@@ -5,6 +5,7 @@ import sqlite3
 import time
 import tkinter as tk
 import webbrowser
+import sys
 from datetime import datetime
 from json import JSONDecodeError
 from tkinter import ttk
@@ -17,20 +18,22 @@ from requests.auth import HTTPProxyAuth
 import urllib3
 from lxml import html, etree
 import atexit
+from collections import Counter
 
 import config
 import login_data
 from custom_widgets import MyText, MyLabel, MyFrame, MyButton, MyCheckbutton, MyRadiobutton
 import dropbox_methods
 
-
-# TODO: PyLint
-# TODO: Remove magic numbers
-# TODO: Segment files
+# TODO: Domain, name, projects as textboxes, not labels, botname and status as dropdown menu
+# TODO: Add hristo button
+# TODO: Fix junk finder - remove bad junk, add 'transfer to body' button, add should add not to extractor but to budy that is being cleaned, and also auto find again
 # TODO: Get scraping log from Kraken
 # TODO: Settings Page
 # TODO: Custom Clipboard
 # TODO: Popular Regex
+# TODO: PyLint
+# TODO: Remove magic numbers
 # TODO: Tooltips
 # TODO: Documentation
 
@@ -48,6 +51,9 @@ class MainApplication(tk.Tk):
         self.set_word_boundaries()
         self.configure(background=config.background)
         self.current_view = 'extractor'
+        self.debug_mode = True if len(sys.argv) and sys.argv[1] == 'debug' else False
+        if self.debug_mode:
+            print('________________DEBUG MODE__________________________')
         self.general_style = self.frame_style = self.checkbutton_style = self.label_style = self.label_style_bold = self.button_style = self.button_style_bold = ttk.Style()
         self.general_style.theme_use('clam')
         self.frame_style.configure('TFrame', background=config.background)
@@ -130,6 +136,7 @@ class MainApplication(tk.Tk):
         self.finder_body_label = MyLabel(master=self.finder_body_frame, view='finder', text="Body XPath:", width=15)
         self.finder_image_label = MyLabel(master=self.finder_image_frame, view='finder', text="Image XPath:", width=15)
         self.junk_body_label = MyLabel(master=self.junk_xpath_body_frame, view='finder', text="Body to clean:", width=15)
+        self.junk_body_elements_label = MyLabel(master=self.junk_xpath_body_frame, view='finder', text="", width=25)
         self.finder_junk_label = MyLabel(master=self.finder_junk_frame, view='finder', text="Junk found:", width=15)
 
         # Extractor Textboxes
@@ -155,7 +162,7 @@ class MainApplication(tk.Tk):
 
         # Finder Textboxes
         self.finder_article_textbox = MyText(master=self.article_url_frame, view='finder', height=1, width=81)
-        self.finder_junk_textbox = MyText(master=self.junk_xpath_body_frame, view='finder', height=1, width=81)
+        self.finder_junk_textbox = MyText(master=self.junk_xpath_body_frame, view='finder', height=2, width=60)
         self.finder_title_xpath_1 = MyText(master=self.finder_title_frame, view='finder', height=1, width=40)
         self.finder_title_xpath_2 = MyText(master=self.finder_title_frame, view='finder', height=1, width=40)
         self.finder_title_xpath_3 = MyText(master=self.finder_title_frame, view='finder', height=1, width=40)
@@ -356,61 +363,66 @@ class MainApplication(tk.Tk):
 
         # Finder Buttons
         self.find_content_button = MyButton(master=self.article_url_frame, view='finder', text="Find", command=self.find_content, padding=0)
-        self.find_junk_button = MyButton(master=self.junk_xpath_body_frame, view='finder', text="Find", command=self.find_junk, padding=0)
+        self.find_junk_button = MyButton(master=self.junk_xpath_body_frame, view='finder', text="Find", command=self.find_junk, style="Bold.TButton", padding=5)
+        self.add_node_button = MyButton(master=self.junk_xpath_body_frame, view='finder', text="/node()", command=lambda: self.append_textbox_values(
+            textbox=self.finder_junk_textbox,
+            after_value='/node()'))
+        self.junk_to_body_button = MyButton(master=self.junk_xpath_body_frame, view='finder', text="Select", command=lambda: self.from_textbox_to_textbox(
+            textbox_from=self.finder_junk_textbox, textboxes_to=[self.body_textbox]))
 
         self.title_xpath_select_button_1 = MyButton(master=self.finder_title_frame, view='finder', text="Select",
-                                                    command=lambda: self.from_textbox_to_textbox(self.finder_title_xpath_1, self.title_textbox), padding=0)
+                                                    command=lambda: self.from_textbox_to_textbox(self.finder_title_xpath_1, [self.title_textbox]), padding=0)
         self.title_xpath_select_button_2 = MyButton(master=self.finder_title_frame, view='finder', text="Select",
-                                                    command=lambda: self.from_textbox_to_textbox(self.finder_title_xpath_2, self.title_textbox), padding=0)
+                                                    command=lambda: self.from_textbox_to_textbox(self.finder_title_xpath_2, [self.title_textbox]), padding=0)
         self.title_xpath_select_button_3 = MyButton(master=self.finder_title_frame, view='finder', text="Select",
-                                                    command=lambda: self.from_textbox_to_textbox(self.finder_title_xpath_3, self.title_textbox), padding=0)
+                                                    command=lambda: self.from_textbox_to_textbox(self.finder_title_xpath_3, [self.title_textbox]), padding=0)
         self.title_xpath_select_button_4 = MyButton(master=self.finder_title_frame, view='finder', text="Select",
-                                                    command=lambda: self.from_textbox_to_textbox(self.finder_title_xpath_4, self.title_textbox), padding=0)
+                                                    command=lambda: self.from_textbox_to_textbox(self.finder_title_xpath_4, [self.title_textbox]), padding=0)
 
         self.pubdate_xpath_select_button_1 = MyButton(master=self.finder_pubdate_frame, view='finder', text="Select",
-                                                      command=lambda: self.from_textbox_to_textbox(self.finder_pubdate_xpath_1, self.pubdate_textbox), padding=0)
+                                                      command=lambda: self.from_textbox_to_textbox(self.finder_pubdate_xpath_1, [self.pubdate_textbox]), padding=0)
         self.pubdate_xpath_select_button_2 = MyButton(master=self.finder_pubdate_frame, view='finder', text="Select",
-                                                      command=lambda: self.from_textbox_to_textbox(self.finder_pubdate_xpath_2, self.pubdate_textbox), padding=0)
+                                                      command=lambda: self.from_textbox_to_textbox(self.finder_pubdate_xpath_2, [self.pubdate_textbox]), padding=0)
         self.pubdate_xpath_select_button_3 = MyButton(master=self.finder_pubdate_frame, view='finder', text="Select",
-                                                      command=lambda: self.from_textbox_to_textbox(self.finder_pubdate_xpath_3, self.pubdate_textbox), padding=0)
+                                                      command=lambda: self.from_textbox_to_textbox(self.finder_pubdate_xpath_3, [self.pubdate_textbox]), padding=0)
         self.pubdate_xpath_select_button_4 = MyButton(master=self.finder_pubdate_frame, view='finder', text="Select",
-                                                      command=lambda: self.from_textbox_to_textbox(self.finder_pubdate_xpath_4, self.pubdate_textbox), padding=0)
+                                                      command=lambda: self.from_textbox_to_textbox(self.finder_pubdate_xpath_4, [self.pubdate_textbox]), padding=0)
 
         self.author_xpath_select_button_1 = MyButton(master=self.finder_author_frame, view='finder', text="Select",
-                                                     command=lambda: self.from_textbox_to_textbox(self.finder_author_xpath_1, self.author_textbox), padding=0)
+                                                     command=lambda: self.from_textbox_to_textbox(self.finder_author_xpath_1, [self.author_textbox]), padding=0)
         self.author_xpath_select_button_2 = MyButton(master=self.finder_author_frame, view='finder', text="Select",
-                                                     command=lambda: self.from_textbox_to_textbox(self.finder_author_xpath_2, self.author_textbox), padding=0)
+                                                     command=lambda: self.from_textbox_to_textbox(self.finder_author_xpath_2, [self.author_textbox]), padding=0)
         self.author_xpath_select_button_3 = MyButton(master=self.finder_author_frame, view='finder', text="Select",
-                                                     command=lambda: self.from_textbox_to_textbox(self.finder_author_xpath_3, self.author_textbox), padding=0)
+                                                     command=lambda: self.from_textbox_to_textbox(self.finder_author_xpath_3, [self.author_textbox]), padding=0)
         self.author_xpath_select_button_4 = MyButton(master=self.finder_author_frame, view='finder', text="Select",
-                                                     command=lambda: self.from_textbox_to_textbox(self.finder_author_xpath_4, self.author_textbox), padding=0)
+                                                     command=lambda: self.from_textbox_to_textbox(self.finder_author_xpath_4, [self.author_textbox]), padding=0)
 
         self.body_xpath_select_button_1 = MyButton(master=self.finder_body_frame, view='finder', text="Select",
-                                                   command=lambda: self.from_textbox_to_textbox(self.finder_body_xpath_1, self.body_textbox), padding=0)
+                                                   command=lambda: self.from_textbox_to_textbox(self.finder_body_xpath_1, [self.body_textbox, self.finder_junk_textbox]), padding=0)
         self.body_xpath_select_button_2 = MyButton(master=self.finder_body_frame, view='finder', text="Select",
-                                                   command=lambda: self.from_textbox_to_textbox(self.finder_body_xpath_2, self.body_textbox), padding=0)
+                                                   command=lambda: self.from_textbox_to_textbox(self.finder_body_xpath_2, [self.body_textbox, self.finder_junk_textbox]), padding=0)
         self.body_xpath_select_button_3 = MyButton(master=self.finder_body_frame, view='finder', text="Select",
-                                                   command=lambda: self.from_textbox_to_textbox(self.finder_body_xpath_3, self.body_textbox), padding=0)
+                                                   command=lambda: self.from_textbox_to_textbox(self.finder_body_xpath_3, [self.body_textbox, self.finder_junk_textbox]), padding=0)
         self.body_xpath_select_button_4 = MyButton(master=self.finder_body_frame, view='finder', text="Select",
-                                                   command=lambda: self.from_textbox_to_textbox(self.finder_body_xpath_4, self.body_textbox), padding=0)
+                                                   command=lambda: self.from_textbox_to_textbox(self.finder_body_xpath_4, [self.body_textbox, self.finder_junk_textbox]), padding=0)
 
         self.image_xpath_add_button_1 = MyButton(master=self.finder_image_frame, view='finder', text="Add",
-                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_1, self.body_textbox, append_with_pipe=True), padding=0)
+                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_1, [self.body_textbox], append_with_pipe=True), padding=0)
         self.image_xpath_add_button_2 = MyButton(master=self.finder_image_frame, view='finder', text="Add",
-                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_2, self.body_textbox, append_with_pipe=True), padding=0)
+                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_2, [self.body_textbox], append_with_pipe=True), padding=0)
         self.image_xpath_add_button_3 = MyButton(master=self.finder_image_frame, view='finder', text="Add",
-                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_3, self.body_textbox, append_with_pipe=True), padding=0)
+                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_3, [self.body_textbox], append_with_pipe=True), padding=0)
         self.image_xpath_add_button_4 = MyButton(master=self.finder_image_frame, view='finder', text="Add",
-                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_4, self.body_textbox, append_with_pipe=True), padding=0)
+                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_4, [self.body_textbox], append_with_pipe=True), padding=0)
 
         self.junk_xpath_add_button_1 = MyButton(master=self.finder_junk_frame, view='finder', text="Add",
-                                                command=lambda: self.from_textbox_to_textbox(self.finder_junk_xpath_1, self.body_textbox, append=True), padding=0)
+                                                command=lambda: self.append_junk(self.finder_junk_xpath_1, [self.finder_junk_textbox]), padding=0)
         self.junk_xpath_add_button_2 = MyButton(master=self.finder_junk_frame, view='finder', text="Add",
-                                                command=lambda: self.from_textbox_to_textbox(self.finder_junk_xpath_2, self.body_textbox, append=True), padding=0)
+                                                command=lambda: self.append_junk(self.finder_junk_xpath_2, [self.finder_junk_textbox]), padding=0)
         self.junk_xpath_add_button_3 = MyButton(master=self.finder_junk_frame, view='finder', text="Add",
-                                                command=lambda: self.from_textbox_to_textbox(self.finder_junk_xpath_3, self.body_textbox, append=True), padding=0)
+                                                command=lambda: self.append_junk(self.finder_junk_xpath_3, [self.finder_junk_textbox]), padding=0)
         self.junk_xpath_add_button_4 = MyButton(master=self.finder_junk_frame, view='finder', text="Add",
-                                                command=lambda: self.from_textbox_to_textbox(self.finder_junk_xpath_4, self.body_textbox, append=True), padding=0)
+                                                command=lambda: self.append_junk(self.finder_junk_xpath_4, [self.finder_junk_textbox]), padding=0)
         # Finder RadioButtons
         self.finder_filter = tk.StringVar()
         self.finder_filter_include_radio = MyRadiobutton(master=self.finder_filter_frame, view='finder', text='Include', value='include', variable=self.finder_filter,
@@ -526,7 +538,8 @@ class MainApplication(tk.Tk):
             [0, self.finder_image_xpath_4, self.image_xpath_add_button_4, self.finder_image_result_4],
         ]
         self.junk_xpath_body_frame.frame_list = [
-            [self.junk_body_label, self.finder_junk_textbox, self.find_junk_button]
+            [self.junk_body_label, self.finder_junk_textbox, self.find_junk_button, self.add_node_button, self.junk_to_body_button],
+            [0, self.junk_body_elements_label]
         ]
         self.finder_junk_frame.frame_list = [
             [self.finder_junk_label, self.finder_junk_xpath_1, self.junk_xpath_add_button_1, self.finder_junk_result_1],
@@ -534,8 +547,8 @@ class MainApplication(tk.Tk):
             [0, self.finder_junk_xpath_3, self.junk_xpath_add_button_3, self.finder_junk_result_3],
             [0, self.finder_junk_xpath_4, self.junk_xpath_add_button_4, self.finder_junk_result_4],
         ]
-
-        dropbox_methods.download_db(config.local_db_path)
+        if not self.debug_mode:
+            dropbox_methods.download_db(config.local_db_path)
         self.create_finder_tables()
         self.update_finder_tables(startup=True)
         self.login()
@@ -554,6 +567,10 @@ class MainApplication(tk.Tk):
 
         t2 = time.time()
         print(f"Booted in {round(t2 - t1, 2)} seconds.")
+
+    def append_junk(self, textbox_from, textboxes_to):
+        self.from_textbox_to_textbox(textbox_from, textboxes_to, append=True)
+        self.find_junk()
 
     def create_finder_tables(self):
         con = sqlite3.connect(config.local_db_path)
@@ -582,7 +599,8 @@ class MainApplication(tk.Tk):
 
     def exit_handler(self):
         self.delete_finder_tables()
-        dropbox_methods.merge_and_upload()
+        if not self.debug_mode:
+            dropbox_methods.merge_and_upload()
 
     def pack_widgets(self):
         row = 0
@@ -966,22 +984,24 @@ class MainApplication(tk.Tk):
         textbox.delete("1.0", tk.END)
         textbox.insert("1.0", value)
 
-    def from_textbox_to_textbox(self, textbox1, textbox2, append=False, append_with_pipe=False):
-        value = self.get_strip(textbox1)
+    def from_textbox_to_textbox(self, textbox_from, textboxes_to, append=False, append_with_pipe=False):
+        value = self.get_strip(textbox_from)
         if not value:
             return
-
         if append:
-            original_value = self.get_strip(textbox2)
-            textbox2.delete('1.0', tk.END)
-            textbox2.insert('1.0', f"{original_value}{value}")
+            for textbox in textboxes_to:
+                original_value = self.get_strip(textbox)
+                textbox.delete('1.0', tk.END)
+                textbox.insert('1.0', f"{original_value}{value}")
         elif append_with_pipe:
-            original_value = self.get_strip(textbox2)
-            textbox2.delete('1.0', tk.END)
-            textbox2.insert('1.0', f"{original_value} | {value}")
+            for textbox in textboxes_to:
+                original_value = self.get_strip(textbox)
+                textbox.delete('1.0', tk.END)
+                textbox.insert('1.0', f"{original_value} | {value}")
         else:
-            textbox2.delete('1.0', tk.END)
-            textbox2.insert('1.0', value)
+            for textbox in textboxes_to:
+                textbox.delete('1.0', tk.END)
+                textbox.insert('1.0', value)
             pyperclip.copy(value)
 
     def open_start_urls_link(self):
@@ -1041,10 +1061,14 @@ class MainApplication(tk.Tk):
             print(f"Domain could not load - {domain}")
             return
 
-    def clear(self):
+    def clear(self, skip=[], only=[]):
         self.set_kraken_id(unset=True)
-        for widget in self.all_widgets:
-            if isinstance(widget, MyText):
+        if only:
+            clearing_set = only
+        else:
+            clearing_set = self.all_widgets
+        for widget in clearing_set:
+            if isinstance(widget, MyText) and widget not in skip:
                 widget.delete("1.0", tk.END)
         for label in self.var_labels:
             label['text'] = ''
@@ -1273,7 +1297,8 @@ class MainApplication(tk.Tk):
 
     def find_content(self):
         for widget in self.all_widgets:
-            if widget.view == 'finder' and isinstance(widget, MyText) and widget.master != self.article_url_frame:
+            if widget.view == 'finder' and isinstance(widget, MyText) and widget.master != self.article_url_frame and widget.master != self.junk_xpath_body_frame\
+                    and widget.master != self.finder_junk_frame:
                 widget.delete('1.0', tk.END)
         article_url = self.get_strip(self.finder_article_textbox)
         if self.last_tree['link'] == article_url:
@@ -1291,9 +1316,10 @@ class MainApplication(tk.Tk):
         self.fill_found_textboxes(tree, 'image_xpath')
 
     def find_junk(self):
-        for widget in self.finder_junk_frame.frame_list:
-            if isinstance(widget, MyText):
-                widget.delete('1.0', tk.END)
+        for frame in self.finder_junk_frame.frame_list:
+            for widget in frame:
+                if isinstance(widget, MyText):
+                    widget.delete('1.0', tk.END)
         body = self.get_strip(self.finder_junk_textbox)
         article_url = self.get_strip(self.finder_article_textbox)
         element = self.finder_junk_frame.frame_list
@@ -1312,13 +1338,19 @@ class MainApplication(tk.Tk):
         results = [x[0] for x in results]
         final_result = []
         number_of_textboxes = len(self.finder_junk_frame.frame_list)
-        usual_number_of_results = len(tree.xpath(body))
+        xpath_results = tree.xpath(body)
+        xpath_results = [r for r in xpath_results if not isinstance(r, str)]
+        usual_number_of_results = len(xpath_results)
         if not usual_number_of_results:
+            self.junk_body_elements_label['text'] = "No elements found."
             return
+        self.junk_body_elements_label['text'] = f"{usual_number_of_results} elements found."
         for xpath in results:
             new_xpath = body + xpath
             try:
-                corrected_number_of_results = len(tree.xpath(new_xpath))
+                new_xpath_results = tree.xpath(new_xpath)
+                new_xpath_results = [r for r in new_xpath_results if not isinstance(r, str)]
+                corrected_number_of_results = len(new_xpath_results)
             except etree.XPathError:
                 continue
             if corrected_number_of_results < usual_number_of_results:
@@ -1327,9 +1359,7 @@ class MainApplication(tk.Tk):
                     break
 
         for i, entry in enumerate(final_result):
-            element[i][-3].delete('1.0', tk.END)
             element[i][-3].insert('1.0', entry[0])
-            element[i][-1].delete('1.0', tk.END)
             element[i][-1].insert('1.0', f'Removes {entry[1]} elements.')
 
     @staticmethod
@@ -1493,19 +1523,19 @@ class MainApplication(tk.Tk):
                 cur.execute("INSERT INTO image_xpath VALUES (?, ?)", (entry[0], entry[1]))
 
             revised_junk_list = []
+            bad_junk_indicators = [' or ', ' and ', '//', 'position', 'self::div']
             for item in junk_list:
                 if not item:
                     continue
-                if '] [not' in item:
-                    item = item.replace('] [not', '][not')
+                item = item.replace('] [not', '][not')
                 items = item.split('][not')
                 for split_item in items:
-                    if ' or ' in split_item or ' and ' in split_item:
-                        continue
                     if not split_item.startswith('[not'):
                         split_item = '[not' + split_item
                     if not split_item.endswith(']'):
                         split_item += ']'
+                    if any(s in split_item for s in bad_junk_indicators) or ('contains' not in item or 'self' not in item):
+                        continue
                     revised_junk_list.append(split_item)
 
             junk_dict = dict()
@@ -1561,7 +1591,7 @@ class MainApplication(tk.Tk):
 
     @staticmethod
     def get_strip(widget):
-        return widget.get('1.0', 'end-1c').strip()
+        return widget.get('1.0', 'end-1c').strip().replace('\n', '')
 
     def update_old_sources(self):
         con = sqlite3.connect(config.local_db_path)

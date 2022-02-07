@@ -7,8 +7,6 @@ def find_bad_items():
     con = sqlite3.connect(config.local_db_path)
     con.row_factory = sqlite3.Row
     cur = con.cursor()
-    # TODO: name not in domain
-    # TODO: Stopped, with projects
     id_name_tuples = cur.execute("SELECT name, domain, id, user, date FROM log WHERE status='Running'").fetchall()
     bad_items = []
     for item in id_name_tuples:
