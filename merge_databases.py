@@ -2,7 +2,6 @@ import sqlite3
 from datetime import datetime
 
 
-# TODO: Turn into class?
 def sync(db_from_path, db_to_path):
     def sync_new(db_from_path, db_to_path):
         db_from = sqlite3.connect(db_from_path)
@@ -38,7 +37,6 @@ def sync(db_from_path, db_to_path):
             final_dict = {}
             for item in array:
                 final_dict[item['id']] = {
-                    'json': item['full_json'],
                     'date': datetime.strptime(item['date'], '%d-%b-%Y %H:%M:%S')
                 }
             return final_dict
@@ -51,13 +49,13 @@ def sync(db_from_path, db_to_path):
         db_to_row.row_factory = sqlite3.Row
         cur_to_row = db_to_row.cursor()
 
-        json_from = cur_from_row.execute("SELECT id,date,full_json FROM log").fetchall()
-        json_to = cur_to_row.execute("SELECT id, date, full_json FROM log").fetchall()
+        json_from = cur_from_row.execute("SELECT id,date FROM log").fetchall()
+        json_to = cur_to_row.execute("SELECT id, date FROM log").fetchall()
         dict_to = array_to_dict(json_to)
         dict_from = array_to_dict(json_from)
 
         for item_id in dict_from.keys():
-            if dict_from[item_id]['json'] != dict_to[item_id]['json'] and dict_from[item_id]['date'] > dict_to[item_id]['date']:
+            if dict_from[item_id]['date'] > dict_to[item_id]['date']:
                 new = cur_from_row.execute("SELECT * FROM log WHERE id=?", (item_id,)).fetchone()
                 cur_to_row.execute("UPDATE log SET date=?, start_urls=?, menu_xpath=?, articles_xpath=?, title_xpath=?, pubdate_xpath=?, "
                                    "date_order=?, author_xpath=?,body_xpath=?, settings=?, domain=?, name=?, status=?, projects=?, botname=?,"

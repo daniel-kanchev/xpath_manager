@@ -24,6 +24,7 @@ import login_data
 from custom_widgets import MyText, MyLabel, MyFrame, MyButton, MyCheckbutton, MyRadiobutton
 import dropbox_methods
 
+
 # TODO: Settings Page
 # TODO: Custom Clipboard
 # TODO: Popular Regex
@@ -44,7 +45,7 @@ class MainApplication(tk.Tk):
         self.set_word_boundaries()
         self.configure(background=config.background)
         self.current_view = 'extractor'
-        self.debug_mode = True if len(sys.argv) and sys.argv[1] == 'debug' else False
+        self.debug_mode = True if len(sys.argv) > 1 and sys.argv[1] == 'debug' else False
         if self.debug_mode:
             print('________________DEBUG MODE__________________________')
         self.general_style = self.frame_style = self.checkbutton_style = self.label_style = self.label_style_bold = self.button_style = self.button_style_bold = ttk.Style()
@@ -112,13 +113,13 @@ class MainApplication(tk.Tk):
         self.date_order_label = MyLabel(master=self.json_buttons_frame, view='extractor', text="")
         self.last_extractor_user_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=35, style='Bold.TLabel')
         self.last_kraken_user_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=35, style='Bold.TLabel')
-        
+
         self.domain_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=35, style='Bold.TLabel')
         self.projects_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=20, style='Bold.TLabel')
         self.name_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=20, style='Bold.TLabel')
         self.botname_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=20, style='Bold.TLabel')
         self.status_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=20, style='Bold.TLabel')
-        
+
         self.var_labels = [self.date_order_label, self.last_extractor_user_var_label, self.last_kraken_user_var_label, self.domain_var_label,
                            self.status_var_label, self.projects_var_label, self.name_var_label, self.botname_var_label, self.info_label]
 
@@ -144,7 +145,7 @@ class MainApplication(tk.Tk):
         self.pubdate_textbox = MyText(master=self.pubdate_frame, view='extractor', height=3, width=60)
         self.author_textbox = MyText(master=self.author_frame, view='extractor', height=2, width=60)
         self.body_textbox = MyText(master=self.body_frame, view='extractor', height=3, width=60)
-        
+
         self.xpath_dict = {
             "start_urls": self.start_urls_textbox,
             "menu_xpath": self.menu_textbox,
@@ -550,8 +551,6 @@ class MainApplication(tk.Tk):
         self.create_finder_tables()
         self.update_finder_tables(startup=True)
         self.login()
-
-        # self.update_old_sources()
 
         self.get_all_widgets(self)
         self.pack_widgets()
@@ -1298,7 +1297,7 @@ class MainApplication(tk.Tk):
 
     def find_content(self):
         for widget in self.all_widgets:
-            if widget.view == 'finder' and isinstance(widget, MyText) and widget.master != self.article_url_frame and widget.master != self.junk_xpath_body_frame\
+            if widget.view == 'finder' and isinstance(widget, MyText) and widget.master != self.article_url_frame and widget.master != self.junk_xpath_body_frame \
                     and widget.master != self.finder_junk_frame:
                 widget.delete('1.0', tk.END)
         article_url = self.get_strip(self.finder_article_textbox)
@@ -1593,50 +1592,6 @@ class MainApplication(tk.Tk):
     @staticmethod
     def get_strip(widget):
         return widget.get('1.0', 'end-1c').strip().replace('\n', '')
-
-    def update_old_sources(self):
-        con = sqlite3.connect(config.local_db_path)
-        cur = con.cursor()
-
-        cur.execute("SELECT id FROM log WHERE domain IS NULL")
-        id_list = [x[0] for x in cur.fetchall() if x[0].strip() and x[0][:2] != '71' and x[0][:2] != '72']
-
-        enabled_xpath = '//tr[td[child::text()[contains(.,"Enabled")]]]/td[2]/i[contains(@class, "true")]'
-        active_xpath = '//tr[td[child::text()[contains(.,"Active")]]]/td[2]/i[contains(@class, "true")]'
-        botname_xpath = '//tr[td[child::text()[contains(.,"Botname")]]]/td[2]/text()'
-        projects_xpath = '//tr[td[child::text()[contains(.,"Projects")]]]/td[2]//li/a/text()'
-        name_xpath = '//tr[td[child::text()[contains(.,"Name")]]]/td[2]/text()'
-        domain_xpath = '//tr[td[child::text()[contains(.,"URL")]]]/td[2]/a/text()'
-
-        for source_id in id_list[:50]:
-            print(source_id)
-            link = f"http://kraken.aiidatapro.net/items/{source_id}/"
-            items_page_response = self.session.get(link)
-            tree = html.fromstring(items_page_response.text)
-            enabled = bool(tree.xpath(enabled_xpath))
-            active = bool(tree.xpath(active_xpath))
-            if not tree.xpath(botname_xpath):
-                continue
-            botname = tree.xpath(botname_xpath)[0]
-            projects = tree.xpath(projects_xpath)
-            projects = ','.join(projects)
-            name = tree.xpath(name_xpath)[0]
-            domain = tree.xpath(domain_xpath)[0]
-            if enabled:
-                if active:
-                    status = "Running"
-                else:
-                    status = "Enabled, but not Active(?)"
-            else:
-                if active:
-                    status = "Custom"
-                else:
-                    status = "Stopped"
-            print(domain, name, projects, status, botname)
-            cur.execute("UPDATE log SET domain=?, name=?, projects=?, status=?, botname=? WHERE id=?", (domain, name, projects, status, botname, source_id))
-        con.commit()
-        con.close()
-
 
 if __name__ == '__main__':
     app = MainApplication()

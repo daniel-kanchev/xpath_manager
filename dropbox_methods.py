@@ -6,7 +6,6 @@ from merge_databases import sync
 import time
 
 
-# TODO: Turn into class?
 def download_db(download_as=config.db_path):
     dbx = dropbox.Dropbox(login_data.dropbox_access_token)
     print("Downloading database..")
