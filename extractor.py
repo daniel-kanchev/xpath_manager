@@ -18,22 +18,15 @@ from requests.auth import HTTPProxyAuth
 import urllib3
 from lxml import html, etree
 import atexit
-from collections import Counter
 
 import config
 import login_data
 from custom_widgets import MyText, MyLabel, MyFrame, MyButton, MyCheckbutton, MyRadiobutton
 import dropbox_methods
 
-# TODO: Domain, name, projects as textboxes, not labels, botname and status as dropdown menu
-# TODO: Add hristo button
-# TODO: Fix junk finder - remove bad junk, add 'transfer to body' button, add should add not to extractor but to budy that is being cleaned, and also auto find again
-# TODO: Get scraping log from Kraken
 # TODO: Settings Page
 # TODO: Custom Clipboard
 # TODO: Popular Regex
-# TODO: PyLint
-# TODO: Remove magic numbers
 # TODO: Tooltips
 # TODO: Documentation
 
@@ -119,11 +112,13 @@ class MainApplication(tk.Tk):
         self.date_order_label = MyLabel(master=self.json_buttons_frame, view='extractor', text="")
         self.last_extractor_user_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=35, style='Bold.TLabel')
         self.last_kraken_user_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=35, style='Bold.TLabel')
+        
         self.domain_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=35, style='Bold.TLabel')
-        self.status_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=20, style='Bold.TLabel')
         self.projects_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=20, style='Bold.TLabel')
         self.name_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=20, style='Bold.TLabel')
         self.botname_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=20, style='Bold.TLabel')
+        self.status_var_label = MyLabel(master=self.info_frame, view='extractor', text="", width=20, style='Bold.TLabel')
+        
         self.var_labels = [self.date_order_label, self.last_extractor_user_var_label, self.last_kraken_user_var_label, self.domain_var_label,
                            self.status_var_label, self.projects_var_label, self.name_var_label, self.botname_var_label, self.info_label]
 
@@ -149,7 +144,7 @@ class MainApplication(tk.Tk):
         self.pubdate_textbox = MyText(master=self.pubdate_frame, view='extractor', height=3, width=60)
         self.author_textbox = MyText(master=self.author_frame, view='extractor', height=2, width=60)
         self.body_textbox = MyText(master=self.body_frame, view='extractor', height=3, width=60)
-
+        
         self.xpath_dict = {
             "start_urls": self.start_urls_textbox,
             "menu_xpath": self.menu_textbox,
@@ -300,12 +295,15 @@ class MainApplication(tk.Tk):
         self.pubdate_single_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="[1]", command=lambda: self.append_textbox_values(self.pubdate_textbox,
                                                                                                                                                           before_value='(',
                                                                                                                                                           after_value=')[1]'))
-        self.standard_regex_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Rgx 1.1.22",
+        self.standard_regex_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="1.1.2022",
                                               command=lambda: self.append_textbox_values(self.pubdate_textbox,
-                                                                                         before_value="re:match(", after_value=r", '\d{1,2}\.\d{1,2}\.\d{2,4}', 'g')"))
-        self.reverse_regex_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Rgx 21.1.1",
+                                                                                         before_value="re:match(", after_value=r", '\d{1,2}\.\s*\d{1,2}\.\s*\d{2,4}', 'g')"))
+        self.reverse_regex_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="2022.1.1",
                                              command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
-                                                                                        after_value=r", '\d{2,4}\.\d{1,2}\.\d{1,2}', 'g')"))
+                                                                                        after_value=r", '\d{2,4}\.\s*\d{1,2}\.\s*\d{1,2}', 'g')"))
+        self.word_dot_regex_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="21. Jan 2022",
+                                              command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
+                                                                                         after_value=r", '(\d{2,4})\.(\s\w+\s\d{1,2})', 'g')"))
         self.blank_regex_button = MyButton(master=self.pubdate_buttons_frame, view='extractor', text="Rgx Blank",
                                            command=lambda: self.append_textbox_values(self.pubdate_textbox, before_value="re:match(",
                                                                                       after_value=r", 'REGEX', 'g')"))
@@ -407,13 +405,13 @@ class MainApplication(tk.Tk):
                                                    command=lambda: self.from_textbox_to_textbox(self.finder_body_xpath_4, [self.body_textbox, self.finder_junk_textbox]), padding=0)
 
         self.image_xpath_add_button_1 = MyButton(master=self.finder_image_frame, view='finder', text="Add",
-                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_1, [self.body_textbox], append_with_pipe=True), padding=0)
+                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_1, [self.body_textbox], append_at_front=True), padding=0)
         self.image_xpath_add_button_2 = MyButton(master=self.finder_image_frame, view='finder', text="Add",
-                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_2, [self.body_textbox], append_with_pipe=True), padding=0)
+                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_2, [self.body_textbox], append_at_front=True), padding=0)
         self.image_xpath_add_button_3 = MyButton(master=self.finder_image_frame, view='finder', text="Add",
-                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_3, [self.body_textbox], append_with_pipe=True), padding=0)
+                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_3, [self.body_textbox], append_at_front=True), padding=0)
         self.image_xpath_add_button_4 = MyButton(master=self.finder_image_frame, view='finder', text="Add",
-                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_4, [self.body_textbox], append_with_pipe=True), padding=0)
+                                                 command=lambda: self.from_textbox_to_textbox(self.finder_image_xpath_4, [self.body_textbox], append_at_front=True), padding=0)
 
         self.junk_xpath_add_button_1 = MyButton(master=self.finder_junk_frame, view='finder', text="Add",
                                                 command=lambda: self.append_junk(self.finder_junk_xpath_1, [self.finder_junk_textbox]), padding=0)
@@ -476,8 +474,8 @@ class MainApplication(tk.Tk):
             [self.title_textbox, self.copy_title_button, self.title_h1_button, self.title_single_button]
         ]
         self.pubdate_buttons_frame.frame_list = [
-            [self.copy_pubdate_button, self.meta_button, self.standard_regex_button, self.reverse_regex_button, self.word_regex_button],
-            [self.blank_regex_button, self.pubdate_replace_button, self.pubdate_copy_without_regex, self.pubdate_single_button]
+            [self.copy_pubdate_button, self.meta_button, self.standard_regex_button, self.reverse_regex_button, self.word_dot_regex_button],
+            [self.word_regex_button, self.blank_regex_button, self.pubdate_replace_button, self.pubdate_copy_without_regex, self.pubdate_single_button]
         ]
         self.pubdate_frame.frame_list = [
             [self.pubdate_label],
@@ -572,7 +570,8 @@ class MainApplication(tk.Tk):
         self.from_textbox_to_textbox(textbox_from, textboxes_to, append=True)
         self.find_junk()
 
-    def create_finder_tables(self):
+    @staticmethod
+    def create_finder_tables():
         con = sqlite3.connect(config.local_db_path)
         cur = con.cursor()
         cur.execute("CREATE TABLE IF NOT EXISTS title_xpath (xpath TEXT, count NUMBER)")
@@ -984,7 +983,7 @@ class MainApplication(tk.Tk):
         textbox.delete("1.0", tk.END)
         textbox.insert("1.0", value)
 
-    def from_textbox_to_textbox(self, textbox_from, textboxes_to, append=False, append_with_pipe=False):
+    def from_textbox_to_textbox(self, textbox_from, textboxes_to, append=False, append_at_front=False):
         value = self.get_strip(textbox_from)
         if not value:
             return
@@ -993,11 +992,11 @@ class MainApplication(tk.Tk):
                 original_value = self.get_strip(textbox)
                 textbox.delete('1.0', tk.END)
                 textbox.insert('1.0', f"{original_value}{value}")
-        elif append_with_pipe:
+        elif append_at_front:
             for textbox in textboxes_to:
                 original_value = self.get_strip(textbox)
                 textbox.delete('1.0', tk.END)
-                textbox.insert('1.0', f"{original_value} | {value}")
+                textbox.insert('1.0', f"{value} | {original_value}")
         else:
             for textbox in textboxes_to:
                 textbox.delete('1.0', tk.END)
@@ -1061,7 +1060,9 @@ class MainApplication(tk.Tk):
             print(f"Domain could not load - {domain}")
             return
 
-    def clear(self, skip=[], only=[]):
+    def clear(self, skip=None, only=None):
+        if skip is None:
+            skip = []
         self.set_kraken_id(unset=True)
         if only:
             clearing_set = only
